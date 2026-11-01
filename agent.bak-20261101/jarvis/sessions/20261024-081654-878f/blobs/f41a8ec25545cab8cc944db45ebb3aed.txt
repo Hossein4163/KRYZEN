@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"=== try apt-get update+install ===\\nsh: line 1: apt-get: command not found\\nsh: line 1: apt-get: command not found\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-7cead8c8-8d01-4105-a8f0-e95b9f13c4b3"}

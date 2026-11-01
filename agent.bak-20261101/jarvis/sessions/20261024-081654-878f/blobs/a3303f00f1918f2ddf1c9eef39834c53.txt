@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "admin\ncustomer\npublic\nteam\n---ROUTES---\n---PAGES---\nApp.tsx\ncomponents\nhooks\ni18n\nlib\nmain.tsx\npages\nstyles\nvite-env.d.ts\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

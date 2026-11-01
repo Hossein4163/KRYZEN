@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "started pid 3\n200 - swagger\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/kry/Projects/devpilot/rame-studio/src/Api\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

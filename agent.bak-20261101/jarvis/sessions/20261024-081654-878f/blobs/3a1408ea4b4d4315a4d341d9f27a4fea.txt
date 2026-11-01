@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"=== CHECK 5278 ===\\n=== SWAGGER 5278 ===\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-721cb9a8-1e5c-4872-8fef-10b16cf47d49"}

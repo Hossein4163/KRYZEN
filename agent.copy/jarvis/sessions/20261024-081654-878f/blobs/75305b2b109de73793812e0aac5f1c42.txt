@@ -1,0 +1,1 @@
+{"content": "The backend still uses PostgreSQL. Let me read the exact environment-based DB selection logic.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/src/Api/Program.cs\",\"offset\":14,\"limit\":45}", "name": "pc_read_file"}, "id": "call-d71e53c1-112b-4caf-8e14-0bb8c1e792b9", "type": "function"}]}

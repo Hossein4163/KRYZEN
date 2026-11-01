@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"crw-rw-rw- 1 nobody nobody 1, 3 Oct 27 00:31 /var/run/docker.sock\\n---\\nuid=1000(kry) gid=1000(kry) groups=1000(kry),65534(nobody)\\n---\\nkry nobody\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-b4677ffa-dece-4ced-ae37-a04976d05f54"}

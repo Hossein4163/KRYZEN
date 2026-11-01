@@ -1,0 +1,1 @@
+{"content": "Enabled: web_fetch. Their schemas are available from the next step.", "role": "tool", "tool_call_id": "call-1f857917-3cc4-4ab6-bcb9-1bd24762b6f6"}

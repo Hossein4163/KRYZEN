@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"docker compose config 2>&1 | head -60\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-ba59f987-d987-4e2c-8f38-1d745f1d2bb7", "type": "function"}]}

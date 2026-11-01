@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"/usr/bin/docker\\nClient:\\n Version:    29.9.2\\n Context:    default\\n Debug Mode: false\\n Plugins:\\n---\\n/var/run/docker.sock\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-25fdb3a4-2f22-4139-ba8f-08662155897c"}

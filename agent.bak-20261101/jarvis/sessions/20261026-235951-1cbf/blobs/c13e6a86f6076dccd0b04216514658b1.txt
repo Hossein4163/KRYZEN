@@ -1,0 +1,1 @@
+{"content": "Read-only check: call repo_map and recall for this project, then reply in one short sentence with how many source files have symbols. Do not delegate and do not change files.", "role": "user"}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "dotnet-ef       10.0.13      dotnet-ef\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,0 +1,1 @@
+{"content": "The previous generation reached its output limit and was discarded; no tools from that generation executed. Respond concisely. Use one small, complete tool call at a time; split large artifacts into supported file operations. Keep final chat brief and put detailed work in project files.", "role": "system"}

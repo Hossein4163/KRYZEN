@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Flowsint\\n  http://localhost:5173/login\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-71994b41-5712-42a9-9676-0099961957e3"}

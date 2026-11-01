@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"{\\\"detail\\\":\\\"Not Found\\\"}\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-33ff25fd-2c77-40e5-854f-55d185d8688c"}

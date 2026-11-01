@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ss -tlnp sport = :5000\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-92e53f51-8586-4000-812f-b34389782c8c", "type": "function"}]}

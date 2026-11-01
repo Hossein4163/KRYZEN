@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"screenshot https://www.shadcn.io/blocks/navbar-glassmorphism /home/kry/Projects/devpilot/rame-studio/docs/references/images/04-shadcn-navbar-1440.png --width 1440 --height 900\"}", "name": "browser"}, "id": "call-e36e6072-3a8f-4f66-a767-c43f3cb70db7", "type": "function"}]}

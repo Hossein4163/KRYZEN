@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Glassmorphism Dashboard: Design, Prompt and Real Examples | Superdesign\\n  https://superdesign.dev/styles/glassmorphism/dashboard\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-8e4d40ef-0bcd-413e-95e3-cac3029afbcd"}

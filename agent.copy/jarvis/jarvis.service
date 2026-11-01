@@ -1,0 +1,16 @@
+[Unit]
+Description=K.R.Y.Z.E.N web UI + agent engine (http://127.0.0.1:8770)
+After=network-online.target pc-bridge.service kryzen-backend.service
+Wants=pc-bridge.service kryzen-backend.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=/mnt/bullshit/n8n/agent/runtime.env
+WorkingDirectory=/mnt/bullshit/n8n/agent/jarvis
+ExecStart=/usr/bin/python3 -I /mnt/bullshit/n8n/agent/jarvis/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

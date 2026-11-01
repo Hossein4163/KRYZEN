@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/SeedData.cs\"}", "name": "pc_read_file"}, "id": "call-fb62219f-ea7b-4792-a15c-637e9534bc95", "type": "function"}]}

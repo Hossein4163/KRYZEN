@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "DOCKER NOT RUNNING\n---\nNO COMPOSE\n---\n10.0.113\n---\nv26.12.1\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "/usr/bin/docker\nDocker version 29.9.2, build a82e528901\nDocker Compose version 5.6.1\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

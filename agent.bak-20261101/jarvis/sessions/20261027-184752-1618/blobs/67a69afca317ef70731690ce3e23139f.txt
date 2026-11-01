@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Glass UI | All Shadcn\\n  https://allshadcn.com/components/glass-ui/\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-74aa596d-648e-4c26-9696-9303cc7e08ab"}

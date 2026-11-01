@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "{\"status\":\"ok\"}---\n{\"detail\":\"Not Found\"}---SWAGGER---\n404", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

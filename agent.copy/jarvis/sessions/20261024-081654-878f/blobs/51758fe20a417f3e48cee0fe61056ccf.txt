@@ -1,0 +1,1 @@
+{"content": "The backend is still connecting to PostgreSQL. Let me read the full Program.cs to understand the environment-based DB selection logic.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"id\":\"d2eefe63818deb9f0e9cdc727c467fa6\"}", "name": "read_blob"}, "id": "call-220bc063-b745-4ba4-ada1-a1893dd9c13b", "type": "function"}]}

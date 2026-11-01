@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/frontend", "exists": true, "entries": ["public/", "src/", "index.html", "package-lock.json", "package.json", "postcss.config.js", "tailwind.config.ts", "tsconfig.json", "tsconfig.node.json", "tsconfig.tsbuildinfo", "vite.config.ts", "public/test-auth.html", "src/App.tsx", "src/main.tsx", "src/vite-env.d.ts"]}

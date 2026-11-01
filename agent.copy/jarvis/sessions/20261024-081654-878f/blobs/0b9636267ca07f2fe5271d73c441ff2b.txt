@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Flowsint\\n  http://localhost:5173/login?redirect=%2Fdashboard\\n\", \"stderr\": \"[agent-browser] launched browser\\n\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-1223cb92-6503-4242-8b71-f9de4a2a0ce3"}

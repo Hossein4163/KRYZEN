@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"DOCKER NOT READY\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-a08ce8a0-c5ec-45fd-8524-0d9186db0f2b"}

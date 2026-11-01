@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"---\\n---ROBOTS---\\n---\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-66af05b3-da35-4bff-9a6a-40b4ec8bd7a6"}

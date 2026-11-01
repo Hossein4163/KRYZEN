@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "started bg\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

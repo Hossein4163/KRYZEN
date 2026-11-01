@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/src/Api/Program.cs\"}", "name": "pc_read_file"}, "id": "call-9b59749a-7f88-4e81-a3ee-d5a8909df7e9", "type": "function"}]}

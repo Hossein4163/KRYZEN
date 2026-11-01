@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/docker", "exists": true, "entries": ["init-db/", "entrypoint.sh", "wait-for-db.sh", "init-db/.gitkeep"]}

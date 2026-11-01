@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/docker-compose.yml\"}", "name": "pc_read_file"}, "id": "call-82d34675-d829-4ac6-9489-4f8501561a0a", "type": "function"}]}

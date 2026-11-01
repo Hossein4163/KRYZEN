@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ رامه استودیو | طراحی وب و سئو\\n  http://localhost:5174/team/kanban\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-5b834598-bfca-418c-8a01-4b682a7fdf72"}

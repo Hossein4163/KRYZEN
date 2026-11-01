@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"---SWAGGER---\\n301\\n200\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-661f4eba-249b-4587-a5c2-eec56e7bc265"}

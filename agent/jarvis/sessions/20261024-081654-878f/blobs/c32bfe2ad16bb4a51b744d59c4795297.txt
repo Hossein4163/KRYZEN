@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Api/wwwroot/sitemap.xml\", \"bytes\": 984, \"revision\": \"3c310188ed3c69189865fd54646fdabea7e13cdbe00282f3fa50a4b723373964\"}", "role": "tool", "tool_call_id": "call-4ee068b6-bde6-4ab7-a952-5be35d0ac817"}

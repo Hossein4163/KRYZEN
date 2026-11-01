@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"pacman -S --noconfirm postgresql 2>&1 | tail -10; echo \\\"---\\\"; which postgres pg_ctl initdb 2>&1\",\"timeout\":60}", "name": "pc_shell"}, "id": "call-5f19153b-33fd-4cb0-9b69-cac0305b0562", "type": "function"}]}

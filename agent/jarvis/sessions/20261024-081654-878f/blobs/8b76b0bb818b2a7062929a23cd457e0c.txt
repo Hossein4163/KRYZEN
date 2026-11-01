@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"dockerd 2>&1 | head -30 &\\nsleep 8\\ndocker info 2>&1 | head -25\"}", "name": "pc_shell"}, "id": "call-e7ac2c23-179b-4da5-b490-1a036cc26e5b", "type": "function"}]}

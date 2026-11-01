@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Identity\", \"exists\": true, \"entries\": [\"IdentityConfig.cs\"]}", "role": "tool", "tool_call_id": "call-4fbfdb96-959d-4f73-ad79-391971f484f7"}

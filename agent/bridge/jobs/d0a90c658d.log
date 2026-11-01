@@ -1,0 +1,66 @@
+Milestone M1 tasks (**T7–T14**) for **Rame Studio** have been fully implemented, verified, and committed.
+
+### Completed Tasks Summary
+
+- **T7: React 19 + Vite + TypeScript Frontend Shell**
+  - Scaffolded [package.json](file:///home/kry/Projects/devpilot/rame-studio/frontend/package.json), [vite.config.ts](file:///home/kry/Projects/devpilot/rame-studio/frontend/vite.config.ts), [tsconfig.json](file:///home/kry/Projects/devpilot/rame-studio/frontend/tsconfig.json), [tailwind.config.ts](file:///home/kry/Projects/devpilot/rame-studio/frontend/tailwind.config.ts), [postcss.config.js](file:///home/kry/Projects/devpilot/rame-studio/frontend/postcss.config.js), [index.html](file:///home/kry/Projects/devpilot/rame-studio/frontend/index.html).
+  - Configured Vitrea design tokens in [globals.css](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/styles/globals.css) (slate background/surface, indigo-600 primary, 4px spacing base, logical properties).
+  - Built shadcn/ui-style primitives: [`Button`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/ui/button.tsx), [`Card`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/ui/card.tsx), [`Input`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/ui/input.tsx), [`Badge`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/ui/badge.tsx).
+- **T8: Antigravity UI Sidebar**
+  - Implemented [`Sidebar.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/layout/Sidebar.tsx) with fixed left rail (256px desktop, collapsible to 72px icon mode).
+  - Adheres to Vitrea specification: **stays on the left in both RTL and LTR** with brand badge, navigation items, collapse toggle, and user rail with [`Blobatar`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/antigravity/Blobatar.tsx) avatar fallback.
+- **T9: Antigravity UI Topbar**
+  - Implemented [`Topbar.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/layout/Topbar.tsx) (64px fixed header, notifications dropdown with unread badge, theme toggle, language switcher, account menu).
+  - Orchestrated layout via [`ShellLayout.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/layout/ShellLayout.tsx).
+- **T10: i18n & RTL Setup**
+  - Configured [i18n.ts](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/i18n/i18n.ts) with Persian (`fa`, RTL default) and English (`en`, LTR), persisting preference and updating `dir` and `lang` on `<html>`.
+  - Added comprehensive translations in [fa.json](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/i18n/fa.json) and [en.json](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/i18n/en.json).
+  - Self-hosted Vazirmatn (`@fontsource/vazirmatn`) and Inter (`@fontsource/inter`).
+- **T11: Public Home Page Shell**
+  - Created [`HomePage.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/pages/public/HomePage.tsx) with marketing navbar, [`HeroSection.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/marketing/HeroSection.tsx), [`ServicesPreview.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/marketing/ServicesPreview.tsx), [`PackagesPreview.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/components/marketing/PackagesPreview.tsx), and studio footer. Responsive in both light and dark modes.
+- **T12: API Health Check & OpenAPI / Swagger**
+  - Added Swashbuckle OpenAPI with JWT Bearer security definition to [Program.cs](file:///home/kry/Projects/devpilot/rame-studio/src/Api/Program.cs), [appsettings.json](file:///home/kry/Projects/devpilot/rame-studio/src/Api/appsettings.json), and enabled static file SPA fallback.
+  - Added automated test in [AuthAndPolicyTests.cs](file:///home/kry/Projects/devpilot/rame-studio/tests/Api.Tests/AuthAndPolicyTests.cs) verifying Swagger JSON endpoint with Bearer security scheme.
+- **T13: Multi-Stage Dockerfile (.NET 10 + Node 20)**
+  - Configured [Dockerfile](file:///home/kry/Projects/devpilot/rame-studio/Dockerfile) (Node 20 frontend build + .NET 10 SDK compilation + ASP.NET Core 10 runtime serving both API and SPA).
+- **T14: Docker Compose & Infrastructure**
+  - Configured [docker-compose.yml](file:///home/kry/Projects/devpilot/rame-studio/docker-compose.yml) (`api` + `postgres` 16 + uploads volume + healthchecks).
+  - Added [wait-for-db.sh](file:///home/kry/Projects/devpilot/rame-studio/docker/wait-for-db.sh), [entrypoint.sh](file:///home/kry/Projects/devpilot/rame-studio/docker/entrypoint.sh), and [.env.example](file:///home/kry/Projects/devpilot/rame-studio/.env.example).
+- **Auth & Route Protection**
+  - Implemented [`LoginPage.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/pages/public/LoginPage.tsx) with 1-click demo logins for all three roles (`ADMIN`, `TEAM_MEMBER`, `CUSTOMER`).
+  - Implemented [`RegisterPage.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/pages/public/RegisterPage.tsx) for customer self-registration.
+  - Implemented [`AdminDashboardShell.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/pages/admin/AdminDashboardShell.tsx) with 5 Vitrea metric cards (Revenue, Active Customers, Open Leads, Active Projects, Overdue Tasks).
+  - Configured session protection and role guards in [`App.tsx`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/App.tsx) and [`useAuth.ts`](file:///home/kry/Projects/devpilot/rame-studio/frontend/src/hooks/useAuth.ts).
+
+---
+
+### Verification Results
+
+1. **Frontend Production Build**:
+   ```bash
+   cd frontend && npm run build
+   # => ✓ built in 4.14s (dist/index.html, dist/assets/index-*.js, dist/assets/index-*.css)
+   ```
+2. **.NET Solution Build & Tests**:
+   ```bash
+   dotnet build rame-studio.sln
+   # => Build succeeded. 0 Warning(s), 0 Error(s)
+   dotnet test rame-studio.sln
+   # => Passed! Total: 19 passed, 0 failed (Domain: 8, Application: 2, Infrastructure: 3, Api: 6)
+   ```
+3. **Docker Multi-Stage Build & Container Execution**:
+   ```bash
+   docker build -t rame-studio:test .
+   # => FINISHED (38/38 steps)
+   curl http://localhost:5000/api/health
+   # => {"status":"healthy","timestamp":"2026-10-24T07:09:20Z"}
+   curl http://localhost:5000/swagger/v1/swagger.json
+   # => OpenAPI 3.0.1 document with JWT Bearer scheme (200 OK)
+   curl http://localhost:5000/
+   # => React 19 SPA index.html (200 OK)
+   ```
+
+### Git Commit
+
+- **Commit**: `6ebd23c`
+- **Message**: `feat(T7-T14): frontend shell + Docker + Swagger`

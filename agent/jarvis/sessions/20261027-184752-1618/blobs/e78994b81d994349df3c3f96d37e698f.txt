@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Glassmorphism Navbar Block for React\\n  https://www.shadcn.io/blocks/navbar-glassmorphism\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-0593893d-6b53-4d73-af95-60fc331186e2"}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "ROOTLESS_NOT_FOUND\nno rootless binaries\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

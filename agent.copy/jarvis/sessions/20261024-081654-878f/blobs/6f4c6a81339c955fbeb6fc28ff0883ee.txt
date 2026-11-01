@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "en.json\nfa.json\ni18n.ts\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

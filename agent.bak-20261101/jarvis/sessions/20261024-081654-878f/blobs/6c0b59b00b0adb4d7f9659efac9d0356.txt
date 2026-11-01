@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "=== find postgres binaries anywhere ===\n=== check /usr/lib/postgresql ===\n=== check common locations ===\nAntigravity\napps\ncontainerd\ncuda\nexpressvpn\ngithub-desktop\ngoogle\nMullvad VPN\npostman\nspotify\n=== apt cache ===\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

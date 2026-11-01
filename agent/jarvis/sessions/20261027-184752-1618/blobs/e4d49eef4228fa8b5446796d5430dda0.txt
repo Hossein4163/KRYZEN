@@ -1,0 +1,1 @@
+{"content": "{\"error\": \"FileNotFoundError: [Errno 2] No such file or directory: '/home/kry/Projects/devpilot/rame-studio/src/Api/Api.csproj'\"}", "role": "tool", "tool_call_id": "call-a3374ca8-a764-4bf5-878e-d42500d0968b"}

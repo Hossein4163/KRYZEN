@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"---all pg binaries---\\n---apt list---\\n---pacman---\\npostgresql-libs 18.6-4\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-a8c27b85-cd12-4ded-b8dc-970c9622d26f"}

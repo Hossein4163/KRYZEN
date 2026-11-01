@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"no rootless docker found\\nno rootless binaries\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-a15188e6-496b-42b2-ae97-fc2d6b2d1f74"}

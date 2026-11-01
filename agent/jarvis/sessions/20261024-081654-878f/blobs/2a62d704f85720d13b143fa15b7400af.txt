@@ -1,0 +1,1 @@
+{"exit_code": 2, "stdout": "---PAGES---\n", "stderr": "ls: cannot access 'pages': No such file or directory\n", "cwd": "/home/kry/Projects/devpilot"}

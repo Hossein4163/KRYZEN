@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Application/DTOs\", \"exists\": true, \"entries\": [\"Auth/\", \"Auth/AuthResponse.cs\", \"Auth/LoginRequest.cs\", \"Auth/RefreshTokenRequest.cs\", \"Auth/RegisterRequest.cs\"]}", "role": "tool", "tool_call_id": "call-eb29345e-5cc1-40de-9516-98de6ee72195"}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "=== RUNNING BACKEND HEALTH ===\n\n=== SWAGGER JSON ===\n['/api/Auth/login', '/api/Auth/me', '/api/Auth/refresh', '/api/Auth/register', '/api/Robots/robots.txt', '/api/Sitemap/sitemap.xml', '/api/health', '/api/test/admin', '/api/test/admin-or-team', '/api/test/customer', '/api/test/team']\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

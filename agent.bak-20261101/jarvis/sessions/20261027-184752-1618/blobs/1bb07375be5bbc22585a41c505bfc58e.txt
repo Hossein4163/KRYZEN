@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/src/Domain/Common", "exists": true, "entries": ["BaseAuditableEntity.cs", "BaseEntity.cs", "Result.cs"]}

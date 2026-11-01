@@ -1,0 +1,1 @@
+{"content": "{\"error\": \"PermissionError: /home/kry/Projects/rame-studio is outside the workspace /home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-b4b3ffd2-b952-4fe2-b784-171589532873"}

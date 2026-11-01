@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ls -la /tmp/lh* 2>&1; find /tmp -maxdepth 1 -name \\\"lh*\\\" 2>&1\"}", "name": "pc_shell"}, "id": "call-0f5b0d35-db62-45fc-bb19-5abc3075bad6", "type": "function"}]}

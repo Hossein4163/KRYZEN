@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Apply the DevPilot agent notes from the Obsidian vault (~/Projects/devpilot/_DevPilot/Agents) to n8n:
+# rebuild both workflows + the Obsidian canvases, then import them into the running n8n container.
+set -euo pipefail
+AGENT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+CONTAINER="${N8N_CONTAINER:-n8n-n8n-1}"
+
+echo "▸ building workflows from the vault notes"
+python3 -I "$AGENT_DIR/workflow/build_workflow.py"
+
+for f in autoresume.json ai-dev-agent.json; do
+  echo "▸ importing $f into n8n"
+  docker cp "$AGENT_DIR/workflow/$f" "$CONTAINER:/tmp/$f"
+  docker exec "$CONTAINER" n8n import:workflow --input="/tmp/$f" 2>&1 | grep -v "license SDK" | tail -1
+done
+
+echo "✓ done — reload the n8n tab (F5) to see the changes"

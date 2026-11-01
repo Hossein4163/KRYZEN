@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"/usr/bin/dotnet\\n10.0.113\\n---\\n/home/kry/.local/share/mise/shims/node\\nv26.12.1\\n---\\n/home/kry/.local/share/mise/shims/npm\\n11.20.0\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-0405d7db-86ed-43fe-b4c9-bb60a8d4e195"}

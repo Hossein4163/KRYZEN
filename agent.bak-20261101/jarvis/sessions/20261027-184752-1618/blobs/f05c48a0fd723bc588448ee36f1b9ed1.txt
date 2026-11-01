@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 1, \"stdout\": \"\", \"stderr\": \"Unknown command: ls\\n\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-993296c7-887a-4e16-a93b-728204d8c90d"}

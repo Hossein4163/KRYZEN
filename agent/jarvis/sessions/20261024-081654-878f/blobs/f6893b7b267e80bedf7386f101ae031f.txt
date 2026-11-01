@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cat ~/Projects/devpilot/rame-studio/docker-compose.yml | grep -A5 'postgres' | head -20\"}", "name": "pc_shell"}, "id": "call-8b3b5902-a853-4228-a26a-2a8fc0c02a1c", "type": "function"}]}

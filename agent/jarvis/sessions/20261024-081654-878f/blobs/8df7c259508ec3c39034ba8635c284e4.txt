@@ -1,0 +1,1 @@
+{"content": "Login page works with seed credential shortcuts. Let me test login with each seed credential.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"click @e59\"}", "name": "browser"}, "id": "call-57c25bf7-8653-4653-b284-049e36b568d4", "type": "function"}]}

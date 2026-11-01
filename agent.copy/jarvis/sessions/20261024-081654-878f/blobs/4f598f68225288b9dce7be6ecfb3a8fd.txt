@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-16352e01-6711-45e9-a855-7a5b4b7a37dc"}

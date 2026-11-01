@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/docs/design/DESIGN.md", "bytes": 10793, "revision": "4a250988ebdf846c386d4c195ab5561285e81e1ca5142fb787fc8dbaef2a9897"}

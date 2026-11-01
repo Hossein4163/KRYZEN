@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "✓ رامه استودیو | طراحی وب و سئو\n  http://localhost:5174/packages\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

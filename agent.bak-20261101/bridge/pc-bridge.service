@@ -1,0 +1,18 @@
+[Unit]
+Description=PC Bridge for the K.R.Y.Z.E.N agents (sandboxed shell/files in ~/Projects/devpilot)
+After=network-online.target kryzen-backend.service
+Wants=kryzen-backend.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=/mnt/bullshit/n8n/agent/runtime.env
+WorkingDirectory=/mnt/bullshit/n8n/agent/bridge
+ExecStart=/usr/bin/python3 -I /mnt/bullshit/n8n/agent/bridge/pc_bridge.py
+Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin
+# Binding fails until the backend's Docker network exists; keep retrying.
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

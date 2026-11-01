@@ -1,0 +1,1 @@
+{"exit_code": 1, "stdout": "LISTEN 0      4096       127.0.0.1:5433       0.0.0.0:*   \n---process---\n---env---\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

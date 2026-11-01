@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ss -tlnp 2>/dev/null | head -20; echo \\\"---\\\"; cat /proc/net/tcp 2>/dev/null | head -5\"}", "name": "pc_shell"}, "id": "call-6dc877f9-c576-4316-a886-03342d40c23a", "type": "function"}]}

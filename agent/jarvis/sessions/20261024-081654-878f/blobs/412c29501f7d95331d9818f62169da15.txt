@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "MISSING\n-rw-r--r-- 1 kry kry 1984 Oct 24 10:35 /home/kry/Projects/devpilot/rame-studio/Dockerfile\nAPI Dockerfile EXISTS\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

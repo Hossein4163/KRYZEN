@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/docs/marketing/STRATEGY.md", "bytes": 13685, "revision": "d0faf96ab8d1b44ea8cdee97a8c65dd54fe08a3cfe925b3939f55e4ae260f199"}

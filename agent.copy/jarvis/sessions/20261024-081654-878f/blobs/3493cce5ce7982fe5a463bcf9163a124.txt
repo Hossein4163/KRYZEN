@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"docker info 2>&1 | head -20\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-d4b259e0-1ca9-4ff5-a8c5-bec66f20fb51", "type": "function"}]}

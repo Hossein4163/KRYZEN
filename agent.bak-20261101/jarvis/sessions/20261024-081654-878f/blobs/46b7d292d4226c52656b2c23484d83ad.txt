@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ps aux | grep dotnet | grep -v grep; echo \\\"=== curl health ===\\\"; curl -s -w \\\"\\\\nHTTP %{http_code}\\\\n\\\" http://localhost:5278/api/health 2>&1 | head -5\"}", "name": "pc_shell"}, "id": "call-d85fbee1-c32d-436d-a89f-d1d8e61a5d70", "type": "function"}]}

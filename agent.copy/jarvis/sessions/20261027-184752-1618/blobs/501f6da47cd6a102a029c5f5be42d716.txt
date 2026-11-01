@@ -1,0 +1,1 @@
+{"content": "Is this a shadcn glassmorphism navbar component page? Describe what you see - navbar, glass effect, code? [image]", "role": "user"}

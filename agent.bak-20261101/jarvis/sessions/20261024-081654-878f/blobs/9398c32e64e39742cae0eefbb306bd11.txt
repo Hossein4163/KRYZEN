@@ -1,0 +1,1 @@
+{"exit_code": 1, "stdout": "=== DOCKER ===\n/usr/bin/docker\nDocker version 29.9.2, build a82e528901\n=== DOCKER COMPOSE ===\nDocker Compose version 5.6.1\n=== POSTGRES STATUS ===\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,0 +1,1 @@
+{"content": "API needs PostgreSQL. Let me start Docker compose.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"which docker && docker compose version 2>&1; docker ps 2>&1 | head -5\",\"timeout\":15}", "name": "pc_shell"}, "id": "call-617d9e99-cdf0-40e1-abd1-d89e2a3ec9ff", "type": "function"}]}

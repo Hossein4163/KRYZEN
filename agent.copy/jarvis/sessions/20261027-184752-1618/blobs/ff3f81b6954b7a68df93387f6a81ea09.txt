@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"id\":\"bdc8f9420fd848e4ac5654bf4d235a3f\"}", "name": "read_blob"}, "id": "call-acb48147-3558-4572-aa26-28cfdef074ec", "type": "function"}]}

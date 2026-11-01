@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"ls /home/kry/Projects/devpilot/rame-studio/docs/references/images/\"}", "name": "browser"}, "id": "call-993296c7-887a-4e16-a93b-728204d8c90d", "type": "function"}]}

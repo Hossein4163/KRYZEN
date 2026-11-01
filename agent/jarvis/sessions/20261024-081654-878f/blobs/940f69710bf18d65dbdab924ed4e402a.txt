@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/docs/qa/REPORT.md", "bytes": 7261, "revision": "460fd3c6917e4c207e17a66aa64ce935281590695407aa0251352359312d48cf"}

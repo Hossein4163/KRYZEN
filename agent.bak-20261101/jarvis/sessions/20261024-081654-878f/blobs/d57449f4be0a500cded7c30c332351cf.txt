@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/frontend/public/sitemap.xml\", \"bytes\": 976, \"revision\": \"8b2141d52cda95d99aec4f75453d9f7d89ae494700d0e2184dc7b1434b52fea2\"}", "role": "tool", "tool_call_id": "call-b49f5b4c-72e7-4141-8d3a-ee7ff65f9802"}

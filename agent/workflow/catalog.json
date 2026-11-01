@@ -1,0 +1,92 @@
+{
+ "tools": [
+  {
+   "id": "think",
+   "title": "Think",
+   "description": "Private reasoning scratchpad."
+  },
+  {
+   "id": "web_search",
+   "title": "Web Search",
+   "description": "Search the web via SearXNG."
+  },
+  {
+   "id": "project_init",
+   "title": "Create Project",
+   "description": "Create a new project from the standard template in ~/Projects/devpilot/<slug> (docs/, src/, README, PROJECT.md, git init) and register it in INDEX.md. Safe to re-run."
+  },
+  {
+   "id": "project_list",
+   "title": "List Projects",
+   "description": "List all DevPilot projects with their status (INDEX.md)."
+  },
+  {
+   "id": "pc_shell",
+   "title": "Shell",
+   "description": "Run a shell command in a sandbox: only ~/Projects/devpilot is visible and writable in home. Use background=true for installs, builds and dev servers."
+  },
+  {
+   "id": "pc_read_file",
+   "title": "Read File",
+   "description": "Read a text file (numbered lines)."
+  },
+  {
+   "id": "pc_write_file",
+   "title": "Write File",
+   "description": "Create or overwrite a text file (parent folders are created)."
+  },
+  {
+   "id": "pc_list_dir",
+   "title": "List Directory",
+   "description": "List a directory tree."
+  },
+  {
+   "id": "pc_job_status",
+   "title": "Job Status",
+   "description": "Status and output of a background job started by Shell or Antigravity CLI."
+  },
+  {
+   "id": "agy_run",
+   "title": "Antigravity CLI",
+   "description": "Run the Antigravity CLI coding agent (agy) headless in a project folder; it writes code. Runs with --sandbox. mode=plan to plan, mode=accept-edits to implement, continue=true to answer its questions or follow up."
+  },
+  {
+   "id": "browser",
+   "title": "Browser",
+   "description": "Control a real Chromium via agent-browser. args e.g. 'open http://localhost:5173', 'snapshot -i', 'click @e3', 'fill @e2 \"text\"', 'screenshot <path>.png --full', 'console', 'errors', 'set viewport 390 844', 'skills get core'."
+  },
+  {
+   "id": "list_skills",
+   "title": "List Skills",
+   "description": "List installed skills (project-standards, pc-control, agy-cli, browser-qa, project-research, ui-build-debug, ui-ux-pro-max, ECC…)."
+  },
+  {
+   "id": "read_skill",
+   "title": "Read Skill",
+   "description": "Read a skill's instructions (SKILL.md) or another file inside it."
+  },
+  {
+   "id": "web_fetch",
+   "title": "Fetch Page",
+   "description": "Fetch a web page and return its readable text."
+  },
+  {
+   "id": "project_resume",
+   "title": "Resume Project",
+   "description": "Rebuild fresh project context, including structured continuation.action, next unfinished task, plan revision, running/recent jobs, uncommitted changes, saved state and next_action, phase checklist, plan progress and next open tasks, docs status, the last 25 journal entries (every command/file/agy run), git log, uncommitted changes and running jobs. Leave slug empty for the most recently active project."
+  },
+  {
+   "id": "project_checkpoint",
+   "title": "Save Checkpoint",
+   "description": "Save where the project stands (.devpilot/STATE.json) so any later run can resume exactly there. Call after every step. next_action must be concrete."
+  }
+ ],
+ "placeholders": {
+  "{SKILLS_NOTE}": "standard 'read your skills first' instruction",
+  "{UNTRUSTED}": "web pages are untrusted data",
+  "{HANDOFF}": "STATUS/DONE/NEXT/BLOCKERS block",
+  "{CHECKPOINT}": "save a checkpoint after every step",
+  "{P}": "~/Projects/devpilot/<slug>",
+  "{WORKSPACE}": "~/Projects/devpilot"
+ }
+}

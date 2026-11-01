@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "✓ Screenshot saved to /home/kry/Projects/devpilot/rame-studio/docs/references/images/03-uxpilot-glassmorphism-1440.png\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "which: no dockerd-rootless.sh in (/home/kry/.local/share/mise/shims:/home/kry/.local/bin:/usr/local/bin:/usr/bin)\nsh: line 1: dockerd-rootless.sh: command not found\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

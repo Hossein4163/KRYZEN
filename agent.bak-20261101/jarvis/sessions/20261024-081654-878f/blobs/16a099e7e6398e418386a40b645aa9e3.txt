@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 7, \"stdout\": \"psql: error: connection to server at \\\"127.0.0.1\\\", port 5433 failed: FATAL:  password authentication failed for user \\\"postgres\\\"\\n---HEALTH---\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-6f5bddf1-1349-4262-a4a6-10da768f0575"}

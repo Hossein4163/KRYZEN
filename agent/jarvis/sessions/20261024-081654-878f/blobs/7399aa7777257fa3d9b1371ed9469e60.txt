@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"admin\\ncustomer\\npublic\\nteam\\n---ROUTES---\\n---PAGES---\\nApp.tsx\\ncomponents\\nhooks\\ni18n\\nlib\\nmain.tsx\\npages\\nstyles\\nvite-env.d.ts\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-826379d1-52aa-4267-8175-399e4a5ca225"}

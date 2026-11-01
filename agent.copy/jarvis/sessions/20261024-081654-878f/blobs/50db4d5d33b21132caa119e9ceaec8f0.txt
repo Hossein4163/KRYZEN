@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 1, \"stdout\": \"\", \"stderr\": \"✗ Unknown ref: e4\\n\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-49d29374-a5c7-4f35-8e2c-32575c73b406"}

@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"snapshot -i\"}", "name": "browser"}, "id": "call-6e48c022-9fc8-4b2e-b313-f3b3f8e9f983", "type": "function"}]}

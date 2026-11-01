@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "", "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    if a.get('score',1)<1 and a.get('score') is not None:\n       ^^^^^^^^^^^^^^^^^^\nTypeError: '<' not supported between instances of 'NoneType' and 'int'\n", "cwd": "/home/kry/Projects/devpilot"}

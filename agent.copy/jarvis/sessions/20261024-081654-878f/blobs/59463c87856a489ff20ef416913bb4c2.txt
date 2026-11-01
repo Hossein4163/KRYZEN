@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"dockerd 2>&1 &\\nsleep 3\\ndocker info 2>&1 | head -5\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":30,\"background\":true}", "name": "pc_shell"}, "id": "call-cdff093b-bcf4-40d5-ac57-02679949e56c", "type": "function"}]}

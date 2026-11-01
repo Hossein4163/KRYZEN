@@ -1,0 +1,13 @@
+Yes, this is a shadcn UI component page for a **Glassmorphism Navbar Block for React**.
+
+Here's a description of what's visible in the image:
+
+- **Website**: The page is from `shadcn.io`, an independent project built on `shadcn/ui`.
+- **Component Title**: "Glassmorphism Navbar Block for React".
+- **Description**: It describes a "frosted rectangular navbar panel inset in the page column, lying over a band of slowly drifting dots and soft mesh so the blur is visible, with a drawer menu on phones."
+- **Tags**: The component is tagged with `BLOCKS`, `NAVBAR`, and `PRO`.
+- **Preview**: A visual preview shows a dark, glass-like navbar with a "Prismveil" logo and a "Try it free" button, demonstrating the glassmorphism effect (blur, transparency, subtle borders).
+- **Code Tab**: There's a "Code" tab next to "Preview", indicating the component's source code is available.
+- **Framework**: The component is built with **React**.
+- **Base UI**: It's built on **Base UI**.
+- **Installation**: The page includes an "Installation" section, with a prompt to "Get Pro — Save 33%".

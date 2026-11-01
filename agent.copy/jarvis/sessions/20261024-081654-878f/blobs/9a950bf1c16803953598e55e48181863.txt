@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"tail -20 /tmp/api.log && echo \\\"---PROCESS---\\\" && ps aux | grep dotnet | grep -v grep\"}", "name": "pc_shell"}, "id": "call-5f12369d-1292-42dc-86c6-e24b8ea76a3b", "type": "function"}]}

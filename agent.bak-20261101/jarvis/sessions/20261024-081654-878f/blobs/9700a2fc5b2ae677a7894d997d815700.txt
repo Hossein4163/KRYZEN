@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-d81a8b73-03ce-4bfc-86b0-c93b7c30f0cb"}

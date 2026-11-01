@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/src/Api/wwwroot/robots.txt", "total_lines": 4, "content": "1\tUser-agent: *\n2\tAllow: /\n3\t\n4\tSitemap: https://ramestudio.com/sitemap.xml"}

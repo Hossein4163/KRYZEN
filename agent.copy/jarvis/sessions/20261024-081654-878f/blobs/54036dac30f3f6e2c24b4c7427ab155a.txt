@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"filter\":\"\"}", "name": "list_skills"}, "id": "call-4bae435b-87aa-4176-8564-1156885c466c", "type": "function"}, {"function": {"arguments": "{\"slug\":\"rame-studio\"}", "name": "project_resume"}, "id": "call-4adba670-18c4-4f45-ab3d-5413f5b0f4c1", "type": "function"}]}

@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/docs/plan/PLAN.md", "total_lines": 489, "content": ""}

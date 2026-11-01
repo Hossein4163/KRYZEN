@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"{\\n  \\\"Logging\\\": {\\n    \\\"LogLevel\\\": {\\n      \\\"Default\\\": \\\"Information\\\",\\n      \\\"Microsoft.AspNetCore\\\": \\\"Warning\\\"\\n    }\\n  }\\n}\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-fc0894ff-62da-489a-8faa-f9c31bac76a1"}

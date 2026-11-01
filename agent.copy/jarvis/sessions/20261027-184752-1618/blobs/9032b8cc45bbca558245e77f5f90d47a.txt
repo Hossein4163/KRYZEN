@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"urls\":\"[\\\"https://gradientdeck.com/blog/glassmorphism-in-tailwind-css-v4\\\"]\"}", "name": "web_fetch"}, "id": "call-e91f1bef-e3ed-4447-858e-7cc95080ecb7", "type": "function"}]}

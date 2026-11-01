@@ -1,0 +1,1 @@
+{"path": "/home/kry/Projects/devpilot/rame-studio/src/Api/appsettings.Development.json", "total_lines": 8, "content": "1\t{\n2\t  \"Logging\": {\n3\t    \"LogLevel\": {\n4\t      \"Default\": \"Information\",\n5\t      \"Microsoft.AspNetCore\": \"Warning\"\n6\t    }\n7\t  }\n8\t}"}

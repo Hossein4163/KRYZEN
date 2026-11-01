@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"filter\":\"\"}", "name": "list_skills"}, "id": "call-400614d2-9bfd-43c5-96e6-76cb522fdfce", "type": "function"}, {"function": {"arguments": "{\"path\":\"~/Projects/rame-studio\",\"depth\":3}", "name": "pc_list_dir"}, "id": "call-b4b3ffd2-b952-4fe2-b784-171589532873", "type": "function"}]}

@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "---pg_ctl---\n---initdb---\n---check /opt---\nAntigravity\napps\ncontainerd\ncuda\nexpressvpn\ngithub-desktop\ngoogle\nMullvad VPN\npostman\nspotify\n---check /usr/local---\nbin\ncuda\netc\ngames\ninclude\nlib\nman\nsbin\nshare\nsrc\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

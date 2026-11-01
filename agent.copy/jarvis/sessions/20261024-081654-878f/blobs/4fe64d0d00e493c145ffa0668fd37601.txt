@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"slug\":\"rame-studio\"}", "name": "project_resume"}, "id": "call-9ff7203e-d061-4dda-8f36-07bbcba77be2", "type": "function"}]}

@@ -1,0 +1,1 @@
+{"content": "⏹ I've reached the step limit for this run. Say **continue** to resume from the saved checkpoint and carry on with QA and final report.", "role": "assistant"}

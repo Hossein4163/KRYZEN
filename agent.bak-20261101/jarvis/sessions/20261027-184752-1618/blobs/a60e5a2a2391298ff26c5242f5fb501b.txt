@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Services\", \"exists\": true, \"entries\": [\"JwtTokenService.cs\"]}", "role": "tool", "tool_call_id": "call-67be815b-be5b-4ccf-a22b-d20443d2db06"}

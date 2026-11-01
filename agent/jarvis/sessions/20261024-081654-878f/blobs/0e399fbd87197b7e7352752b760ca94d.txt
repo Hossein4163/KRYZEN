@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "---postgres dirs---\n---pg_isready---\n127.0.0.1:5433 - accepting connections\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

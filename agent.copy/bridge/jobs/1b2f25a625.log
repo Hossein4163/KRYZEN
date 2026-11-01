@@ -1,0 +1,7 @@
+API started, PID 3
+health failed
+Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+--------------------------------------------------------------------------------------
+An issue was encountered verifying workloads. For more information, run "dotnet workload update".
+Using launch settings from /home/kry/Projects/devpilot/rame-studio/src/Api/Properties/launchSettings.json...
+Building...

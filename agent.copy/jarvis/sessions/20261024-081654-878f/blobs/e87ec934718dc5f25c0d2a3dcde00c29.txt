@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 1, \"stdout\": \"=== PROCESSES ===\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-c03a7ee2-694d-4ecb-b82d-dddcc60da138"}

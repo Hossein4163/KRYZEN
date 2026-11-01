@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\".\"}", "name": "repo_map"}, "id": "call-1d27a400-fd95-49e2-b124-9f8e0f04efe4", "type": "function"}, {"function": {"arguments": "{\"query\":\"hello-counter project source files symbols\"}", "name": "recall"}, "id": "call-b4ecd4bb-348d-423c-b3c4-9a73bdf49fd9", "type": "function"}]}

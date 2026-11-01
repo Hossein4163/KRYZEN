@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Api/wwwroot/robots.txt\", \"total_lines\": 4, \"content\": \"1\\tUser-agent: *\\n2\\tAllow: /\\n3\\t\\n4\\tSitemap: https://ramestudio.com/sitemap.xml\"}", "role": "tool", "tool_call_id": "call-f61e748e-8a0a-4e2e-87ed-c109153dc8ac"}

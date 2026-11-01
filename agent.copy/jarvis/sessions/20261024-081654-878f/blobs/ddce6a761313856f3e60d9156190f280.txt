@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 0, \"stdout\": \"/usr/bin/dockerd\\nuid=1000(kry) gid=1000(kry) groups=1000(kry),65534(nobody)\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-e925dbe7-2dae-4875-acbd-c17b55291b89"}

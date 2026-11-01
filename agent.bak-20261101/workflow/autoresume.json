@@ -1,0 +1,264 @@
+{
+  "id": "DevPilotResume01",
+  "name": "DevPilot Auto-Resume",
+  "nodes": [
+    {
+      "id": "6fb27807-4351-48b3-a3b6-5274c903d032",
+      "name": "Note: DevPilot Auto-Resume",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -360
+      ],
+      "parameters": {
+        "content": "## DevPilot Auto-Resume\nRuns when a **published** DevPilot execution fails (e.g. a model timeout). It asks the bridge for retry budget (max 3 per 30 min), waits 60 s, then calls DevPilot with an **AUTO-RESUME** message so it reloads the project state from files and continues where it stopped.\n\nEditor (manual) runs don't trigger error workflows — for those just type *continue* in the chat.",
+        "width": 560,
+        "height": 300,
+        "color": 1
+      }
+    },
+    {
+      "id": "a3dad839-75f0-4186-90a0-f1b15eb69cda",
+      "name": "On DevPilot Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "1ee8d8d0-03ee-4fc8-b459-879c7079e1f8",
+      "name": "Check Retry Budget",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.22.0.1:8765/autoresume/attempt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "error",
+              "value": "={{ $json.execution.error.message }}"
+            },
+            {
+              "name": "workflow",
+              "value": "={{ $json.workflow.name }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pcBridgeAuth0001",
+          "name": "PC Bridge Token"
+        }
+      },
+      "notes": "max 3 resumes / 30 min",
+      "notesInFlow": true
+    },
+    {
+      "id": "57d78a0a-358b-4221-a443-b8144f4f0180",
+      "name": "Budget Left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "allow",
+              "leftValue": "={{ $json.allow }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "94c49f97-25c8-418e-9e19-042352b2e8c9",
+      "name": "Cool Down 60s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 60,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "9776ffac-8914-40bf-87ea-c97bd1a88337",
+      "name": "Budget Used Up",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        660,
+        120
+      ],
+      "parameters": {},
+      "notes": "Stop: retry budget used up",
+      "notesInFlow": true
+    },
+    {
+      "id": "d8c2cae8-7eac-4679-857a-8a90154d5295",
+      "name": "Build Resume Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        -100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg",
+              "name": "chatInput",
+              "type": "string",
+              "value": "=AUTO-RESUME: the last DevPilot run on project \"{{ $('Check Retry Budget').item.json.project }}\" stopped with this error: {{ $('On DevPilot Error').item.json.execution.error.message }}. Call Resume Project, then continue from the saved next action. Do not redo finished work."
+            },
+            {
+              "id": "sid",
+              "name": "sessionId",
+              "type": "string",
+              "value": "=auto-resume-{{ $('Check Retry Budget').item.json.project }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7ae6fcfa-4d09-409e-9957-8da9795b8b71",
+      "name": "Resume DevPilot",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "UHpLpx9tkH6AyFdc"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "notes": "continue in the background",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "On DevPilot Error": {
+      "main": [
+        [
+          {
+            "node": "Check Retry Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Retry Budget": {
+      "main": [
+        [
+          {
+            "node": "Budget Left?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget Left?": {
+      "main": [
+        [
+          {
+            "node": "Cool Down 60s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Budget Used Up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cool Down 60s": {
+      "main": [
+        [
+          {
+            "node": "Build Resume Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Resume Message": {
+      "main": [
+        [
+          {
+            "node": "Resume DevPilot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

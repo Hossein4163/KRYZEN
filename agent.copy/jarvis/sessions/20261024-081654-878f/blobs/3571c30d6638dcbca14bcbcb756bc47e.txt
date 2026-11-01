@@ -1,0 +1,1 @@
+{"content": "Seed credentials found. Let me test login with correct credentials.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"open http://localhost:5173/login\"}", "name": "browser"}, "id": "call-71994b41-5712-42a9-9676-0099961957e3", "type": "function"}]}

@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"click @theme-toggle\"}", "name": "browser"}, "id": "call-f07659ad-b049-4706-ae55-aa0d47afae04", "type": "function"}, {"function": {"arguments": "{\"args\":\"snapshot -i\"}", "name": "browser"}, "id": "call-d4589efa-033c-42db-af2a-00d25ae9d3dc", "type": "function"}]}

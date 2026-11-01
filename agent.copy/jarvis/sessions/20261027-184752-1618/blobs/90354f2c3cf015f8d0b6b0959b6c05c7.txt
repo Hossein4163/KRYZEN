@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"names\":\"web_fetch\"}", "name": "enable_tools"}, "id": "call-1f857917-3cc4-4ab6-bcb9-1bd24762b6f6", "type": "function"}]}

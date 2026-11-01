@@ -1,0 +1,14 @@
+[Unit]
+Description=Jarvis — DevPilot coding agent UI (http://127.0.0.1:8770)
+After=network-online.target pc-bridge.service
+Wants=pc-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=/run/media/kry/Bull Shit/n8n/agent/jarvis
+ExecStart=/usr/bin/python3 -I "/run/media/kry/Bull Shit/n8n/agent/jarvis/server.py"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

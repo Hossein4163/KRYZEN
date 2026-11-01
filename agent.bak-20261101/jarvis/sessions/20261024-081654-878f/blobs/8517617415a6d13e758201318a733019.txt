@@ -1,0 +1,1 @@
+{"content": "{\"exit_code\": 1, \"stdout\": \"LISTEN 0      4096       127.0.0.1:5433       0.0.0.0:*   \\n---process---\\n---env---\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-9c875cbd-a186-49cb-bf89-b7534c81221a"}

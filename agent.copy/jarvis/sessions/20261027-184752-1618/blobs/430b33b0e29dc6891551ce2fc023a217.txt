@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "✓ Screenshot saved to /home/kry/Projects/devpilot/rame-studio/docs/references/images/04-shadcn-navbar-390.png\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

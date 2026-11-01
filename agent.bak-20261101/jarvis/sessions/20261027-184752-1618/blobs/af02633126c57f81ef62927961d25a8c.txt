@@ -1,0 +1,1 @@
+{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Application/Common\", \"exists\": true, \"entries\": [\"Interfaces/\", \"Interfaces/IAppDbContext.cs\", \"Interfaces/IJwtTokenService.cs\"]}", "role": "tool", "tool_call_id": "call-240b6bff-3f60-4dbf-af80-800a886bbf1d"}

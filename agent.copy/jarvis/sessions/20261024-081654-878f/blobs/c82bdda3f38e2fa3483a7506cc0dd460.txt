@@ -1,0 +1,1 @@
+{"content": "⏹ Stopped. Say *continue* to resume.", "role": "assistant"}

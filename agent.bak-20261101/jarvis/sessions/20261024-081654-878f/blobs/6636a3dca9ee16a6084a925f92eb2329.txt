@@ -1,0 +1,1 @@
+{"exit_code": 0, "stdout": "=== POSTGRES ===\n127.0.0.1:5433 - accepting connections\n=== DB CONNECT ===\npsql: error: connection to server at \"127.0.0.1\", port 5433 failed: FATAL:  password authentication failed for user \"postgres\"\n=== DOCKER STATUS ===\nClient:\n Version:    29.9.2\n Context:    default\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

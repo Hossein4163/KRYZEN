@@ -1,0 +1,121 @@
+Milestone **M1 (T1–T6 Backend)** has been implemented, verified, and committed.
+
+### Summary of Completed Work
+
+#### **T1: Solution Scaffold**
+- Created [`rame-studio.sln`](file:///home/kry/Projects/devpilot/rame-studio/rame-studio.sln) targeting .NET 10.
+- Scaffolded four backend Clean Architecture projects and four test projects:
+  - [`src/Domain`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/RameStudio.Domain.csproj)
+  - [`src/Application`](file:///home/kry/Projects/devpilot/rame-studio/src/Application/RameStudio.Application.csproj)
+  - [`src/Infrastructure`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/RameStudio.Infrastructure.csproj)
+  - [`src/Api`](file:///home/kry/Projects/devpilot/rame-studio/src/Api/RameStudio.Api.csproj)
+  - [`tests/Domain.Tests`](file:///home/kry/Projects/devpilot/rame-studio/tests/Domain.Tests/Domain.Tests.csproj)
+  - [`tests/Application.Tests`](file:///home/kry/Projects/devpilot/rame-studio/tests/Application.Tests/Application.Tests.csproj)
+  - [`tests/Infrastructure.Tests`](file:///home/kry/Projects/devpilot/rame-studio/tests/Infrastructure.Tests/Infrastructure.Tests.csproj)
+  - [`tests/Api.Tests`](file:///home/kry/Projects/devpilot/rame-studio/tests/Api.Tests/Api.Tests.csproj)
+- Configured project references:
+  - `Domain` → None
+  - `Application` → `Domain`
+  - `Infrastructure` → `Application` + `Domain`
+  - `Api` → `Infrastructure` + `Application` + `Domain`
+  - All test projects reference their respective targets.
+
+---
+
+#### **T3: Domain Entities & Patterns**
+- **Base Types & Patterns**:
+  - [`BaseEntity`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Common/BaseEntity.cs) (`Id: Guid`, `CreatedAt: DateTime`)
+  - [`BaseAuditableEntity`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Common/BaseAuditableEntity.cs) (`UpdatedAt`, `DeletedAt`)
+  - [`Result<T>`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Common/Result.cs) pattern with implicit casting and failure handling
+  - [`IRepository<T>`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Interfaces/IRepository.cs) generic repository interface
+- **Enums**:
+  - [`UserRole`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/UserRole.cs) (`ADMIN`, `TEAM_MEMBER`, `CUSTOMER`)
+  - [`ProjectStatus`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/ProjectStatus.cs)
+  - [`OrderStatus`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/OrderStatus.cs)
+  - [`InvoiceStatus`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/InvoiceStatus.cs)
+  - [`LeadStatus`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/LeadStatus.cs)
+  - [`TaskItemStatus`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/TaskItemStatus.cs)
+  - [`TaskPriority`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/TaskPriority.cs)
+  - [`ConversationType`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/ConversationType.cs)
+  - [`ReportType`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Enums/ReportType.cs)
+- **Entities**:
+  - [`ApplicationUser`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/ApplicationUser.cs) (`IdentityUser<Guid>`)
+  - [`ApplicationRole`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/ApplicationRole.cs) (`IdentityRole<Guid>`)
+  - [`RefreshToken`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/RefreshToken.cs)
+  - [`Project`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Project.cs)
+  - [`Package`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Package.cs)
+  - [`Order`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Order.cs)
+  - [`Invoice`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Invoice.cs)
+  - [`Lead`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Lead.cs)
+  - [`BlogPost`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/BlogPost.cs)
+  - [`PortfolioItem`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/PortfolioItem.cs)
+  - [`TaskItem`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/TaskItem.cs)
+  - [`CalendarEvent`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/CalendarEvent.cs)
+  - [`Report`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Report.cs)
+  - [`Conversation`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/Conversation.cs)
+  - [`ConversationParticipant`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/ConversationParticipant.cs)
+  - [`ChatMessage`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/ChatMessage.cs)
+  - [`FileAttachment`](file:///home/kry/Projects/devpilot/rame-studio/src/Domain/Entities/FileAttachment.cs)
+
+---
+
+#### **T2: EF Core 10 + Npgsql + PostgreSQL**
+- Implemented [`AppDbContext`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/AppDbContext.cs) with DbSets for all entities and Identity stores.
+- Configured individual [`EntityTypeConfiguration`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/Configurations) classes with precision, JSON converters, relationships, and cascades.
+- Implemented [`AppDbContextFactory`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/AppDbContextFactory.cs) supporting both `Host=...` and `postgres://` connection URIs.
+- Generated migration [`InitialCreate`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/Migrations/20261024062749_InitialCreate.cs).
+
+---
+
+#### **T4: ASP.NET Core Identity + JWT Bearer Auth**
+- Added [`IdentityConfig.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Identity/IdentityConfig.cs) registering ASP.NET Core Identity with EF Core stores.
+- Implemented [`JwtTokenService.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Services/JwtTokenService.cs) issuing 60-minute JWTs with user id, email, role, and jti claims, plus DB-persisted refresh token rotation.
+- Implemented [`AuthController.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Api/Controllers/AuthController.cs):
+  - `POST /api/auth/register` (defaults to `CUSTOMER` role)
+  - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
+  - `GET /api/auth/me`
+- Configured [`Program.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Api/Program.cs) with JWT Bearer validation, CORS policies, and controller endpoints.
+
+---
+
+#### **T5: Role-Based Authorization Policies**
+- Registered authorization policies in [`Program.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Api/Program.cs):
+  - `AdminOnly`: `ADMIN`
+  - `TeamMemberOnly`: `TEAM_MEMBER`
+  - `CustomerOnly`: `CUSTOMER`
+  - `AdminOrTeam`: `ADMIN`, `TEAM_MEMBER`
+- Created [`TestAuthController.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Api/Controllers/TestAuthController.cs) protecting endpoints with role-based policies.
+
+---
+
+#### **T6: Seed Script**
+- Implemented [`SeedData.cs`](file:///home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/SeedData.cs):
+  - Prepares roles `ADMIN`, `TEAM_MEMBER`, `CUSTOMER`.
+  - Creates default test credentials:
+    - `admin@rame.test` (`Admin123!`, `ADMIN`)
+    - `team@rame.test` (`Team123!`, `TEAM_MEMBER`)
+    - `customer@rame.test` (`Customer123!`, `CUSTOMER`)
+  - Populates starter demo data: packages (Starter, Growth, Pro), projects, deliverables, tasks, calendar events, daily reports, leads, blog posts, and portfolio items.
+
+---
+
+### Verification Results
+
+1. **Solution Build**:
+   ```bash
+   dotnet build rame-studio.sln
+   # Output: Build succeeded. 0 Warning(s), 0 Error(s)
+   ```
+2. **EF Core Migrations**:
+   ```bash
+   dotnet ef migrations list --project src/Infrastructure/RameStudio.Infrastructure.csproj --startup-project src/Api/RameStudio.Api.csproj
+   # Output: 20261024062749_InitialCreate (Pending)
+   ```
+3. **Automated Test Suite**:
+   ```bash
+   dotnet test rame-studio.sln
+   # Output: 18 passed across Domain.Tests (8), Application.Tests (2), Infrastructure.Tests (3), and Api.Tests (5)
+   ```
+4. **Git Commit**:
+   - Committed with hash `64e2ab0`: `feat(T1-T6): backend scaffold + EF Core + Identity + JWT + seed`

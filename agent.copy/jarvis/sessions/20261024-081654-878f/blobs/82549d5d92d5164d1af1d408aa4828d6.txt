@@ -1,0 +1,1 @@
+{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ls -la /tmp/lighthouse* 2>/dev/null; find /tmp -name \\\"lighthouse*\\\" 2>/dev/null | head\"}", "name": "pc_shell"}, "id": "call-f45131db-ca44-4410-97d0-d63f245f98d6", "type": "function"}]}

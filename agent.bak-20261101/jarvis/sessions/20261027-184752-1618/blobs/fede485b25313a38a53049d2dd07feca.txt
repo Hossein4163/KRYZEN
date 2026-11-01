@@ -1,0 +1,1 @@
+{"content": "Is this a valid screenshot of a glassmorphism dashboard? Describe what you see. [image]", "role": "user"}

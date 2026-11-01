@@ -1,0 +1,6 @@
+STATUS: done
+DONE: Wrote docs/marketing/STRATEGY.md (259 lines, 13,685 bytes) containing all four acceptance criteria: (1) positioning statement & target audience (Persian/English RTL-native studio OS, ICP segments, positioning pillars), (2) launch strategy with 4 phases (Private Beta → Public Beta fa → Public Launch fa/en → Growth) and channels (Telegram/WhatsApp, Instagram, LinkedIn, SEO, paid ads, partnerships, product-led), (3) 7 measurable growth experiments each with hypothesis, KPIs, success thresholds, plus North Star metric and 6-month targets, (4) competitive differentiation vs Mindbody, Vagaro, Booksy, Fresha, Acuity, Square, Timely, Treatwell, StyleSeat with a differentiator matrix and moat analysis. No money spent, nothing published.
+NEXT: Review STRATEGY.md with product/engineering leads; define P1 design-partner outreach list (10–15 Persian studios); set up KPI analytics.
+BLOCKERS: none
+
+Artifact: /home/kry/Projects/devpilot/rame-studio/docs/marketing/STRATEGY.md

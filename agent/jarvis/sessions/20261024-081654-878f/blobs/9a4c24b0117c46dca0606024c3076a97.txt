@@ -1,0 +1,1 @@
+{"content": "Docker daemon isn't running. Let me start it.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"dockerd > /tmp/dockerd.log 2>&1 &\\nsleep 5\\ndocker info 2>&1 | head -20\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-3549cc26-300d-45f0-9e85-3859e2239a07", "type": "function"}]}
