@@ -3,7 +3,7 @@
   "name": "DevPilot – Agentic Project Builder",
   "nodes": [
     {
-      "id": "70878c5a-6f0b-40b4-b4bc-1bd50c5c896c",
+      "id": "854e7c30-5df5-4b29-a353-99577c49d5aa",
       "name": "Note: DevPilot",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "d64e3576-1527-4d38-bea9-99d12ee7240a",
+      "id": "66c67622-b2a0-4a04-93fc-c33bcdc4dbe3",
       "name": "Note: 1 · Entry & orchestration",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "35cb9e2b-b390-4933-a753-acbcfebae941",
+      "id": "c62c06b6-bcbe-4a2f-95e4-48ebebedc701",
       "name": "DevPilot Chat",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
@@ -58,7 +58,7 @@
       "notesInFlow": true
     },
     {
-      "id": "dd2d9d6d-8b8a-40a5-b31a-afb9a4efa93a",
+      "id": "dfb97e74-3146-491d-a1af-242c677ab6b7",
       "name": "Auto-Resume Entry",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -73,7 +73,7 @@
       "notesInFlow": true
     },
     {
-      "id": "2feeb890-a454-422d-a5ea-664980f03001",
+      "id": "093cde98-eb05-44de-a431-b34dcac50a1c",
       "name": "DevPilot Orchestrator",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
@@ -92,7 +92,7 @@
       "notesInFlow": true
     },
     {
-      "id": "3433a6fd-78d9-4a34-aef1-c37fc10f8fb6",
+      "id": "309a162b-091c-4593-a925-593b5e4f4f23",
       "name": "Orchestrator Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -120,7 +120,7 @@
       "notesInFlow": true
     },
     {
-      "id": "d70e6f8c-1a19-4f02-98fe-25fdcdd3becc",
+      "id": "7e36d6e4-b650-470c-bc8c-92cdd2805842",
       "name": "Conversation Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
@@ -135,7 +135,7 @@
       "notesInFlow": true
     },
     {
-      "id": "4aff0c04-75ca-4b42-b19d-6df99e17c49b",
+      "id": "d7d64cfe-9929-483b-a723-f1d64fc8043b",
       "name": "Orchestrator: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -148,7 +148,7 @@
       }
     },
     {
-      "id": "1538ed78-aea8-49f2-b896-45a8b55d0716",
+      "id": "3f0809c0-af7a-4cfa-986f-a94e53bce512",
       "name": "Orchestrator: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -183,7 +183,7 @@
       }
     },
     {
-      "id": "28f57504-3bcc-4ee9-8a67-474ebda4d2f9",
+      "id": "8114a2dd-8b2c-4d2a-a40a-44cc01a9e321",
       "name": "Orchestrator: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -246,7 +246,7 @@
       }
     },
     {
-      "id": "c87b2e95-19ee-437b-b5e4-345bab93e8ab",
+      "id": "cf1f3ecc-ff9c-4b9a-bdf5-d56fd9aa28d5",
       "name": "Orchestrator: Create Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -289,7 +289,7 @@
       }
     },
     {
-      "id": "b9d3d2e2-995e-47b4-a7d7-133200a24cfd",
+      "id": "7559fa58-d4be-423e-b37f-a7e52c4d118d",
       "name": "Orchestrator: List Projects",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -324,7 +324,7 @@
       }
     },
     {
-      "id": "ba4ef7b9-9a2d-444b-a542-f680da66a207",
+      "id": "890d06fa-57b1-47d2-ac2b-20a66e1c44c3",
       "name": "Orchestrator: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -363,7 +363,7 @@
       }
     },
     {
-      "id": "80e754c9-3b5b-455e-8b16-667253091b04",
+      "id": "85d96f67-8617-4704-8357-0eae39c2db3c",
       "name": "Orchestrator: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -406,7 +406,7 @@
       }
     },
     {
-      "id": "225bd562-7bda-4fa1-819c-264023adc92b",
+      "id": "550ae44d-68a1-4505-93c6-7b9c84f63c19",
       "name": "Orchestrator: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -449,7 +449,7 @@
       }
     },
     {
-      "id": "8a8b0e23-9255-4848-8211-df758c29505e",
+      "id": "4c1a9a2a-1b04-49cc-b733-ce0899d47826",
       "name": "Orchestrator: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -484,7 +484,7 @@
       }
     },
     {
-      "id": "23a75cfe-c60b-4265-a158-1db9ab5ef2a6",
+      "id": "69fcefba-eced-4a90-b117-9917978ad37e",
       "name": "Orchestrator: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -523,7 +523,7 @@
       }
     },
     {
-      "id": "832c503d-22c2-449d-b65e-ff4acd36d568",
+      "id": "230b9c02-9d98-4434-82b2-17627b8f6be2",
       "name": "Note: 2 · Product Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -539,7 +539,7 @@
       }
     },
     {
-      "id": "1cb5e74b-7128-48df-957e-8a28968570f4",
+      "id": "d76762bd-4916-4c66-aea6-454ca3dbe553",
       "name": "Product Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -559,7 +559,7 @@
       "notesInFlow": true
     },
     {
-      "id": "2c862e1d-833c-4692-b38b-6c9584bd14e7",
+      "id": "76c81935-7f0c-4b4a-8410-7fc0833f0b11",
       "name": "Product Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -587,7 +587,7 @@
       "notesInFlow": true
     },
     {
-      "id": "be7afc91-158c-4708-b18c-7247fde60b2c",
+      "id": "37c740c7-f668-40f1-878d-1038b5f24545",
       "name": "Product: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -600,7 +600,7 @@
       }
     },
     {
-      "id": "7b50a7aa-f6f6-4edd-af2d-04d199b3162e",
+      "id": "a97e26e4-b76e-4c03-b8e6-448a434e5d84",
       "name": "Product: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -635,7 +635,7 @@
       }
     },
     {
-      "id": "13a262bd-1f19-4a04-8dbb-8eaa641c5af4",
+      "id": "391e3e5c-9d20-4bac-bb51-f6968f17bc0f",
       "name": "Product: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -698,7 +698,7 @@
       }
     },
     {
-      "id": "c3a788cf-d800-4ab0-8157-7742657d2e28",
+      "id": "49635a08-e2bc-419a-b252-9782ca94b409",
       "name": "Product: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -741,7 +741,7 @@
       }
     },
     {
-      "id": "9c4881fb-49ac-40b2-a525-747d01575815",
+      "id": "d6a26813-8fa9-47f0-ad0b-04e3a00d65bc",
       "name": "Product: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -784,7 +784,7 @@
       }
     },
     {
-      "id": "981d0b7d-39b0-4984-a625-022963abd761",
+      "id": "86235071-703c-4fa8-9820-671160cfc1d4",
       "name": "Product: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -823,7 +823,7 @@
       }
     },
     {
-      "id": "1d739835-c16c-4fff-bd52-ab6a2fbe298b",
+      "id": "335fb61a-86f6-49a4-b1c2-5fbd52d85d85",
       "name": "Product: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -858,7 +858,7 @@
       }
     },
     {
-      "id": "3b33c173-a05d-4fd1-a788-aab01ad6a5f9",
+      "id": "6d368795-23aa-4a83-b39b-043df4536252",
       "name": "Product: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -897,7 +897,7 @@
       }
     },
     {
-      "id": "542c75a3-e298-419e-9e71-0eca91eeec31",
+      "id": "021b0202-8a95-4010-920f-b026b8c2794e",
       "name": "Product: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -932,7 +932,7 @@
       }
     },
     {
-      "id": "96233d0d-0190-4390-a982-1a4a57b6efec",
+      "id": "891e0c94-a425-49bd-ae06-b5170f1e5e33",
       "name": "Product: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -967,7 +967,7 @@
       }
     },
     {
-      "id": "e68d0868-7468-4dc3-a60d-f07eea8fc438",
+      "id": "0297eaea-ad3d-43a3-9f57-dcd421838f26",
       "name": "Product: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1002,7 +1002,7 @@
       }
     },
     {
-      "id": "10c23fef-9635-4d61-953b-57958f793467",
+      "id": "7b51e469-4e34-4dda-8d24-9da08f202ab3",
       "name": "Note: 3 · Architect Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -1018,7 +1018,7 @@
       }
     },
     {
-      "id": "05e27732-3bc2-4c8a-9428-abdff5e082c0",
+      "id": "1e8e8f0f-a3e3-4ac9-96c9-c32324b49a88",
       "name": "Architect Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -1038,7 +1038,7 @@
       "notesInFlow": true
     },
     {
-      "id": "1234b3af-a9f5-4e5e-b476-b360c76d2cd2",
+      "id": "a3121b97-6952-409b-99fa-a60a95df791d",
       "name": "Architect Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -1066,7 +1066,7 @@
       "notesInFlow": true
     },
     {
-      "id": "f88f2ff9-6332-43ef-a798-ef08cc4bb2c6",
+      "id": "7e289103-362a-40c8-8997-bbf79aa23abe",
       "name": "Architect: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -1079,7 +1079,7 @@
       }
     },
     {
-      "id": "39d9f3df-3c18-4b6f-ab30-4bdd1d645da7",
+      "id": "87a197df-1916-4eb3-95a0-a03734c864cf",
       "name": "Architect: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1114,7 +1114,7 @@
       }
     },
     {
-      "id": "d7666c6b-777b-48ae-ae5f-6c2d34ee4130",
+      "id": "3d509bf6-f5a7-4783-8d5a-1b23f9c5ebd1",
       "name": "Architect: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1177,7 +1177,7 @@
       }
     },
     {
-      "id": "d8cd327c-49a4-4342-97d6-935a54395952",
+      "id": "de40a285-cd3e-4569-b605-641ceb36568a",
       "name": "Architect: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1220,7 +1220,7 @@
       }
     },
     {
-      "id": "3d8615b4-b348-4a05-af29-13596426930b",
+      "id": "05a3a029-6025-4ab0-ad55-05d97c5606c9",
       "name": "Architect: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1263,7 +1263,7 @@
       }
     },
     {
-      "id": "34cc570f-01dc-4250-9e27-5644b19b5771",
+      "id": "85229f0e-7f32-481b-969c-7283bf123cb5",
       "name": "Architect: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1302,7 +1302,7 @@
       }
     },
     {
-      "id": "447ac9d9-438c-4abc-9587-ef9eee5a42e3",
+      "id": "a5961532-0f93-42b5-9a84-9842c74ec052",
       "name": "Architect: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1349,7 +1349,7 @@
       }
     },
     {
-      "id": "f2d69e21-d8c0-47d8-91c8-8f1d090ae5d6",
+      "id": "3037ef6c-473b-4214-bcb6-44f231a42ae5",
       "name": "Architect: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1408,7 +1408,7 @@
       }
     },
     {
-      "id": "0f54ebbf-8326-405f-b1b4-527e075185f2",
+      "id": "92ac2f4d-cba0-4f5f-a799-cec90b63538d",
       "name": "Architect: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1443,7 +1443,7 @@
       }
     },
     {
-      "id": "91a2beae-675f-4ba1-8bc7-1e0ebdf39c39",
+      "id": "13ce9cc4-ec11-4da7-b38a-049970717bdc",
       "name": "Architect: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1482,7 +1482,7 @@
       }
     },
     {
-      "id": "ff4fe368-ca76-4d35-857d-07c13d21e66f",
+      "id": "a579d812-22bf-4596-a7f8-d3e1c5bc882b",
       "name": "Architect: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1517,7 +1517,7 @@
       }
     },
     {
-      "id": "7ecad9dd-e43e-4d58-bf80-f912c857ab31",
+      "id": "4f6ea156-bb98-4726-b956-4e9f7a53fc38",
       "name": "Architect: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1552,7 +1552,7 @@
       }
     },
     {
-      "id": "e7a09816-9689-4665-be9c-4762d0323ec9",
+      "id": "8da809b2-7493-401f-bbc4-b5ee99cdaae2",
       "name": "Note: 4 · Design Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -1568,7 +1568,7 @@
       }
     },
     {
-      "id": "310ac4ce-8863-4932-82dd-ca565c0f986e",
+      "id": "a59815c5-d7d2-4bd4-b9c6-f456d1a3c41c",
       "name": "Design Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -1588,7 +1588,7 @@
       "notesInFlow": true
     },
     {
-      "id": "ee1822ba-147d-4d4b-ad0c-1e9a9a90146f",
+      "id": "1696a92e-9736-4ae7-942b-f598fd75d4a7",
       "name": "Design Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -1616,7 +1616,7 @@
       "notesInFlow": true
     },
     {
-      "id": "949fe667-f803-4cd7-ac55-49a795a0e9ec",
+      "id": "5cd7b073-1663-44bd-aa87-6f3f68db182c",
       "name": "Design: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -1629,7 +1629,7 @@
       }
     },
     {
-      "id": "90d487c5-e34c-406f-8e9a-d2fed1a44a86",
+      "id": "33393d47-2e24-4e95-99f9-0ab1942a5a84",
       "name": "Design: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1664,7 +1664,7 @@
       }
     },
     {
-      "id": "56537cba-5eff-4fdc-81f3-9568dd79120d",
+      "id": "86575a47-dd42-425b-83e2-03387053bac8",
       "name": "Design: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1727,7 +1727,7 @@
       }
     },
     {
-      "id": "3fafd237-2815-49c7-9e8d-c0eb5addd1e8",
+      "id": "b1820a53-2a6a-4d74-84c0-1bcbe9d97c32",
       "name": "Design: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1770,7 +1770,7 @@
       }
     },
     {
-      "id": "1b16d860-36f2-4cd6-9326-d56d6cbf1e96",
+      "id": "2aa59aee-315a-4060-ae20-fb816004148a",
       "name": "Design: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1813,7 +1813,7 @@
       }
     },
     {
-      "id": "fac88d8c-6827-4dd6-9b37-ae2664d45c0e",
+      "id": "11366508-6ca3-401a-97c7-481829c4b2b7",
       "name": "Design: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1852,7 +1852,7 @@
       }
     },
     {
-      "id": "0bac9470-b8dc-4b09-b9d6-6cd232816787",
+      "id": "b9a93ca5-ac2c-4f54-8864-d41c9a170b57",
       "name": "Design: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1887,7 +1887,7 @@
       }
     },
     {
-      "id": "df62df99-b6e3-4e30-b5a8-b27f1bb04943",
+      "id": "1865a3c8-34f0-47cf-8c12-8c1b096f2e7e",
       "name": "Design: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1922,7 +1922,7 @@
       }
     },
     {
-      "id": "f9250b2e-80bd-44eb-92f1-9d36c8d42933",
+      "id": "5223f8af-985f-4139-8f25-0d132122bd3a",
       "name": "Design: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1961,7 +1961,7 @@
       }
     },
     {
-      "id": "75c507fb-e6a8-49c7-9847-e6a25c2a438c",
+      "id": "89498394-8a1e-4935-93ba-85781ef115fb",
       "name": "Design: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1996,7 +1996,7 @@
       }
     },
     {
-      "id": "8fea5835-22e5-48d4-b5e1-5909967f766c",
+      "id": "d415279f-154a-4f2b-9032-dfc50e87c6aa",
       "name": "Design: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2031,7 +2031,7 @@
       }
     },
     {
-      "id": "f147a37c-f902-4137-a84a-5d8b07834ca8",
+      "id": "a0f6b26f-6f73-48c5-9803-4096ee294428",
       "name": "Note: 5 · Research Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2047,7 +2047,7 @@
       }
     },
     {
-      "id": "1c2fab5f-036d-4ee6-91cc-56d3dcb7c676",
+      "id": "29f2d66d-6ad9-46c3-8e21-bc1f099e3b53",
       "name": "Research Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2067,7 +2067,7 @@
       "notesInFlow": true
     },
     {
-      "id": "98919285-eeaa-48ae-aeb5-3ea35c1ff4b5",
+      "id": "18c7ccc8-836c-45e3-89ab-0ab9f3fa5388",
       "name": "Research Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2095,7 +2095,7 @@
       "notesInFlow": true
     },
     {
-      "id": "c36a8bdd-0e8a-4c8b-8a06-b829a7368ba9",
+      "id": "ab6f3880-d790-49cd-9be9-3893f52f503c",
       "name": "Research: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2130,7 +2130,7 @@
       }
     },
     {
-      "id": "84443eb3-a0c2-4f25-9948-41c582f7f301",
+      "id": "0c35ce64-e667-4743-8c16-84b758d52112",
       "name": "Research: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2165,7 +2165,7 @@
       }
     },
     {
-      "id": "1df2add6-c0ae-4eb0-91e7-26347d3e24ce",
+      "id": "9600f628-02cb-4779-81e8-9b9234e421bb",
       "name": "Research: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2208,7 +2208,7 @@
       }
     },
     {
-      "id": "0dae7923-149e-49c2-98d3-3e9f33b927f6",
+      "id": "387e5e67-04b7-43da-b321-c93780c1aa35",
       "name": "Research: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2251,7 +2251,7 @@
       }
     },
     {
-      "id": "01c34fb4-9212-470c-8fce-49ef0b10e698",
+      "id": "43d28459-6d58-4d48-bcae-1868dab9716a",
       "name": "Research: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2286,7 +2286,7 @@
       }
     },
     {
-      "id": "7502062c-784d-4103-a9bf-f061ab8dbe6d",
+      "id": "d9f0b340-74c0-470d-b440-b86398eece1d",
       "name": "Research: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2325,7 +2325,7 @@
       }
     },
     {
-      "id": "ee7bf0df-c951-4506-86ce-19b97fa3d453",
+      "id": "4cb42b8f-7fc8-48b5-85fc-70037af29426",
       "name": "Note: 6 · Reference Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2341,7 +2341,7 @@
       }
     },
     {
-      "id": "5061b988-314c-44df-87ec-584193384c1d",
+      "id": "a7e0288b-8f7b-4d1f-ad34-474a6c3a3c57",
       "name": "Reference Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2361,7 +2361,7 @@
       "notesInFlow": true
     },
     {
-      "id": "f7a0cbd7-779b-4ad8-97f3-a032883feab0",
+      "id": "5ccf700d-19e3-477e-916b-dca54dae1b04",
       "name": "Reference Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2389,7 +2389,7 @@
       "notesInFlow": true
     },
     {
-      "id": "176790a9-50c0-421e-8299-c9f2207af1c4",
+      "id": "4dac5edd-9758-4c4d-be32-14018e499d64",
       "name": "Reference: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2424,7 +2424,7 @@
       }
     },
     {
-      "id": "c3a32268-1e04-4b92-9f77-ce5c57175d66",
+      "id": "2f82a7ce-d5d5-453f-8766-e2b3ac558563",
       "name": "Reference: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2459,7 +2459,7 @@
       }
     },
     {
-      "id": "2e2cd8a6-8baf-4a82-a422-1a773fa36ebb",
+      "id": "72fe5aff-26ba-43cd-9de3-8d3b5660c5bb",
       "name": "Reference: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2494,7 +2494,7 @@
       }
     },
     {
-      "id": "15f1754e-dd7a-4d5a-a497-e703e9b28023",
+      "id": "4d74b848-d79c-4f50-92c3-e40bc7c72c5f",
       "name": "Reference: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2537,7 +2537,7 @@
       }
     },
     {
-      "id": "1d35d85a-f8b6-40df-8a56-ed7ff44dda88",
+      "id": "5fe74ba7-33f2-456e-8664-725f965dabea",
       "name": "Reference: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2580,7 +2580,7 @@
       }
     },
     {
-      "id": "30643109-3974-489b-a9b8-eefba1680156",
+      "id": "eea11c04-ecc4-4cdb-9b6d-786f4683ac0c",
       "name": "Reference: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2615,7 +2615,7 @@
       }
     },
     {
-      "id": "f7584d9b-70ba-4d91-88cf-d0101944a10b",
+      "id": "96c2b047-0e58-4006-8ad3-8572e458e5ed",
       "name": "Reference: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2654,7 +2654,7 @@
       }
     },
     {
-      "id": "6e9c0c7c-4c12-488d-9f73-6c025fdf2dec",
+      "id": "2f5b2d3a-b81b-4fde-9ff0-d326886bcdf0",
       "name": "Note: 7 · Planner Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2670,7 +2670,7 @@
       }
     },
     {
-      "id": "7354cc26-67da-486e-aa35-d4289283cfcf",
+      "id": "58dd1e6c-6bc8-4113-9831-eaa2dd879ba1",
       "name": "Planner Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2690,7 +2690,7 @@
       "notesInFlow": true
     },
     {
-      "id": "9a63b0a4-8d8c-45f4-b65d-494423262b8d",
+      "id": "8fc81531-f9f0-4f66-921a-e98cd056c39d",
       "name": "Planner Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2718,7 +2718,7 @@
       "notesInFlow": true
     },
     {
-      "id": "83350271-8371-4377-b1f5-87ef6be32ba7",
+      "id": "e6dfd119-3ee8-45d3-ba1a-6a7bc554f7ac",
       "name": "Planner: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -2731,7 +2731,7 @@
       }
     },
     {
-      "id": "80c5b2e0-487a-45f1-b723-ae6ca95074ca",
+      "id": "da9cb5c0-8a44-4c31-94c5-8e9e56075639",
       "name": "Planner: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2770,7 +2770,7 @@
       }
     },
     {
-      "id": "debf896f-dd49-48b2-a46c-1dc271e45015",
+      "id": "afb81c30-aa41-40de-babc-1093514b1b55",
       "name": "Planner: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2813,7 +2813,7 @@
       }
     },
     {
-      "id": "8c491031-691f-4e3f-8510-4cc482f302aa",
+      "id": "47975e56-046b-46a8-b992-4745b18550c3",
       "name": "Planner: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2856,7 +2856,7 @@
       }
     },
     {
-      "id": "51de0477-1c69-4fe7-8ed1-b1a0dc46b251",
+      "id": "60b680ca-80ad-4ce2-8f2d-5aafd8aded6c",
       "name": "Planner: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2919,7 +2919,7 @@
       }
     },
     {
-      "id": "31abc2a4-27b3-4ccf-81e3-83b7342199a1",
+      "id": "c9a635de-eff3-40e1-a9dd-6102e303de38",
       "name": "Planner: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2954,7 +2954,7 @@
       }
     },
     {
-      "id": "c3360680-4f42-4b06-92a7-07ee1bf43a6f",
+      "id": "332e43c8-f4a3-44ee-9b96-d32c7cee74f1",
       "name": "Planner: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2993,7 +2993,7 @@
       }
     },
     {
-      "id": "0c10901b-4da9-4f78-b1b6-5252e7843e2f",
+      "id": "7c808426-19a0-4c37-bfa7-9e6c35cc90d7",
       "name": "Note: 8 · Build Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -3009,7 +3009,7 @@
       }
     },
     {
-      "id": "4b172480-1896-4854-8068-80ecbc846e75",
+      "id": "e5410bcb-655f-4d28-98ec-a6fd36e4236f",
       "name": "Build Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -3029,7 +3029,7 @@
       "notesInFlow": true
     },
     {
-      "id": "89da7a2f-33e4-439c-8b66-092d957ad8bd",
+      "id": "cda65a32-fa6a-4d73-ab75-f3596b07bc04",
       "name": "Build Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -3057,7 +3057,7 @@
       "notesInFlow": true
     },
     {
-      "id": "44d02199-9391-47b9-9b17-f304bf9f6b2c",
+      "id": "bd711c73-5bc9-45e9-bee4-7f55c28cc9b6",
       "name": "Build: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3116,7 +3116,7 @@
       }
     },
     {
-      "id": "59145948-5322-44ff-ab29-56d1ee3d8507",
+      "id": "10aa3537-1d1c-4bb9-b48a-48d44377f210",
       "name": "Build: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3163,7 +3163,7 @@
       }
     },
     {
-      "id": "d320abdf-fa73-4c88-a63a-f5a2bbefde41",
+      "id": "9c4bb72c-20e7-4622-a930-c05cbb637902",
       "name": "Build: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3202,7 +3202,7 @@
       }
     },
     {
-      "id": "ba1ce727-32c6-4be0-8440-b8814747b383",
+      "id": "95cdb82b-45f3-49f3-b715-3ba7d2f415ff",
       "name": "Build: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3245,7 +3245,7 @@
       }
     },
     {
-      "id": "a3288e51-eeda-407a-a47d-0fe82967756a",
+      "id": "72717b56-e435-4f8d-bcd5-d7c5e0ea042f",
       "name": "Build: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3288,7 +3288,7 @@
       }
     },
     {
-      "id": "5a78796c-bef4-44fe-8aff-3a2693d2cad6",
+      "id": "82431cc0-4ed3-4f34-ae35-fa13db88ce2a",
       "name": "Build: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3327,7 +3327,7 @@
       }
     },
     {
-      "id": "fb81a3a4-8296-4996-bc2f-bda700de5fab",
+      "id": "fbe28618-9ae1-43d7-be32-4cee84b035c2",
       "name": "Build: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3390,7 +3390,7 @@
       }
     },
     {
-      "id": "759b2a8e-a44f-41dd-bfc5-f3e452b8361b",
+      "id": "5428eb2a-c6d5-4725-ab3e-e3c156c79f56",
       "name": "Build: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3425,7 +3425,7 @@
       }
     },
     {
-      "id": "2b037c1b-8796-4d1d-9d93-76441427a5a3",
+      "id": "1df74c14-8da5-407b-a265-e65f9d086577",
       "name": "Build: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3460,7 +3460,7 @@
       }
     },
     {
-      "id": "0d07585f-9f1e-4496-8429-ebaf66e81083",
+      "id": "37f4f3ae-b95b-4ce7-bd0c-eeab8f533f4b",
       "name": "Build: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3495,7 +3495,7 @@
       }
     },
     {
-      "id": "aedf28c8-e419-4c3b-abdb-d35a723e096d",
+      "id": "1908cde4-43d9-4148-b854-7ee6af3516db",
       "name": "Build: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3530,7 +3530,7 @@
       }
     },
     {
-      "id": "c5b8b659-a144-4de4-8de9-a4efaf975f19",
+      "id": "f0487723-114f-4e69-9baa-1ccbee01078a",
       "name": "Build: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3569,7 +3569,7 @@
       }
     },
     {
-      "id": "72b05612-fd81-4890-9177-03cdeeb2bd15",
+      "id": "f774efc0-e826-4101-9262-6b1506829ceb",
       "name": "Note: 9 · QA Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -3585,7 +3585,7 @@
       }
     },
     {
-      "id": "a48c14f4-d600-48c6-a03f-8d1ae95f0fcb",
+      "id": "fc86f74f-6143-4706-ae38-383fb55b9a16",
       "name": "QA Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -3605,7 +3605,7 @@
       "notesInFlow": true
     },
     {
-      "id": "859423f5-192f-423d-b1af-2d79e8e5d58d",
+      "id": "b6141f82-a486-4052-9693-41ee1fc74046",
       "name": "QA Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -3633,7 +3633,7 @@
       "notesInFlow": true
     },
     {
-      "id": "7df6d417-2d56-4fc6-b69a-c7cda2de5929",
+      "id": "69697a97-2821-45ba-ba88-dffbe6fc234f",
       "name": "QA: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3668,7 +3668,7 @@
       }
     },
     {
-      "id": "22868048-a682-4450-8d0a-4d6238b60cb1",
+      "id": "f112384e-0a3c-4818-9cd2-ba88af13766f",
       "name": "QA: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3715,7 +3715,7 @@
       }
     },
     {
-      "id": "c6c505a2-6809-4aca-84a9-81a0a308ddee",
+      "id": "d766f15e-3777-4c19-a6fc-539f7e037ed8",
       "name": "QA: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3754,7 +3754,7 @@
       }
     },
     {
-      "id": "02e2df9f-b3fe-44ba-8027-5949bc5cfd05",
+      "id": "8243612c-3f1c-4814-9d90-d3491d5a30ab",
       "name": "QA: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3797,7 +3797,7 @@
       }
     },
     {
-      "id": "87286e6f-24ae-4e3c-b642-d8f4ee2186bf",
+      "id": "b62658f1-5309-4263-8969-346c9594698d",
       "name": "QA: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3840,7 +3840,7 @@
       }
     },
     {
-      "id": "8c615992-da10-464e-8e2a-4a382b40d2c9",
+      "id": "710d405b-fa35-4feb-9a46-221dfd8b6907",
       "name": "QA: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3899,7 +3899,7 @@
       }
     },
     {
-      "id": "d063e0e6-adad-4d2f-84a5-88d65a6cff2b",
+      "id": "7c89d804-f8bf-49e7-9767-70626411f4aa",
       "name": "QA: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3962,7 +3962,7 @@
       }
     },
     {
-      "id": "b57716bf-b1bb-4e03-8444-662942ed948c",
+      "id": "8298868d-5c2d-446d-a782-fea6a19b616a",
       "name": "QA: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3997,7 +3997,7 @@
       }
     },
     {
-      "id": "9f47a002-e326-4f25-98ba-83c7fdf517f7",
+      "id": "2bb922ef-84f6-4f38-a195-aa942d38a3bf",
       "name": "QA: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4036,7 +4036,7 @@
       }
     },
     {
-      "id": "f6fbff7c-6cc9-4a9a-a5a3-456e9129b29a",
+      "id": "7051062d-582c-4ab4-a73f-e86ce6acfab7",
       "name": "Note: 10 · DevOps Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -4052,7 +4052,7 @@
       }
     },
     {
-      "id": "475390e8-64db-4ea5-94bc-d485e14fbb4e",
+      "id": "bb9df7e3-10b1-4644-b84d-2c27a6106c7a",
       "name": "DevOps Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -4072,7 +4072,7 @@
       "notesInFlow": true
     },
     {
-      "id": "be92293a-9191-4a76-98c3-c09ae1c4bc58",
+      "id": "64076344-532c-494f-9728-cae8c6825a23",
       "name": "DevOps Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -4100,7 +4100,7 @@
       "notesInFlow": true
     },
     {
-      "id": "c77eb5f3-7f15-456a-9885-5c0388c29a59",
+      "id": "eccda20f-0821-4f68-93b8-fd26275ce0b9",
       "name": "DevOps: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4147,7 +4147,7 @@
       }
     },
     {
-      "id": "bcecf6f2-06fa-4ad4-a826-e2047e13d34c",
+      "id": "8ce8f4d7-9089-4451-a1c0-a2a5e03980ba",
       "name": "DevOps: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4186,7 +4186,7 @@
       }
     },
     {
-      "id": "98547069-778c-46a7-87d7-041e84c09288",
+      "id": "5f54bbf9-61ee-41db-bc01-f0cdd542541e",
       "name": "DevOps: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4229,7 +4229,7 @@
       }
     },
     {
-      "id": "59725693-0c85-44a6-911f-45281854b1fc",
+      "id": "d6a8c2cd-0e7b-456c-a562-d22a64bcb4c3",
       "name": "DevOps: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4272,7 +4272,7 @@
       }
     },
     {
-      "id": "17942069-34d2-47db-b3ce-b728914fb06e",
+      "id": "b3fc775d-564b-4ba9-9560-c74863dff56e",
       "name": "DevOps: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4311,7 +4311,7 @@
       }
     },
     {
-      "id": "2b4a4b06-2c0b-43be-afe1-ed825fc2c1ce",
+      "id": "2b4649db-7a63-4daa-b712-8c7c437e81d1",
       "name": "DevOps: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4370,7 +4370,7 @@
       }
     },
     {
-      "id": "4816ac03-b4a7-403d-acc4-9b84354256a2",
+      "id": "3e526912-5f1c-4cf9-b4d5-02af833e1ce0",
       "name": "DevOps: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4433,7 +4433,7 @@
       }
     },
     {
-      "id": "1dbd0c41-f617-4514-acc3-dc26b091137a",
+      "id": "aa1d6c73-1fed-49f3-b53a-979bfa1357dd",
       "name": "DevOps: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4468,7 +4468,7 @@
       }
     },
     {
-      "id": "f455ab05-1c02-431c-b800-8354c25e38f8",
+      "id": "f52f1c1e-e816-4a37-97b8-b750f7c6e321",
       "name": "DevOps: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4507,7 +4507,7 @@
       }
     },
     {
-      "id": "51ade033-20ef-435a-ad48-a69e6bc93c15",
+      "id": "f5984272-9020-4fb6-9272-d85f6f73a524",
       "name": "Note: 11 · Production Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -4523,7 +4523,7 @@
       }
     },
     {
-      "id": "f38b30a3-6ad4-4ef3-b1e7-828ca24f88da",
+      "id": "4d0570e0-52a8-495d-8e9d-0d222798f115",
       "name": "Production Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -4543,7 +4543,7 @@
       "notesInFlow": true
     },
     {
-      "id": "3d2e87c9-2bc2-4177-bdd0-b182d1e698ca",
+      "id": "486b6a78-a68a-4589-83e9-22c9ac8e286f",
       "name": "Production Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -4571,7 +4571,7 @@
       "notesInFlow": true
     },
     {
-      "id": "ce14203d-786a-496a-84f5-9ff24fde86ab",
+      "id": "f1f0d524-23a7-43f0-b4b9-ece8dc505b6f",
       "name": "Production: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4618,7 +4618,7 @@
       }
     },
     {
-      "id": "970034d2-0559-4d33-a33e-a8ae54cd4aab",
+      "id": "9b48e2e3-4e76-452c-a46a-a4a056e792d2",
       "name": "Production: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4657,7 +4657,7 @@
       }
     },
     {
-      "id": "4c884c91-4e23-4c16-9f00-e4c82b6f3577",
+      "id": "3c18c7a5-51fd-4f40-a3e0-cfb2402cbc14",
       "name": "Production: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4700,7 +4700,7 @@
       }
     },
     {
-      "id": "714f7f37-3326-4a75-ab67-c4c8f399e0f8",
+      "id": "95aa1380-aeee-4091-b310-4b94203676ae",
       "name": "Production: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4743,7 +4743,7 @@
       }
     },
     {
-      "id": "c254380d-2931-41aa-99f6-c28c18f8a5a7",
+      "id": "db4446e7-37f4-4319-aa1b-c743603954aa",
       "name": "Production: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4782,7 +4782,7 @@
       }
     },
     {
-      "id": "f6af8eaf-666a-43ab-88ee-9bbafd11cbda",
+      "id": "7e8f8feb-584b-46c8-9409-2e218cab23d7",
       "name": "Production: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4817,7 +4817,7 @@
       }
     },
     {
-      "id": "66147498-4910-4738-a3ab-ecea09d04f52",
+      "id": "3241e3b0-9027-4fe7-9d81-e0a09561c159",
       "name": "Production: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4880,7 +4880,7 @@
       }
     },
     {
-      "id": "e218bfe9-f386-482c-a2d6-08a31ca364b7",
+      "id": "34a136eb-61f4-4ffa-91ba-c6562e5b7173",
       "name": "Production: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4939,7 +4939,7 @@
       }
     },
     {
-      "id": "841dd2a7-1fc2-427d-b81d-43fdaba2e0b7",
+      "id": "99d0c709-cd88-47c9-84de-cf2018276644",
       "name": "Production: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4974,7 +4974,7 @@
       }
     },
     {
-      "id": "f6f613f9-bcf8-4bba-9c32-72346df19f09",
+      "id": "235b05c5-5d6e-4652-9d80-319d059bf061",
       "name": "Production: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5013,7 +5013,7 @@
       }
     },
     {
-      "id": "bbbf282a-5ea5-4774-b125-ee6a1b2beab8",
+      "id": "28488902-c0c1-4308-926a-86fd8fa2c975",
       "name": "Note: 12 · SEO Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5029,7 +5029,7 @@
       }
     },
     {
-      "id": "a53a0162-dd3c-4d0b-924d-a46a5c832678",
+      "id": "2f3fbc3f-3d6e-46d6-ab65-f386686b202f",
       "name": "SEO Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5049,7 +5049,7 @@
       "notesInFlow": true
     },
     {
-      "id": "0a14d168-2114-488a-b73b-bba78acde448",
+      "id": "4b0243b9-0063-42ea-888b-a51fe8ee33e4",
       "name": "SEO Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5077,7 +5077,7 @@
       "notesInFlow": true
     },
     {
-      "id": "51ba5df6-4898-4c0e-b88d-e3cae8df1faa",
+      "id": "ff9fa8cb-1874-42d2-a85f-923384b1e609",
       "name": "SEO: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5090,7 +5090,7 @@
       }
     },
     {
-      "id": "63550efd-0561-444d-885b-0bde17274f65",
+      "id": "4a12542a-bd96-4a00-a444-f2ad97eb75a2",
       "name": "SEO: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5125,7 +5125,7 @@
       }
     },
     {
-      "id": "2bf1ed5b-df30-4c9f-8e6c-4146bca4089e",
+      "id": "fcdbd9c2-685f-480b-84d2-d22ef7647cc2",
       "name": "SEO: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5160,7 +5160,7 @@
       }
     },
     {
-      "id": "1356983b-f212-47b4-b7d3-62af68134dc3",
+      "id": "5bc9d990-d7dd-4938-913f-6f9b2de5190b",
       "name": "SEO: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5195,7 +5195,7 @@
       }
     },
     {
-      "id": "5f32e24e-02a8-4b2b-b319-2a50171b6545",
+      "id": "63d6ec71-fb20-4091-a057-b4b31eaece84",
       "name": "SEO: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5238,7 +5238,7 @@
       }
     },
     {
-      "id": "b1301db3-832f-40a9-9229-b30a632aea2d",
+      "id": "c5727ed2-337d-419f-8229-51f79e1ee2f8",
       "name": "SEO: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5281,7 +5281,7 @@
       }
     },
     {
-      "id": "539a66ce-ac60-477a-b90b-23592ea1d541",
+      "id": "d058d448-8757-42fe-bca2-081340830e76",
       "name": "SEO: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5320,7 +5320,7 @@
       }
     },
     {
-      "id": "0919250d-74df-433c-8222-1bf0c1a36576",
+      "id": "515cc666-8113-42ff-91e3-9d039782c4e5",
       "name": "SEO: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5383,7 +5383,7 @@
       }
     },
     {
-      "id": "72d9449e-4cce-4d54-9cb4-3f20093dd639",
+      "id": "5b432a42-4700-4ca5-94fe-916ed396cfb6",
       "name": "SEO: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5418,7 +5418,7 @@
       }
     },
     {
-      "id": "53467916-c56f-4589-a7a0-1ae9e27c22b8",
+      "id": "2e86bf1e-2a3e-4d14-8fb0-a52eb53cd641",
       "name": "SEO: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5457,7 +5457,7 @@
       }
     },
     {
-      "id": "cd5a1fb7-d940-488d-8468-286a001b7486",
+      "id": "387ae2e9-b0a4-4179-b9aa-e41bcde3099c",
       "name": "Note: 13 · Marketing Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5473,7 +5473,7 @@
       }
     },
     {
-      "id": "2409a867-91e4-4938-8de6-7907ba5ae01b",
+      "id": "dfb48ac7-b2f7-49c8-8e81-fa627e9f9fb8",
       "name": "Marketing Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5493,7 +5493,7 @@
       "notesInFlow": true
     },
     {
-      "id": "4b10906f-f6c8-4707-aa4d-c253187c89bc",
+      "id": "a3fec861-09a0-4b60-9834-d695c074e1bc",
       "name": "Marketing Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5521,7 +5521,7 @@
       "notesInFlow": true
     },
     {
-      "id": "b11d8bdf-63dd-4698-bc7e-89b403f14328",
+      "id": "1a26cac6-bbc7-47e4-95a1-3879c5c555eb",
       "name": "Marketing: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5534,7 +5534,7 @@
       }
     },
     {
-      "id": "f3b34585-b8e6-4ec7-87ba-f187a29879cb",
+      "id": "75b6c4ad-2751-4457-8c74-39c8c01d9ceb",
       "name": "Marketing: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5569,7 +5569,7 @@
       }
     },
     {
-      "id": "ceda6f14-7ccb-4bd4-afb7-2afb1656c03e",
+      "id": "5c1630f9-1e84-4729-b929-088ff01252c4",
       "name": "Marketing: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5604,7 +5604,7 @@
       }
     },
     {
-      "id": "640fda26-f991-4267-aa54-a7f881310d64",
+      "id": "a09f667b-b495-46f4-8ef4-fd078d50aa2c",
       "name": "Marketing: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5647,7 +5647,7 @@
       }
     },
     {
-      "id": "778fdb8d-02f4-491d-af0d-dd27f8a5e955",
+      "id": "06d60f1f-29ba-418c-b506-ca37a8964dfd",
       "name": "Marketing: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5690,7 +5690,7 @@
       }
     },
     {
-      "id": "289593f8-db8a-4d92-bd4d-54bac5296a1b",
+      "id": "bddb0858-9ded-4047-ba94-95ddf65e0b74",
       "name": "Marketing: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5729,7 +5729,7 @@
       }
     },
     {
-      "id": "ac996bed-a68b-416d-b84b-913da9249824",
+      "id": "492bb98f-cffa-4f57-a333-82045c4b68d9",
       "name": "Marketing: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5792,7 +5792,7 @@
       }
     },
     {
-      "id": "3e418bd3-4b0b-489d-90fd-73c6dd0d7376",
+      "id": "37a90b9e-8708-4d8a-8043-6d63da6e4564",
       "name": "Marketing: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5827,7 +5827,7 @@
       }
     },
     {
-      "id": "b89a689b-c0a3-4499-9c86-39c904799192",
+      "id": "99bedb0a-93bc-4e29-9312-b9bb6f60ed16",
       "name": "Marketing: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5866,7 +5866,7 @@
       }
     },
     {
-      "id": "4aadc465-f2df-439c-ae0c-f8e40475b111",
+      "id": "4e32960b-50e7-4325-9d8f-8477bb51bcfe",
       "name": "Marketing: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5901,7 +5901,7 @@
       }
     },
     {
-      "id": "bd00b977-849b-4d29-b3d3-179a60a3bb40",
+      "id": "196bee0a-a847-40e6-8a0a-45142b5e2753",
       "name": "Note: 14 · Content Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5917,7 +5917,7 @@
       }
     },
     {
-      "id": "d3284fac-8111-48e6-9f43-60c8e177743f",
+      "id": "8e3be5d4-0b8f-4fd8-a492-7518826844f7",
       "name": "Content Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5937,7 +5937,7 @@
       "notesInFlow": true
     },
     {
-      "id": "7714d018-44fe-4874-a492-4cb1171922c0",
+      "id": "43def16a-3823-4ac3-84e0-d72448e4447a",
       "name": "Content Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5965,7 +5965,7 @@
       "notesInFlow": true
     },
     {
-      "id": "94246406-5f61-488c-b606-8cb7b1d28be1",
+      "id": "c356b844-096a-4803-9700-e520c113ef1b",
       "name": "Content: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5978,7 +5978,7 @@
       }
     },
     {
-      "id": "284fe396-570c-4e92-ab4b-b6709d026db0",
+      "id": "4f12cd45-05fa-4092-b412-c3de494e92d9",
       "name": "Content: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6013,7 +6013,7 @@
       }
     },
     {
-      "id": "5ef7665d-bb22-4a8a-972c-8e2e70144491",
+      "id": "c7aac137-61e1-46d2-b262-e7a2cc360054",
       "name": "Content: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6048,7 +6048,7 @@
       }
     },
     {
-      "id": "d9be7e05-b4e8-4d34-9ca4-06def442bb56",
+      "id": "92f7201a-7743-4ffc-8a22-18ab6e7d90ca",
       "name": "Content: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6091,7 +6091,7 @@
       }
     },
     {
-      "id": "0ee1157b-468d-4bec-9597-4cbd0c21f95e",
+      "id": "fbd35b1d-5f4c-4702-ad50-f3cb8482a1fa",
       "name": "Content: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6134,7 +6134,7 @@
       }
     },
     {
-      "id": "daf459dd-2bcc-49a9-a242-e42721aa2799",
+      "id": "9cf8e102-0db1-489f-88e5-b27fb209f078",
       "name": "Content: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6173,7 +6173,7 @@
       }
     },
     {
-      "id": "a85b709b-944b-4d9e-a75d-dfaad2dfba4d",
+      "id": "0bb37b12-f021-4aa8-8e5e-1be46ce40895",
       "name": "Content: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6236,7 +6236,7 @@
       }
     },
     {
-      "id": "7452bee9-3268-4703-8179-3fac34b9c8b2",
+      "id": "7e68b072-b616-43ab-a2d9-f07d9277d79f",
       "name": "Content: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6271,7 +6271,7 @@
       }
     },
     {
-      "id": "242c6ac7-f523-467b-83cc-5e565f5c1ba7",
+      "id": "14bd92de-7253-43bb-bd47-b19b0da44d15",
       "name": "Content: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,

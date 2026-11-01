@@ -3,7 +3,7 @@
   "name": "DevPilot Auto-Resume",
   "nodes": [
     {
-      "id": "88d0f42a-19f7-4198-ba51-0be93f556fd6",
+      "id": "36c3ffdd-57bf-40f7-bb4e-dd8a6ad78144",
       "name": "Note: DevPilot Auto-Resume",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "a1a2570d-b635-42b3-badd-d5da355501cf",
+      "id": "ef65f698-8b97-4edc-96d3-4e22693f13f8",
       "name": "On DevPilot Error",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -30,7 +30,7 @@
       "parameters": {}
     },
     {
-      "id": "124e1245-d62b-43d0-acaf-e0af30fe240f",
+      "id": "67b1c5c0-da02-428d-b7da-332a27029c44",
       "name": "Check Retry Budget",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -70,7 +70,7 @@
       "notesInFlow": true
     },
     {
-      "id": "9f00c1b5-9b91-49b0-84f1-2c8c4bf54caa",
+      "id": "754626ca-45cb-4279-b8b0-807fb382528e",
       "name": "Budget Left?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -104,7 +104,7 @@
       }
     },
     {
-      "id": "6b55ba82-5af0-494d-92b6-a640fd9223c1",
+      "id": "7bbd7c10-cc28-4e0e-aa96-8681e912afa5",
       "name": "Cool Down 60s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -119,7 +119,7 @@
       }
     },
     {
-      "id": "16e805d8-d184-433b-b8d1-c7c552ebf8fd",
+      "id": "9faf1703-d87b-4939-82b9-f536a01d25ab",
       "name": "Budget Used Up",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -132,7 +132,7 @@
       "notesInFlow": true
     },
     {
-      "id": "647fd81c-1d37-47b0-9f96-b35b65dd8b7a",
+      "id": "3c6dcb6a-630a-45c1-bfcf-8e2f8b716bbc",
       "name": "Build Resume Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -161,7 +161,7 @@
       }
     },
     {
-      "id": "b2c947bd-03bc-4c2a-be3c-e3fd0f0c809c",
+      "id": "8b86f512-c2e8-4443-abf1-659e1b762dc5",
       "name": "Resume DevPilot",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
