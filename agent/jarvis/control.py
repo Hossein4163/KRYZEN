@@ -193,6 +193,8 @@ def ui():
 
 # ---------------------------------------------------------------------------- services
 def _http_ok(url):
+    if url == "local":
+        return subprocess.run(["which", "agy"], capture_output=True).returncode == 0
     try:
         with urllib.request.urlopen(url, timeout=4) as r:
             return r.status < 500
@@ -205,24 +207,19 @@ def _run(cmd, cwd=None, timeout=120):
     return r
 
 
-# Packaged installs (K.R.Y.Z.E.N) set these in ~/.config/kryzen/kryzen.env; the defaults match the original setup.
-BRIDGE_URL = os.environ.get("KRYZEN_BRIDGE_URL", "http://172.22.0.1:8765")
-COMPOSE = ["docker", "compose", "-p", os.environ.get("KRYZEN_COMPOSE_PROJECT", "n8n")]
-BRIDGE_UNIT = os.environ.get("KRYZEN_BRIDGE_UNIT", "pc-bridge")
-ENGINE_UNIT = os.environ.get("KRYZEN_ENGINE_UNIT", "jarvis")
 SERVICES = {
-    "bridge": {"title": "PC Bridge", "health": BRIDGE_URL + "/health",
-               "restart": ["systemctl", "--user", "restart", BRIDGE_UNIT],
-               "logs": ["journalctl", "--user", "-u", BRIDGE_UNIT, "-n", "150", "--no-pager"]},
-    "n8n": {"title": "Workflow backend (n8n)", "health": "http://127.0.0.1:5678/healthz",
-            "restart": COMPOSE + ["restart", "n8n"],
-            "logs": COMPOSE + ["logs", "--tail", "150", "n8n"]},
-    "searxng": {"title": "SearXNG search", "health": "http://127.0.0.1:8888/healthz",
-                "restart": COMPOSE + ["restart", "searxng"],
-                "logs": COMPOSE + ["logs", "--tail", "150", "searxng"]},
-    "jarvis": {"title": "Engine", "health": "http://127.0.0.1:" + os.environ.get("JARVIS_PORT", "8770") + "/health",
-               "restart": ["systemd-run", "--user", "--on-active=1", "systemctl", "--user", "restart", ENGINE_UNIT],
-               "logs": ["journalctl", "--user", "-u", ENGINE_UNIT, "-n", "150", "--no-pager"]},
+    "agy": {
+        "title": "Antigravity CLI (agy)",
+        "health": "local",
+        "restart": ["agy", "--version"],
+        "logs": ["journalctl", "--user", "-u", "jarvis", "-n", "100", "--no-pager"]
+    },
+    "jarvis": {
+        "title": "Antigravity Studio GUI",
+        "health": "http://127.0.0.1:" + os.environ.get("JARVIS_PORT", "8770") + "/health",
+        "restart": ["systemctl", "--user", "restart", "jarvis"],
+        "logs": ["journalctl", "--user", "-u", "jarvis", "-n", "150", "--no-pager"]
+    },
 }
 
 

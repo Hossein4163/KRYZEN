@@ -33,8 +33,6 @@ import diet  # noqa: E402
 import media  # noqa: E402
 import runtime_settings  # noqa: E402
 import telemetry  # noqa: E402
-BRIDGE = os.environ.get("KRYZEN_BRIDGE_URL", "http://127.0.0.1:8765")
-SEARX = "http://127.0.0.1:8888/search"
 TOOL_RESULT_LIMIT = 12000
 # Rarely needed tools are offered by name only; their schemas are sent after enable_tools (saves prompt tokens).
 # agy_run is NEVER dormant: Antigravity CLI is the primary engine for high quality implementation.
@@ -661,36 +659,22 @@ class Engine:
         if not decision.get("approved"):
             raise PermissionError("the user rejected this write" + (": " + decision["note"] if decision.get("note") else ""))
 
-    # --- tools (direct in-process bridge + CLI)
+    # --- tools (direct in-process local execution, zero intermediaries)
     def bridge(self, path, args):
-        try:
-            import pc_bridge
-            handler = pc_bridge.ROUTES.get(path)
-            if handler:
-                res = handler(args)
-                return json.dumps(res, ensure_ascii=False) if not isinstance(res, str) else res
-        except Exception as e:
-            pass
-        try:
-            req = urllib.request.Request(BRIDGE + path, data=json.dumps(args).encode(), headers={
-                "X-Bridge-Token": self.bridge_token, "Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=1800) as r:
-                return r.read().decode()
-        except Exception as e:
-            return json.dumps({"error": str(e)})
+        import pc_bridge
+        handler = pc_bridge.ROUTES.get(path)
+        if handler:
+            res = handler(args)
+            return json.dumps(res, ensure_ascii=False) if not isinstance(res, str) else res
+        return json.dumps({"error": f"Unknown local tool handler: {path}"})
 
     def search(self, query):
-        try:
-            url = SEARX + "?" + urllib.parse.urlencode({"q": query, "format": "json"})
-            with urllib.request.urlopen(url, timeout=10) as r:
-                results = json.load(r).get("results", [])[:8]
-            return json.dumps([{k: x.get(k) for k in ("title", "url", "content")} for x in results], ensure_ascii=False)
-        except Exception:
-            cmd = ["agy", "-p", f"Search information about: {query}. Provide concise factual results.",
-                   "--dangerously-skip-permissions", "--output-format", "text"]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            text = (res.stdout or "").strip()
-            return json.dumps([{"title": "Search Result", "url": "local", "content": text}], ensure_ascii=False)
+        """Search directly through Antigravity CLI without external search APIs."""
+        cmd = ["agy", "-p", f"Search information about: {query}. Provide concise factual results.",
+               "--dangerously-skip-permissions", "--output-format", "text"]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        text = (res.stdout or "").strip()
+        return json.dumps([{"title": "Antigravity Direct Search", "url": "local", "content": text}], ensure_ascii=False)
 
     def run_tool(self, agent, tool, args, depth):
         self.checkpoint_control()
