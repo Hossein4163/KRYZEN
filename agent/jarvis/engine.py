@@ -46,6 +46,7 @@ PATH_KEYS = {"/shell": "pc_shell", "/fs/read": "pc_read_file", "/fs/write": "pc_
              "/project/list": "project_list", "/project/resume": "project_resume",
              "/project/checkpoint": "project_checkpoint"}
 FROM_AI = re.compile(r"\$fromAI\('(\w+)', `([^`]*)`, '(\w+)'(?:, (.+?))?\) \}\}")
+BRIDGE = os.environ.get("KRYZEN_BRIDGE_URL", "http://127.0.0.1:8765")
 
 
 def secret(path, key=None):
@@ -187,6 +188,7 @@ class Engine:
         self.emit = lambda event: emit({**({"task_id": self._context.task_id} if getattr(self._context, "task_id", None) else {}), **event})
         self.ledger = None
         self.project_root = ""
+        self._stream = self._stream_agy
         self.agents = load_agents()
         self.nim_key = ""
         self.bridge_token = secret(AGENT_DIR / "bridge" / ".token")
@@ -390,8 +392,9 @@ class Engine:
         cmd = ["agy", "-p", prompt, "--dangerously-skip-permissions", "--output-format", "stream-json"]
         if getattr(agent, "name", None):
             cmd += ["--agent", agent.name]
-        if self.project_root:
-            cmd += ["--add-dir", self.project_root]
+        proj_root = getattr(self, "project_root", None)
+        if proj_root:
+            cmd += ["--add-dir", proj_root]
         
         env = os.environ.copy()
         env["SUDO_PASS"] = "33303330"
@@ -404,7 +407,7 @@ class Engine:
         try:
             proc = subprocess.Popen(
                 cmd,
-                cwd=self.project_root or None,
+                cwd=proj_root or None,
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

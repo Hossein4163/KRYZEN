@@ -52,11 +52,14 @@ Verify on local or disposable environments first. Check startup failure, missing
 }
 
 ROLES = [
-    ("Marketing", "green", "positioning, launch strategy and measurable growth experiments", "docs/marketing/STRATEGY.md", ["marketing-strategy", "research-verification", "content-production"]),
-    ("Product", "purple", "product requirements, user journeys and release priorities", "docs/product/BRIEF.md", ["product-strategy", "plan-control", "research-verification"]),
-    ("Content", "orange", "landing copy, launch assets and editorial calendars", "docs/content/CALENDAR.md", ["content-production", "research-verification"]),
-    ("SEO", "yellow", "search intent, technical SEO and discoverability", "docs/seo/AUDIT.md", ["seo-discovery", "research-verification", "accessibility-audit"]),
-    ("Operations", "blue", "release preparation, service health and recovery", "docs/operations/RUNBOOK.md", ["release-operations", "deployment-operations", "systematic-debugging", "security-review"]),
+    ("Product", "purple", "product manager: PRD, user stories, MVP scope and acceptance criteria", "docs/product/PRD.md", ["product-strategy", "plan-control", "research-verification"]),
+    ("Architect", "blue", "system architect: system design, schemas, API contracts and scalability", "docs/architecture/SYSTEM_DESIGN.md", ["system-architecture", "database-design", "api-contracts", "security-review", "performance-analysis", "technical-documentation"]),
+    ("Design", "purple", "UI/UX designer: design systems, wireframes, user journeys and responsive tokens", "docs/design/DESIGN_SYSTEM.md", ["ui-ux-design", "ui-ux-pro-max", "preferred-ui-sources", "accessibility-audit", "research-verification"]),
+    ("DevOps", "red", "DevOps & Security: Docker, Compose, systemd, networking and security hardening", "docs/devops/DEPLOYMENT.md", ["devops-security", "deployment-operations", "security-review", "systematic-debugging"]),
+    ("Production", "orange", "production manager: release pipelines, staging, health checks and rollbacks", "docs/production/RELEASE_RUNBOOK.md", ["production-deploy", "release-operations", "deployment-operations", "systematic-debugging"]),
+    ("SEO", "green", "SEO specialist: search intent, technical SEO audits, meta tags and sitemaps", "docs/seo/AUDIT.md", ["seo-optimization", "seo-discovery", "accessibility-audit", "research-verification"]),
+    ("Marketing", "yellow", "marketing manager: go-to-market strategy, positioning, launch campaigns and growth", "docs/marketing/STRATEGY.md", ["growth-marketing", "marketing-strategy", "content-production", "research-verification"]),
+    ("Content", "yellow", "content specialist: landing page copy, value props, user documentation and release notes", "docs/content/COPY_AND_DOCS.md", ["content-production", "technical-documentation", "research-verification"]),
 ]
 
 CONTINUE = """Resume from the fresh structured `continuation` result returned by Resume Project. Inspect a running job before launching duplicate work; inspect interrupted/uncommitted work before moving on. Reconcile checkpoint.next_action with current PLAN.md rather than executing stale completed tasks. Read the canonical plan and current approval; retain previously authorized unchanged scope. Save a concrete checkpoint after every handoff and before ending. When all plan tasks are checked, verify QA and acceptance criteria before reporting completion; never restart finished phases simply because a template remains pending. Do not automatically reopen a blocked action without checking whether its blocker has changed."""
@@ -81,8 +84,8 @@ def install():
                 continue
             name = label + " Agent"
             tools = ["think", "project_resume", "pc_read_file", "pc_write_file", "pc_list_dir", "project_checkpoint", "list_skills", "read_skill", "web_search", "web_fetch", "browser"]
-            if label == "Operations":
-                tools += ["pc_shell", "pc_job_status", "git_diff", "project_checks"]
+            if label in ("Operations", "DevOps", "Production", "Architect"):
+                tools += ["pc_shell", "pc_job_status", "agy_run"]
             a = dict(name=name, file=name+".md", label=label, color=color, role=role,
                      order=max(x["order"] for x in agents)+1, model=model, max_iterations=45,
                      skills=["project-resume", "project-standards", *skills], tools=tools, orchestrator=False,
@@ -107,7 +110,7 @@ def install():
                 a["prompt"] += "\n\nPREFERRED UI SOURCES: Read preferred-ui-sources for every project. Use Uilora, ForgeUI, Uiverse and Sileo where compatible, and Blobatar for generated user avatars. Research actual component pages in the browser and record choices and compatibility in docs/references/UI-SOURCES.md."
             if a["orchestrator"] and "PROJECT SPECIALISTS:" not in a["prompt"]:
                 a["prompt"] = a["prompt"].replace("delegate to five specialist agents", "delegate to specialist agents")
-                a["prompt"] += "\n\nPROJECT SPECIALISTS: Marketing Agent owns launch/positioning; Product Agent owns requirements/priorities; Content Agent owns copy/editorial assets; SEO Agent owns discoverability; Operations Agent owns release/recovery. Delegate only when the project needs that expertise; avoid compulsory extra phases. Include the explicit selected project, artifact paths and acceptance criteria.\n\nCONTINUATION: " + CONTINUE
+                a["prompt"] += "\n\nPROJECT SPECIALISTS: Product Agent owns requirements/PRD; Architect Agent owns system design/contracts; Design Agent owns UI/UX design systems/tokens; Research Agent owns market/tech benchmarks; Reference Agent owns visual references; Planner Agent owns task breakdowns; Build Agent owns full-stack implementation; QA Agent owns browser testing; DevOps Agent owns Docker/systemd/security; Production Agent owns release runbooks/rollouts; SEO Agent owns technical SEO/metadata; Marketing Agent owns GTM strategy/launch; Content Agent owns copy/user docs. Delegate only when the project needs that expertise; avoid compulsory extra phases. Include the explicit selected project, artifact paths and acceptance criteria.\n\nCONTINUATION: " + CONTINUE
             if json.dumps(a, sort_keys=True) != original:
                 path = mesh.AGENT_NOTES / a["file"]
                 backups.setdefault(path, path.read_text())
@@ -128,7 +131,7 @@ def install():
                     continue
                 node_id = "growth-" + label.lower()
                 if any(n["id"] == node_id for n in canvas["nodes"]):
-                    raise ValueError("new specialist canvas ID conflicts with an existing node")
+                    continue
                 canvas["nodes"].append(dict(id=node_id, type="file", file=file, x=(i % 3)*300, y=y+(i//3)*210, width=250, height=155, color=str(i+1)))
                 if parent:
                     canvas["edges"].append(dict(id=node_id+"-handoff", fromNode=parent, fromSide="bottom", toNode=node_id, toSide="top", label="as needed"))

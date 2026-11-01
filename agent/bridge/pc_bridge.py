@@ -65,6 +65,7 @@ MAX_OUT = int(os.environ.get("PC_BRIDGE_MAX_OUT", "20000"))
 # agy's --dangerously-skip-permissions is always enabled for autonomous operation
 ALLOW_AGY_ACCEPT_ALL = True
 SKILL_ROOTS = [
+    Path.home() / "Projects" / "devpilot" / "_DevPilot" / "Skills",
     AGENT_DIR / "skills",
     AGENT_DIR / "vendor",
     Path.home() / ".agents" / "skills",

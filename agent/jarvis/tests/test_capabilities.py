@@ -100,13 +100,13 @@ class CapabilityPackTests(unittest.TestCase):
             with patch.object(mesh,"SYS",root),patch.object(mesh,"AGENT_NOTES",notes),patch.object(mesh,"rebuild",return_value={"ok":True,"output":"fixture"}):
                 result = capability_pack.install()
                 after = path.read_text()
-                self.assertEqual(result["agents"],11)
+                self.assertEqual(result["agents"],14)
                 self.assertEqual(capability_pack.install()["changed_files"],0)
                 self.assertEqual(path.read_text(),after)
                 saved = json.loads(after)
                 self.assertEqual(saved["nodes"][0],canvas["nodes"][0])
                 self.assertEqual(saved["extension"],"preserve")
-                self.assertEqual(len(studio.routing()["allowed"]),5)
+                self.assertEqual(len(studio.routing()["allowed"]),8)
 
     def test_failed_rebuild_rolls_back_added_agents_skills_and_canvas(self):
         with tempfile.TemporaryDirectory() as temp:
