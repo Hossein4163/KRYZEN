@@ -41,6 +41,26 @@ from projectdata import atomic_write
 
 HERE = Path(__file__).resolve().parent
 HOST, PORT = "127.0.0.1", int(os.environ.get("JARVIS_PORT", "8770"))
+LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "jarvis.local", "agy.local", "studio.local", "devpilot.local"}
+
+
+def is_local_host(host_header):
+    if not host_header:
+        return False
+    h = host_header.strip().lower()
+    hostname = h.split(":", 1)[0]
+    return hostname in LOCAL_HOSTNAMES or hostname.endswith(".local")
+
+
+def is_local_origin(origin_header):
+    if not origin_header:
+        return True
+    try:
+        parsed = urlparse(origin_header)
+        hostname = (parsed.hostname or "").lower()
+        return hostname in LOCAL_HOSTNAMES or hostname.endswith(".local")
+    except Exception:
+        return False
 SESSIONS = HERE / "sessions"
 SESSIONS.mkdir(exist_ok=True)
 MAX_EVENTS = 4000
@@ -441,8 +461,8 @@ class Handler(BaseHTTPRequestHandler):
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
         try:
             if u.path in ("/", "/index.html"):
-                # Opened as http://0.0.0.0:8770 (or another alias): its POSTs would be refused, so move to the real address.
-                if self.headers.get("Host", "") not in (f"{HOST}:{PORT}", f"localhost:{PORT}"):
+                # Opened as an unknown alias: move to the real address.
+                if not is_local_host(self.headers.get("Host", "")):
                     self.send_response(302)
                     self.send_header("Location", f"http://{HOST}:{PORT}{self.path}")
                     self.send_header("Content-Length", "0")
@@ -694,8 +714,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def post(self):
         origin = self.headers.get("Origin", "")
-        if self.headers.get("X-Jarvis") != "1" or (origin and origin not in (f"http://{HOST}:{PORT}",
-                                                                            f"http://localhost:{PORT}")):
+        if self.headers.get("X-Jarvis") != "1" or not is_local_origin(origin):
             print(f"[jarvis] refused POST {self.path}: origin={origin!r} x-jarvis={self.headers.get('X-Jarvis')!r}",
                   flush=True)
             return self.send(403, {"error": "forbidden"})
