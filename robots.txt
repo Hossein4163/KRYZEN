@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hossein4163.github.io/KRYZEN/sitemap.xml

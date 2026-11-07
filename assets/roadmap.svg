@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 150" role="img" aria-label="Roadmap: tools, code, team, start, first project, ship">
+<style>.t{font:800 15px Archivo,Helvetica,Arial,sans-serif;fill:#f3f2f2}.s{font:12px Archivo,Helvetica,Arial,sans-serif;fill:#9b9797}.b{fill:#141312;stroke:#f3f2f2;stroke-opacity:.45;stroke-width:2}
+.on{fill:#ec3013;opacity:0;animation:on 9s steps(1) infinite}.l{stroke:#ec3013;stroke-width:3;stroke-dasharray:130;stroke-dashoffset:130;animation:ln 9s linear infinite}
+.n1{animation-delay:0s}.n2{animation-delay:1.2s}.n3{animation-delay:2.4s}.n4{animation-delay:3.6s}.n5{animation-delay:4.8s}.n6{animation-delay:6s}
+@keyframes on{0%{opacity:1}85%{opacity:1}86%,100%{opacity:0}}@keyframes ln{0%{stroke-dashoffset:130}13%,80%{stroke-dashoffset:0}81%,100%{stroke-dashoffset:130;opacity:0}}
+@media (prefers-reduced-motion:reduce){.on{animation:none;opacity:1}.l{animation:none;stroke-dashoffset:0}}
+</style><rect width="960" height="150" fill="#141312"/>
+<g><path d="M80 50H890" stroke="#f3f2f2" stroke-opacity=".3" stroke-width="2"/>
+<path class="l n1" d="M80 50H230"/><path class="l n2" d="M230 50H390"/><path class="l n3" d="M390 50H550"/><path class="l n4" d="M550 50H710"/><path class="l n5" d="M710 50H880"/></g>
+<g id="x">
+<rect class="b" x="66" y="36" width="28" height="28"/><rect class="on n1" x="66" y="36" width="28" height="28"/><text class="t" x="66" y="92">Tools</text><text class="s" x="66" y="112">python, agy</text>
+<rect class="b" x="216" y="36" width="28" height="28"/><rect class="on n2" x="216" y="36" width="28" height="28"/><text class="t" x="216" y="92">Code</text><text class="s" x="216" y="112">clone, config</text>
+<rect class="b" x="376" y="36" width="28" height="28"/><rect class="on n3" x="376" y="36" width="28" height="28"/><text class="t" x="376" y="92">Team</text><text class="s" x="376" y="112">14 agents, skills</text>
+<rect class="b" x="536" y="36" width="28" height="28"/><rect class="on n4" x="536" y="36" width="28" height="28"/><text class="t" x="536" y="92">Start</text><text class="s" x="536" y="112">web app, service</text>
+<rect class="b" x="696" y="36" width="28" height="28"/><rect class="on n5" x="696" y="36" width="28" height="28"/><text class="t" x="696" y="92">Project</text><text class="s" x="696" y="112">add folder, chat</text>
+<rect class="b" x="866" y="36" width="28" height="28"/><rect class="on n6" x="866" y="36" width="28" height="28"/><text class="t" x="846" y="92">Ship</text><text class="s" x="846" y="112">plan, QA</text>
+</g></svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-label="K.R.Y.Z.E.N setup: zero to one hundred">
+<style>
+.a{font-family:Archivo,Helvetica,Arial,sans-serif}.m{font-family:ui-monospace,Menlo,monospace}
+.bar{transform-box:fill-box;transform-origin:left;animation:grow 7s cubic-bezier(.6,0,.2,1) infinite}
+.c0,.c1,.c2,.c3,.c4{opacity:0;animation:num 7s step-end infinite}.c1{animation-name:n1}.c2{animation-name:n2}.c3{animation-name:n3}.c4{animation-name:n4}.c0{animation-name:n0}
+.sq{animation:pulse 1.4s steps(2) infinite}
+@keyframes grow{0%{transform:scaleX(0)}70%,100%{transform:scaleX(1)}}
+@keyframes n0{0%,14%{opacity:1}14.01%,100%{opacity:0}}@keyframes n1{0%,14%{opacity:0}14.01%,30%{opacity:1}30.01%,100%{opacity:0}}@keyframes n2{0%,30%{opacity:0}30.01%,48%{opacity:1}48.01%,100%{opacity:0}}@keyframes n3{0%,48%{opacity:0}48.01%,68%{opacity:1}68.01%,100%{opacity:0}}@keyframes n4{0%,68%{opacity:0}68.01%,100%{opacity:1}}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.bar,.sq{animation:none}.c0,.c1,.c2,.c3{display:none}.c4{animation:none;opacity:1}}
+</style>
+<rect width="960" height="300" fill="#141312"/>
+<path d="M0 60H960M0 120H960M0 180H960M0 240H960M120 0V300M240 0V300M360 0V300M480 0V300M600 0V300M720 0V300M840 0V300" stroke="#f3f2f2" stroke-opacity=".05"/>
+<rect class="sq" x="40" y="40" width="20" height="20" fill="#ec3013"/>
+<text class="a" x="74" y="57" fill="#f3f2f2" font-size="18" font-weight="800" letter-spacing="4">K.R.Y.Z.E.N</text>
+<text class="a" x="40" y="150" fill="#f3f2f2" font-size="54" font-weight="800" letter-spacing="-1">Setup, 0 to 100</text>
+<text class="a" x="40" y="186" fill="#bab6b6" font-size="18">A team of AI agents on your own machine, from an empty computer to your first shipped project.</text>
+<rect x="40" y="228" width="760" height="8" fill="#f3f2f2" fill-opacity=".12"/>
+<rect class="bar" x="40" y="228" width="760" height="8" fill="#ec3013"/>
+<g class="a" fill="#f3f2f2" font-size="44" font-weight="800" text-anchor="end">
+<text class="c0" x="920" y="248">0</text><text class="c1" x="920" y="248">25</text><text class="c2" x="920" y="248">50</text><text class="c3" x="920" y="248">75</text><text class="c4" x="920" y="248">100</text></g>
+</svg>

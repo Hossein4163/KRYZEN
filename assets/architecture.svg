@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" role="img" aria-label="Architecture: browser talks to the server; the engine delegates to agents, which use the Antigravity CLI and a sandboxed bridge on your project folders">
+<style>.t{font:800 15px Archivo,Helvetica,Arial,sans-serif;fill:#f3f2f2}.s{font:12px Archivo,Helvetica,Arial,sans-serif;fill:#bab6b6}.m{font:11px ui-monospace,Menlo,monospace;fill:#9b9797}.b{fill:#1c1b1a;stroke:#f3f2f2;stroke-opacity:.32;stroke-width:2}.w{fill:none;stroke:#f3f2f2;stroke-opacity:.35;stroke-width:2}.p{fill:#ec3013}
+.hot{fill:#ec3013}
+@media (prefers-reduced-motion:reduce){.p{display:none}}</style>
+<rect width="960" height="330" fill="#141312"/>
+<path id="w1" class="w" d="M180 70H300"/><path id="w2" class="w" d="M460 70H580"/><path id="w3" class="w" d="M660 106V190"/><path id="w4" class="w" d="M580 226H460"/><path id="w5" class="w" d="M300 226H180"/><path id="w6" class="w" d="M740 70H790"/>
+<rect class="b" x="40" y="34" width="140" height="72"/><text class="t" x="56" y="62">Browser</text><text class="s" x="56" y="84">Chat, Mesh, Plan</text>
+<rect class="b" x="300" y="34" width="160" height="72"/><text class="t" x="316" y="62">server.py</text><text class="m" x="316" y="84">127.0.0.1:8770</text>
+<rect class="b" x="580" y="34" width="160" height="72" style="stroke:#ec3013;stroke-opacity:1"/><text class="t" x="596" y="62">Orchestrator</text><text class="s" x="596" y="84">plans, delegates</text>
+<rect class="b" x="790" y="34" width="130" height="72"/><text class="t" x="806" y="62">Vault</text><text class="s" x="806" y="84">agents, skills</text>
+<rect class="b" x="580" y="190" width="160" height="72"/><text class="t" x="596" y="218">14 agents</text><text class="s" x="596" y="240">research to release</text>
+<rect class="b" x="300" y="190" width="160" height="72"/><text class="t" x="316" y="218">Bridge + agy</text><text class="s" x="316" y="240">sandboxed tools</text>
+<rect class="b" x="40" y="190" width="140" height="72"/><text class="t" x="56" y="218">Your projects</text><text class="s" x="56" y="240">folders, git, docs</text>
+<text class="m" x="40" y="300">One request, end to end. Everything stays on your machine; only model calls leave it.</text>
+<rect class="p" x="-5" y="-5" width="10" height="10"><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.14;1" calcMode="linear"><mpath href="#w1"/></animateMotion></rect>
+<rect class="p" x="-5" y="-5" width="10" height="10" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.14;.3;.31;1"/><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;.14;.3;1" calcMode="linear"><mpath href="#w2"/></animateMotion></rect>
+<rect class="p" x="-5" y="-5" width="10" height="10" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.3;.5;.51;1"/><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;.3;.5;1" calcMode="linear"><mpath href="#w3"/></animateMotion></rect>
+<rect class="p" x="-5" y="-5" width="10" height="10" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.5;.68;.69;1"/><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;.5;.68;1" calcMode="linear"><mpath href="#w4"/></animateMotion></rect>
+<rect class="p" x="-5" y="-5" width="10" height="10" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.68;.86;.87;1"/><animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;.68;.86;1" calcMode="linear"><mpath href="#w5"/></animateMotion></rect>
+</svg>
