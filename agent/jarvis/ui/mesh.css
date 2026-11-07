@@ -69,18 +69,43 @@
 @keyframes jrSpin { to { stroke-dashoffset: -90; } }
 .jr-info {
   position: absolute;
-  right: 272px;
-  bottom: 14px;
-  z-index: 16;
-  max-width: min(420px, calc(100% - 440px));
-  background: var(--color-bg);
+  right: 16px;
+  bottom: 126px;
+  z-index: 18;
+  width: 340px;
+  max-width: min(360px, calc(100% - 32px));
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  background: rgba(12, 12, 12, 0.95);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-divider);
-  font-size: 12.5px;
+  font-size: 12px;
   pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.jr-info.jr-hint { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 10px; border-color: var(--rule); font-size: 11.5px; color: var(--muted); }
+.jr-info.jr-hint {
+  top: auto;
+  left: 168px;
+  right: auto;
+  bottom: 14px;
+  height: 30px;
+  width: auto;
+  max-width: calc(100% - 440px);
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  background: var(--color-bg);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: none;
+}
 .jr-key { display: inline-block; width: 8px; height: 8px; margin-right: 5px; }
 .jr-key-req { background: var(--color-accent); }
 .jr-key-res { background: var(--color-text); }
@@ -109,7 +134,14 @@ body.still .jr-float, body.still .jr-main-flow { animation: none; }
 .stage .mesh-footer #stepInfo { order: 2; float: none; margin-left: auto; color: var(--accent-text); font: 11px var(--mono); max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
 .stage .mesh-footer .ticker { margin: 0; min-height: 0; font: 11px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; mask-image: none; }
 .ticker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 760px) { .stage { min-height: 70vh; } .jr-cell { padding: 6px; } .jr-cell span { display: none; } .jr-info { position: absolute; left: 8px; right: 8px; bottom: 54px; max-width: none; } .jr-hint span:last-child { display: none; } .stage .mesh-navigation { left: 8px; bottom: 8px; } }
+@media (max-width: 760px) {
+  .stage { min-height: 70vh; }
+  .jr-cell { padding: 6px; }
+  .jr-cell span { display: none; }
+  .jr-info.jr-hint { display: none; }
+  .stage .mesh-navigation { left: 8px; bottom: 8px; }
+  .jr-minimap-wrap { right: 8px; bottom: 8px; }
+}
 
 /* Swiss Modernist Circuit Board & Tactile Instrument Nodes */
 .jr-main-bus { fill: none; stroke: var(--color-divider); stroke-width: 2px; }
@@ -172,16 +204,37 @@ body.still .jr-float, body.still .jr-main-flow { animation: none; }
 }
 
 #journey:has(#jrAgentDrawer.open) .jr-info {
-  right: 662px;
+  display: none;
 }
 
 @media (max-width: 900px) {
-  .jr-info {
-    right: 16px;
-    bottom: 128px;
-    max-width: min(420px, calc(100% - 32px));
+  .jr-info.jr-hint {
+    display: none;
   }
-  #journey:has(#jrAgentDrawer.open) .jr-info {
+  .jr-info:not(.jr-hint) {
+    right: 12px;
+    bottom: 124px;
+    width: 320px;
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 136px);
+  }
+  #journey:has(#jrAgentDrawer.open) .jr-minimap-wrap {
+    transform: scale(0.85);
+    transform-origin: bottom right;
+    right: 396px;
+  }
+}
+
+@media (max-width: 600px) {
+  .jr-info:not(.jr-hint) {
+    left: 8px;
+    right: 8px;
+    bottom: 120px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100% - 130px);
+  }
+  #journey:has(#jrAgentDrawer.open) .jr-minimap-wrap {
     display: none;
   }
 }
