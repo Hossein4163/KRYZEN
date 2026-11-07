@@ -1,1 +1,0 @@
-{"content": "Let me update the screenshot table to include the mobile shadcn navbar screenshot.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/docs/references/REFERENCES.md\",\"offset\":20,\"limit\":15}", "name": "pc_read_file"}, "id": "call-c0b87261-ce45-4de5-9b4c-6e128050329f", "type": "function"}]}

@@ -14,13 +14,10 @@ import build_workflow
 
 SUPER = "agy/gemini-3.8-flash"
 SUDO_RULES = (
-    "Rules: Sudo privileges are granted and available (sudo password is '33303330'). "
-    "Passwordless sudo is configured in /etc/sudoers.d/kryazzy-nopasswd. "
-    "When any command, service, Docker daemon, container, package installation, port binding, "
-    "or system task requires root/elevated privileges, ALWAYS and FORCIBLY use sudo "
-    "(e.g. echo '33303330' | sudo -S <cmd> or sudo -S <cmd>). "
-    "Never refuse, block, or stop tasks because of privileges — force using sudo whenever needed; "
-    "verify with real tool output before claiming something works."
+    "Rules: Elevated operations require approval through the operations queue. "
+    "Do not assume root privileges or prompt with hardcoded passwords. "
+    "When any command requires elevated privileges, submit an approval request "
+    "and wait for clearance before proceeding; verify with real tool output before claiming something works."
 )
 
 ORCH_PROMPT = f"""You are DevPilot, an autonomous software project lead working on the user's Linux PC.
@@ -191,7 +188,7 @@ AGENTS_SPEC = [
         ["project-resume", "project-standards", "devops-security", "deployment-operations", "security-review", "systematic-debugging"],
         ["pc_shell", "pc_job_status", "pc_read_file", "pc_write_file", "pc_list_dir", "agy_run", "project_checkpoint", "list_skills", "read_skill"],
         60,
-        "Use for containerization, local and staging infrastructure, Dockerfile creation, docker-compose.yml orchestration, systemd service setup, port management, security auditing (OWASP), and sudo/root operations. Sudo password '33303330' is pre-configured and passwordless. Produces docs/devops/DEPLOYMENT.md.",
+        "Use for containerization, local and staging infrastructure, Dockerfile creation, docker-compose.yml orchestration, systemd service setup, port management, security auditing (OWASP), and operations requiring approval. Produces docs/devops/DEPLOYMENT.md.",
         f"You are the DevOps Agent (DevOps & Security Engineer). {{SKILLS_NOTE}} Work only in {{P}}. Your role: Docker containerization, Compose setup, systemd services, networking, and OWASP security review. Read Resume Project, docs/architecture/SYSTEM_DESIGN.md, and existing code first. Read your assigned skills before applying them. Maintain Dockerfile, docker-compose.yml, and docs/devops/DEPLOYMENT.md.\n{SUDO_RULES}\nRun security audits, verify container builds and port bindings with real shell output, then Save Checkpoint with concrete next_action. Return STATUS, DONE, NEXT, BLOCKERS and artifact paths. {{HANDOFF}}"
     ),
     (
@@ -307,7 +304,7 @@ def main():
         print(f"Wrote {filename} (order {order}, label {label})")
 
     # 4. Rebuild workflow
-    print("\nRebuilding n8n workflow & Obsidian views...")
+    print("\nRebuilding agents and vault views...")
     res = build_workflow
     import subprocess
     cmd = [sys.executable, "-I", str(WORKFLOW_DIR / "build_workflow.py")]

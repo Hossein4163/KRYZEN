@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/docs/research/BRIEF.md\",\"limit\":30}", "name": "pc_read_file"}, "id": "call-af521397-8b3a-45cd-88ea-43a61b99b4ad", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"started bg\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-14c0c038-2143-42af-b69a-1f099605faed"}

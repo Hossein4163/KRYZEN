@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"/health: 000\\n/healthz: 000\\n/api/health: 000\\n/api/healthz: 000\\n/swagger: 000\\n/: 000\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-2d70f528-dfdd-4ee4-91d2-26834bb3cefa"}

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Screenshot saved to /home/kry/Projects/devpilot/rame-studio/docs/references/images/05-allshadcn-glass-ui-1440.png\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-8cd7233f-9b9d-4b10-8cb6-82fbb3bfc8b9"}

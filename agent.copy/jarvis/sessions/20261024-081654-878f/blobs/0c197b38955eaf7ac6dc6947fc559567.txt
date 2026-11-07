@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "/usr/bin/psql\n/run/postgresql:5432 - no response\nls: cannot access '/etc/postgresql': No such file or directory\nUnit postgresql.service could not be found.\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

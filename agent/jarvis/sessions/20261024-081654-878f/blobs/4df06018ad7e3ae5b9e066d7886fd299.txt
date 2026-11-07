@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"for p in 5003 5004 5005 5175 5176 5434 5435; do ss -tln | grep -q \\\":$p \\\" && echo \\\"$p IN USE\\\" || echo \\\"$p FREE\\\"; done\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-513b30af-987e-45b2-8b2d-bb4c96e0515c", "type": "function"}]}

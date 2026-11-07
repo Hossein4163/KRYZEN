@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/src/Api/appsettings.json\"}", "name": "pc_read_file"}, "id": "call-d1fd9bfc-71c8-4c15-8ea6-6fe12595a367", "type": "function"}]}

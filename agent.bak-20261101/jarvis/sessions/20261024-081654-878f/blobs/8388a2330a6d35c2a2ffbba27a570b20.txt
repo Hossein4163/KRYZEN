@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"sudo dockerd > /tmp/dockerd.log 2>&1 &\\nsleep 8 && docker info > /dev/null 2>&1 && echo \\\"DOCKER READY\\\" || echo \\\"DOCKER NOT READY\\\"\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-a08ce8a0-c5ec-45fd-8524-0d9186db0f2b", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"sleep 5; docker info 2>&1 | head -15; echo \\\"---LOG---\\\"; tail -20 /tmp/dockerd.log 2>&1\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-3037a21b-46e9-4e7d-89b7-0c2b3e60ede1", "type": "function"}]}

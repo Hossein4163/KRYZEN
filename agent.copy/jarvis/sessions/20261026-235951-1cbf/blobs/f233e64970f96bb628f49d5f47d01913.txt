@@ -1,1 +1,0 @@
-{"content": "./src/counter.js\n  1: export function setupCounter(element) {\n  3: const setCounter = (count) => {\n./src/main.js\n  21: function updateDisplay() {", "role": "tool", "tool_call_id": "call-1d27a400-fd95-49e2-b124-9f8e0f04efe4"}

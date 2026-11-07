@@ -1,1 +1,0 @@
-{"content": "Login succeeded. Let me verify the dashboard and test admin pages.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"snapshot -i\"}", "name": "browser"}, "id": "call-44cd260a-54ab-40dd-921c-40e9870db771", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/docs/plan/PLAN.md\",\"offset\":44,\"limit\":40}", "name": "pc_read_file"}, "id": "call-89ae3a09-4e01-4243-b6b5-c29581d0ef34", "type": "function"}]}

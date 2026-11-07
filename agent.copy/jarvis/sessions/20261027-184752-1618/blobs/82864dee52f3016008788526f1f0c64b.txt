@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/backend\", \"exists\": false, \"entries\": []}", "role": "tool", "tool_call_id": "call-56a77f4c-94db-4cd3-b35a-12280d6b3ccc"}

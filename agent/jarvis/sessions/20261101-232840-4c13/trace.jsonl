@@ -1,1 +1,0 @@
-{"kind": "model_call", "t": 1793563121.024425, "turn": 1, "agent": "DevPilot Orchestrator", "model": "agy/gemini-3.8-flash", "messages": ["73db7929df5bcfb7952b9c89db877700", "4d155b3c5850394a731791f3794b730d"], "prompt_tokens": 1665, "completion_tokens": 154, "estimated": true, "ms": 215, "ttft_ms": null, "attempts": 1, "tool_calls": [], "prompt_chars": 6523, "task_id": null}

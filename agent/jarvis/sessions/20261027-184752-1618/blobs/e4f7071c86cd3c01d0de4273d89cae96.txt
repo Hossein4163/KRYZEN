@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "✓ Glassmorphism Navbar Block for React\n  https://www.shadcn.io/blocks/navbar-glassmorphism\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

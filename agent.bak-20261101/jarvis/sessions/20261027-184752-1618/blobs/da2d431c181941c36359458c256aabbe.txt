@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/docs/references/REFERENCES.md", "bytes": 8041, "revision": "591e8a43774da063ed62f6d10197289f6b0994e4517a243a65fd779ef5f8142c"}

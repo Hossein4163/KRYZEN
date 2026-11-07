@@ -163,7 +163,7 @@ def tool_save(d):
     meta = {"id": tid, "title": title, "command": command, "cwd": cwd or "~/Projects/devpilot", "timeout": timeout,
             "params": params, "tags": ["devpilot/tool"]}
     intro = ("> [!tip] Custom tool, edited in the Jarvis Control Center. The command runs in the sandboxed shell; "
-             "`{name}` slots are filled from the parameters (shell-quoted). Runs in **Jarvis**; n8n skips it.")
+             "`{name}` slots are filled from the parameters (shell-quoted). Runs in K.R.Y.Z.E.N.")
     write_note(path, meta, title, intro, [("Description", desc)])
     if old_path and old_path != path and old_path.exists():
         old_path.unlink()

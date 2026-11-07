@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/src/Domain/Common/BaseAuditableEntity.cs", "total_lines": 7, "content": "1\tnamespace RameStudio.Domain.Common;\n2\t\n3\tpublic abstract class BaseAuditableEntity : BaseEntity\n4\t{\n5\t    public DateTime? UpdatedAt { get; set; }\n6\t    public DateTime? DeletedAt { get; set; }\n7\t}"}

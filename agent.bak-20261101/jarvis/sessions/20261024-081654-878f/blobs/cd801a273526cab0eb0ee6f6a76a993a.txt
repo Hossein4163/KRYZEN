@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"✓ رامه استودیو | طراحی وب و سئو\\n  http://localhost:5174/customer/dashboard\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-af5132cb-1a7d-4a8f-aca9-6a33794c48ad"}

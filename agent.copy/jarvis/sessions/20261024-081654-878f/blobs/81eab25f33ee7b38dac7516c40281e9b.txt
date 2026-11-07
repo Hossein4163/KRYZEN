@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/frontend/public/robots.txt\", \"bytes\": 67, \"revision\": \"d70c77b15ff3c0863ab20999a5db53910b755b9566ce0c748f16224f3b91350d\"}", "role": "tool", "tool_call_id": "call-590410f7-c8fc-4491-90ce-a4797287e537"}

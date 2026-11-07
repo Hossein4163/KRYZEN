@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/src/Domain/Enums", "exists": true, "entries": ["ConversationType.cs", "InvoiceStatus.cs", "LeadStatus.cs", "OrderStatus.cs", "ProjectStatus.cs", "ReportType.cs", "TaskItemStatus.cs", "TaskPriority.cs", "UserRole.cs"]}

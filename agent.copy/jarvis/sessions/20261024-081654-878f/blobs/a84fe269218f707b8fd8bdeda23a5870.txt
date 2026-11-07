@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "LISTEN 0      4096         0.0.0.0:5173       0.0.0.0:*   \nLISTEN 0      4096       127.0.0.1:5433       0.0.0.0:*   \nLISTEN 0      4096            [::]:5173          [::]:*   \n---pg 5433---\n/run/postgresql:5433 - no response\n---curl 5173---\n200\n---curl 5278---\n000\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

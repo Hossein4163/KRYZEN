@@ -1,1 +1,0 @@
-{"content": "Docker daemon isn't running. Let me try starting it without sudo:\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"dockerd 2>&1 &\\nsleep 3\\ndocker info 2>&1 | head -5 || echo \\\"DOCKER_STILL_DOWN\\\"\",\"timeout\":15}", "name": "pc_shell"}, "id": "call-46fcc431-d44e-40fa-b9f7-57ed1bd2151b", "type": "function"}]}

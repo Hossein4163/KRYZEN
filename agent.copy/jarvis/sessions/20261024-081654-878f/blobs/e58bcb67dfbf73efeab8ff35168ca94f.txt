@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "✓ Flowsint\n  http://localhost:5173/portfolio\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

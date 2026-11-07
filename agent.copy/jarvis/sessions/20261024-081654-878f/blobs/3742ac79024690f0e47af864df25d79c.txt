@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/plan/PLAN.md\", \"total_lines\": 489, \"content\": \"\"}", "role": "tool", "tool_call_id": "call-d02f6a93-b8d9-4ab3-916f-d06d84987dd4"}

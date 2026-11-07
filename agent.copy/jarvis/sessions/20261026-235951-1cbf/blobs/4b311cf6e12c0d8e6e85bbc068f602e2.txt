@@ -1,5 +1,0 @@
-./src/counter.js
-  1: export function setupCounter(element) {
-  3: const setCounter = (count) => {
-./src/main.js
-  21: function updateDisplay() {

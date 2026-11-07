@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "ls: cannot access 'frontend/Dockerfile': No such file or directory\n-rw-r--r-- 1 kry kry 1180 Oct 24 10:35 docker-compose.yml\n-rw-r--r-- 1 kry kry 1984 Oct 24 10:35 Dockerfile\n---\nentrypoint.sh\ninit-db\nwait-for-db.sh\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

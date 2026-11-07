@@ -19,7 +19,7 @@ import mesh
 from projectdata import atomic_write, revision
 
 HERE = Path(__file__).resolve().parent
-N8N_DIR = mesh.AGENT_DIR.parent
+REPO_DIR = mesh.AGENT_DIR.parent
 ROOTS = {"vault": mesh.SYS, "jarvis": HERE, "builder": mesh.WORKFLOW_DIR}
 SKIP = {"sessions", "__pycache__", ".git", "node_modules"}
 TEXT = {".md", ".json", ".py", ".html", ".css", ".js", ".yml", ".yaml", ".txt", ".canvas", ".service", ".gitignore",
@@ -112,8 +112,7 @@ def save(root, rel, content, expected=None):
                 p.write_text(old)
             mesh.rebuild()
             return {"ok": False, "errors": ["rebuild failed — change reverted"], "output": r["output"]}
-        return {"ok": True, "message": "Saved and rebuilt — Jarvis uses it from the next message. "
-                                       "Sync n8n to update n8n.", "rebuilt": True, "revision": revision(content)}
+        return {"ok": True, "message": "Saved and rebuilt. Agents use it from the next message.", "rebuilt": True, "revision": revision(content)}
     return {"ok": True, "message": hint, "revision": revision(content)}
 
 
@@ -207,6 +206,9 @@ def _run(cmd, cwd=None, timeout=120):
     return r
 
 
+BRIDGE_URL = os.environ.get("KRYZEN_BRIDGE_URL", "http://127.0.0.1:8765")
+BRIDGE_UNIT = os.environ.get("KRYZEN_BRIDGE_UNIT", "pc-bridge")
+
 SERVICES = {
     "agy": {
         "title": "Antigravity CLI (agy)",
@@ -214,8 +216,14 @@ SERVICES = {
         "restart": ["agy", "--version"],
         "logs": ["journalctl", "--user", "-u", "jarvis", "-n", "100", "--no-pager"]
     },
+    "bridge": {
+        "title": "PC Bridge",
+        "health": BRIDGE_URL + "/health",
+        "restart": ["systemctl", "--user", "restart", BRIDGE_UNIT],
+        "logs": ["journalctl", "--user", "-u", BRIDGE_UNIT, "-n", "150", "--no-pager"]
+    },
     "jarvis": {
-        "title": "Antigravity Studio GUI",
+        "title": "K.R.Y.Z.E.N web app",
         "health": "http://127.0.0.1:" + os.environ.get("JARVIS_PORT", "8770") + "/health",
         "restart": ["systemctl", "--user", "restart", "jarvis"],
         "logs": ["journalctl", "--user", "-u", "jarvis", "-n", "150", "--no-pager"]
@@ -235,7 +243,7 @@ def service_action(key, action):
     if not s or action not in ("restart", "logs"):
         return {"ok": False, "errors": ["unknown service or action"]}
     try:
-        result = _run(s[action], cwd=N8N_DIR, timeout=180)
+        result = _run(s[action], cwd=REPO_DIR, timeout=180)
     except Exception as e:
         return {"ok": False, "errors": [f"{type(e).__name__}: {e}"]}
     output = (result.stdout + result.stderr).strip()[-12000:]

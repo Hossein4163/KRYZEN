@@ -1,1 +1,0 @@
-{"content": "Both servers running. Now let me test in a real browser. Starting with public pages.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"open http://localhost:5174/\"}", "name": "browser"}, "id": "call-fb60552c-900b-4bf6-929b-05a9b3f1e192", "type": "function"}]}

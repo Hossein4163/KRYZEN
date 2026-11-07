@@ -1,8 +1,7 @@
 """Mesh editing for Jarvis: read and change the agent notes in the Obsidian vault, then rebuild.
 
-The notes in ~/Projects/devpilot/_DevPilot/Agents are the source of truth for both Jarvis and n8n.
+The notes in ~/Projects/devpilot/_DevPilot/Agents are the source of truth for the agents.
 Saving here rewrites a note and runs build_workflow.py (Jarvis uses the result on its next message);
-sync() additionally imports the rebuilt workflows into n8n via devpilot-sync.
 """
 import json
 import re
@@ -19,6 +18,17 @@ from vaultnotes import AGENT_NOTES, ARCHIVE, COLORS, SYS, note_intro, read_note,
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9 -]{2,40}$")
 LABEL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{1,20}$")
 ORCH_LABEL = "Orchestrator"
+
+GATES = {}
+
+
+def set_gate(stage_id, locked):
+    GATES[str(stage_id)] = bool(locked)
+    return {"ok": True, "stage": stage_id, "locked": GATES[str(stage_id)]}
+
+
+def get_gates():
+    return dict(GATES)
 
 
 def catalog():
@@ -191,8 +201,3 @@ def archive(data):
         rebuild()
         return {"ok": False, "errors": ["rebuild failed, agent restored"], "output": result["output"]}
     return {"ok": True, "archived": str(dst.relative_to(SYS.parent)), "output": result["output"]}
-
-
-def sync():
-    r = subprocess.run([str(AGENT_DIR / "devpilot-sync")], capture_output=True, text=True, timeout=300)
-    return {"ok": r.returncode == 0, "output": (r.stdout + r.stderr).strip()[-3000:]}

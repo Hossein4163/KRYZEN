@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"✓ Glassmorphism Dashboard - UI… — Liquid Glass UI Example\\n  https://liquidglassdesign.com/gallery/glassmorphism-dashboard-ui-design\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-52ef751d-8d6c-4604-bc29-7e67473b1efe"}

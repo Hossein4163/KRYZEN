@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"./src/Infrastructure/Persistence/SeedData.cs\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-a1188d7e-abd6-4aec-aaa2-0943f834ad4c"}

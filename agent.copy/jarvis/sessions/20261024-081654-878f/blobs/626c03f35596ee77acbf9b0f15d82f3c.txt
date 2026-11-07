@@ -1,1 +1,0 @@
-{"job_id": "2d84d1ad1d", "status": "running", "cwd": "/home/kry/Projects/devpilot", "hint": "poll /jobs/get with this id"}

@@ -109,8 +109,18 @@ def validate_canvas(canvas):
 
 def flows_get():
     active = settings().get("active_flow", "")
+    flows_dir = mesh.SYS / "Flows"
+    flows_dir.mkdir(parents=True, exist_ok=True)
+    custom_flow = flows_dir / "Custom Flow.canvas"
+    sys_flow = flows_dir / "DevPilot Flow.canvas"
+    if sys_flow.exists() and not custom_flow.exists():
+        try:
+            custom_flow.write_text(sys_flow.read_text())
+        except OSError:
+            pass
+
     out = []
-    for path in sorted((mesh.SYS / "Flows").glob("*.canvas")):
+    for path in sorted(flows_dir.glob("*.canvas")):
         try:
             canvas = json.loads(path.read_text())
             out.append({"name": path.name, "readonly": path.name in GENERATED, "active": path.name == active,

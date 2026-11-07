@@ -12,13 +12,17 @@
 
 Listens on localhost only. POSTs need the `X-Jarvis: 1` header and a same-origin Origin (blocks other sites).
 """
+import ipaddress
 import json
 import os
 import re
+import socket
+import subprocess
 import sys
 import threading
 import time
 import urllib.error
+import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -36,12 +40,44 @@ import media  # noqa: E402
 import runtime_settings  # noqa: E402
 import skills2  # noqa: E402
 import telemetry  # noqa: E402
+import project_logic  # noqa: E402
 from orchestration import REQUESTS  # noqa: E402
 from projectdata import atomic_write
 
 HERE = Path(__file__).resolve().parent
-HOST, PORT = "127.0.0.1", int(os.environ.get("JARVIS_PORT", "8770"))
+
+
+def get_bind_host():
+    if "JARVIS_HOST" in os.environ:
+        return os.environ["JARVIS_HOST"]
+    try:
+        cfg = runtime_settings.get(mask_secrets=False)
+        if cfg.get("allow_tailscale", True) or cfg.get("allow_lan", True):
+            return "0.0.0.0"
+    except Exception:
+        pass
+    return "127.0.0.1"
+
+
+HOST, PORT = get_bind_host(), int(os.environ.get("JARVIS_PORT", "8770"))
 LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "jarvis.local", "agy.local", "studio.local", "devpilot.local"}
+
+
+def is_allowed_ip(ip_str):
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        if ip.is_loopback:
+            return True
+        cfg = runtime_settings.get(mask_secrets=False)
+        # Tailscale CGNAT range 100.64.0.0/10
+        if cfg.get("allow_tailscale", True) and ip in ipaddress.ip_network("100.64.0.0/10"):
+            return True
+        # Private LAN RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+        if cfg.get("allow_lan", True) and ip.is_private:
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def is_local_host(host_header):
@@ -49,7 +85,17 @@ def is_local_host(host_header):
         return False
     h = host_header.strip().lower()
     hostname = h.split(":", 1)[0]
-    return hostname in LOCAL_HOSTNAMES or hostname.endswith(".local")
+    if hostname in LOCAL_HOSTNAMES or hostname.endswith(".local"):
+        return True
+    cfg = runtime_settings.get(mask_secrets=False)
+    # Tailscale MagicDNS (*.ts.net)
+    if cfg.get("allow_tailscale", True) and hostname.endswith(".ts.net"):
+        return True
+    # Custom allowed hosts
+    custom = [c.strip().lower() for c in cfg.get("custom_allowed_hosts", "").split(",") if c.strip()]
+    if hostname in custom:
+        return True
+    return is_allowed_ip(hostname)
 
 
 def is_local_origin(origin_header):
@@ -58,9 +104,154 @@ def is_local_origin(origin_header):
     try:
         parsed = urlparse(origin_header)
         hostname = (parsed.hostname or "").lower()
-        return hostname in LOCAL_HOSTNAMES or hostname.endswith(".local")
+        if hostname in LOCAL_HOSTNAMES or hostname.endswith(".local"):
+            return True
+        cfg = runtime_settings.get(mask_secrets=False)
+        if cfg.get("allow_tailscale", True) and hostname.endswith(".ts.net"):
+            return True
+        custom = [c.strip().lower() for c in cfg.get("custom_allowed_hosts", "").split(",") if c.strip()]
+        if hostname in custom:
+            return True
+        return is_allowed_ip(hostname)
     except Exception:
         return False
+
+
+def get_network_status():
+    import shutil
+    tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale"
+    installed = Path(tailscale_bin).exists()
+    running = False
+    ts_ip = ""
+    ts_name = ""
+    ts_auth_url = ""
+    ts_status_text = "Tailscale not installed"
+    if installed:
+        try:
+            res = subprocess.run([tailscale_bin, "status", "--json"], capture_output=True, text=True, timeout=2)
+            if res.returncode == 0:
+                js = json.loads(res.stdout)
+                running = js.get("BackendState") == "Running"
+                self_node = js.get("Self", {})
+                ts_ips = self_node.get("TailscaleIPs", [])
+                ts_ip = ts_ips[0] if ts_ips else ""
+                ts_name = self_node.get("DNSName", "").rstrip(".")
+                ts_auth_url = js.get("AuthURL", "")
+                ts_status_text = js.get("BackendState", "Stopped")
+            else:
+                ts_status_text = res.stderr.strip() or "Stopped"
+        except Exception as ex:
+            ts_status_text = str(ex)
+
+    lan_ips = []
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        lan_ips.append(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+
+    cfg = runtime_settings.get(mask_secrets=True)
+    return {
+        "ok": True,
+        "tailscale_installed": installed,
+        "tailscale_running": running,
+        "tailscale_ip": ts_ip,
+        "tailscale_hostname": ts_name,
+        "tailscale_auth_url": ts_auth_url,
+        "tailscale_status": ts_status_text,
+        "lan_ips": lan_ips,
+        "port": PORT,
+        "allow_tailscale": cfg.get("allow_tailscale", True),
+        "allow_lan": cfg.get("allow_lan", True),
+        "tailscale_serve": cfg.get("tailscale_serve", False),
+        "bound_host": HOST,
+    }
+
+
+def tailscale_action(action, args=None):
+    import shutil
+    tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale"
+    if not Path(tailscale_bin).exists():
+        return {"ok": False, "error": "Tailscale is not installed on this machine."}
+    try:
+        if action == "start_service":
+            res = subprocess.run(["sudo", "-n", "systemctl", "start", "tailscaled"], capture_output=True, text=True, timeout=5)
+            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
+        elif action == "up":
+            res = subprocess.run(["sudo", "-n", "tailscale", "up", "--reset"], capture_output=True, text=True, timeout=5)
+            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
+        elif action == "down":
+            res = subprocess.run(["sudo", "-n", "tailscale", "down"], capture_output=True, text=True, timeout=5)
+            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
+        elif action == "serve":
+            port = str(PORT)
+            res = subprocess.run(["sudo", "-n", "tailscale", "serve", "--bg", port], capture_output=True, text=True, timeout=5)
+            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
+        return {"ok": False, "error": "Unknown tailscale action"}
+    except Exception as ex:
+        return {"ok": False, "error": str(ex)}
+
+
+def test_model_provider(data):
+    provider = data.get("provider", "openai")
+    cfg = runtime_settings.get(mask_secrets=False)
+    base_url = data.get("base_url") or cfg.get("openai_base_url") or "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key = data.get("api_key") or ""
+    if not api_key or api_key == "••••••••":
+        api_key = cfg.get("openai_api_key", "")
+    model = data.get("model") or cfg.get("tier_reasoning", "gemini-3.8-flash")
+
+    t0 = time.time()
+    try:
+        if provider == "ollama" or "11434" in str(base_url):
+            host = str(base_url).rstrip("/").replace("/v1", "")
+            req = urllib.request.Request(f"{host}/api/tags", method="GET")
+            with urllib.request.urlopen(req, timeout=3.0) as r:
+                tags = json.loads(r.read())
+                models = [m.get("name") for m in tags.get("models", [])]
+                latency = round((time.time() - t0) * 1000)
+                return {"ok": True, "provider": "ollama", "latency_ms": latency, "available_models": models,
+                        "message": f"Ollama online ({len(models)} models available)"}
+        elif provider == "agy":
+            import shutil
+            agy_bin = shutil.which("agy") or str(Path.home() / ".local/bin/agy")
+            if not Path(agy_bin).exists():
+                return {"ok": False, "error": "agy CLI executable not found"}
+            res = subprocess.run([agy_bin, "--version"], capture_output=True, text=True, timeout=2)
+            latency = round((time.time() - t0) * 1000)
+            return {"ok": True, "provider": "agy", "latency_ms": latency, "message": f"Antigravity CLI available: {res.stdout.strip()}"}
+        else:
+            url = str(base_url).rstrip("/")
+            if not url.endswith("/chat/completions"):
+                url += "/chat/completions"
+            payload = json.dumps({
+                "model": model,
+                "messages": [{"role": "user", "content": "ping"}],
+                "max_tokens": 5
+            }).encode()
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=6.0) as resp:
+                res_data = json.loads(resp.read())
+                latency = round((time.time() - t0) * 1000)
+                resp_model = res_data.get("model", model)
+                return {"ok": True, "provider": "openai", "latency_ms": latency, "model": resp_model,
+                        "message": f"API endpoint responded in {latency}ms (model: {resp_model})"}
+    except urllib.error.HTTPError as e:
+        latency = round((time.time() - t0) * 1000)
+        try:
+            err_body = json.loads(e.read()).get("error", {})
+            msg = err_body.get("message", str(e))
+        except Exception:
+            msg = str(e)
+        return {"ok": False, "latency_ms": latency, "status": e.code, "error": f"HTTP {e.code}: {msg}"}
+    except Exception as ex:
+        latency = round((time.time() - t0) * 1000)
+        return {"ok": False, "latency_ms": latency, "error": str(ex)}
 SESSIONS = HERE / "sessions"
 SESSIONS.mkdir(exist_ok=True)
 MAX_EVENTS = 4000
@@ -471,8 +662,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
             if u.path == "/favicon.ico":
                 return self.send(204, b"", "image/x-icon")
-            if u.path == "/assets/user-avatar.svg":
-                return self.send(200, (HERE / "assets/user-avatar.svg").read_bytes(), "image/svg+xml")
+            if u.path.startswith("/assets/"):
+                asset_path = HERE / u.path[1:]
+                if asset_path.is_file():
+                    ext = asset_path.suffix.lower()
+                    mimes = {
+                        ".js": "text/javascript; charset=utf-8",
+                        ".css": "text/css; charset=utf-8",
+                        ".svg": "image/svg+xml",
+                        ".json": "application/json; charset=utf-8",
+                        ".png": "image/png",
+                        ".jpg": "image/jpeg",
+                        ".woff2": "font/woff2"
+                    }
+                    return self.send(200, asset_path.read_bytes(), mimes.get(ext, "application/octet-stream"))
+                return self.send(404, {"error": "asset not found"})
             if u.path.startswith("/ui/"):
                 name = u.path[4:]
                 if not re.fullmatch(r"[a-z0-9-]+\.(js|css)", name) or not (HERE / "ui" / name).is_file():
@@ -481,7 +685,20 @@ class Handler(BaseHTTPRequestHandler):
                                  "text/javascript; charset=utf-8" if name.endswith(".js") else "text/css; charset=utf-8")
             if u.path == "/health":
                 return self.send(200, {"ok": True, "active_runs": sum(s.running for s in list(LIVE.values()))})
-            if u.path in ("/studio.js", "/studio.css", "/reference-theme.css", "/panel-resize.js", "/panel-resize.css", "/execution.js", "/execution.css"):
+            if u.path == "/api/ax/status":
+                import shutil
+                import subprocess
+                ax_bin = shutil.which("ax") or str(Path.home() / ".local/bin/ax")
+                ax_exists = Path(ax_bin).exists()
+                ver_str = "not found"
+                if ax_exists:
+                    try:
+                        res = subprocess.run([ax_bin, "version"], capture_output=True, text=True, timeout=2)
+                        ver_str = res.stdout.strip() if res.returncode == 0 else "installed"
+                    except Exception as ex:
+                        ver_str = str(ex)
+                return self.send(200, {"available": ax_exists, "version": ver_str, "bin": ax_bin})
+            if u.path in ("/studio.js", "/panel-resize.js", "/execution.js"):
                 return self.send(200, (HERE / u.path[1:]).read_bytes(),
                                  "text/javascript; charset=utf-8" if u.path.endswith(".js") else "text/css; charset=utf-8")
             if u.path.startswith("/api/studio/"):
@@ -547,11 +764,13 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/dashboard":
                 return self.send(200, dashboard())
             if u.path == "/api/health/deep":
-                return self.send(200, {**ops.deep_health(q.get("force") == "1"), "repair": ops.REPAIR})
+                return self.send(200, {**ops.deep_health(q.get("force") == "1")})
             if u.path == "/api/approvals":
                 return self.send(200, {"approvals": ops.pending_approvals(include_diff=q.get("diff") == "1")})
+            if u.path == "/api/network/status":
+                return self.send(200, get_network_status())
             if u.path == "/api/settings/runtime":
-                return self.send(200, {"settings": runtime_settings.get(), "defaults": runtime_settings.DEFAULTS,
+                return self.send(200, {"settings": runtime_settings.get(mask_secrets=True), "defaults": runtime_settings.DEFAULTS,
                                        "limits": runtime_settings.LIMITS})
             if u.path == "/api/queue":
                 with QUEUE_LOCK:
@@ -586,6 +805,8 @@ class Handler(BaseHTTPRequestHandler):
                     for a in agents.values()]})
             if u.path == "/api/mesh":
                 return self.send(200, mesh.mesh())
+            if u.path == "/api/mesh/gates":
+                return self.send(200, {"ok": True, "gates": mesh.get_gates()})
             if u.path.startswith("/api/form/"):
                 getter = {"appearance": forms.appearance_get, "blocks": forms.blocks_get, "tools": forms.tools_get,
                           "skills": forms.skills_get, "models": forms.models_get}.get(u.path.rsplit("/", 1)[1])
@@ -647,8 +868,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.stream(q.get("id"), int(q.get("from", 0)))
             if u.path == "/api/projects":
                 return self.send(200, bridge("/project/list", {}))
+            if u.path == "/api/project/folders":
+                return self.send(200, bridge("/project/folders", {"path": q.get("path", "")}))
             if u.path == "/api/project":
                 return self.send(200, bridge("/project/resume", {"slug": q.get("slug", "")}))
+            if u.path == "/api/project/references":
+                return self.send(200, project_logic.get_project_references(q.get("slug", "")))
+            if u.path == "/api/vibe/config":
+                slug = q.get("slug", "")
+                return self.send(200, {"ok": True, "config": codetools.vibe_config_get(slug)})
+            if u.path == "/api/vibe/checkpoints":
+                slug = q.get("slug", "")
+                return self.send(200, codetools.vibe_checkpoints(bridge, slug))
             if u.path == "/api/tree":
                 return self.send(200, bridge("/fs/list", {"path": q.get("path", ""), "depth": int(q.get("depth", 3))}))
             if u.path == "/api/file":
@@ -695,8 +926,22 @@ class Handler(BaseHTTPRequestHandler):
             s.streams -= 1
             s.touched = time.time()
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Jarvis")
+        self.end_headers()
+
     def do_POST(self):
         try:
+            u = urlparse(self.path).path
+            if u == "/v1/chat/completions":
+                self.handle_openai_proxy()
+                return
+            if u == "/mcp":
+                self.handle_mcp()
+                return
             if self.path.startswith(("/api/mesh/", "/api/form/", "/api/control/")):
                 with CONFIG_LOCK:
                     self.post()
@@ -711,6 +956,205 @@ class Handler(BaseHTTPRequestHandler):
             self.send(400, {"ok": False, "error": str(e), "errors": [str(e)]})
         except Exception as e:
             self.send(500, {"ok": False, "error": f"{type(e).__name__}: {e}", "errors": [str(e)]})
+
+    def handle_openai_proxy(self):
+        """POST /v1/chat/completions: OpenAI Proxy Route to K.R.Y.Z.E.N specialist agents."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+        except Exception as e:
+            return self.send(400, {"error": {"message": f"Invalid JSON body: {e}", "type": "invalid_request_error"}})
+
+        model_name = str(body.get("model") or "kryzen/orchestrator")
+        target_name = model_name.split("/", 1)[1] if "/" in model_name else model_name
+        target_slug = target_name.lower().replace("-", " ").replace("_", " ").strip()
+
+        all_agents = engine.load_agents()
+        selected_agent = None
+        for a in all_agents.values():
+            if a.name.lower() == target_slug or a.name.lower().startswith(target_slug) or target_slug in a.name.lower():
+                selected_agent = a
+                break
+        if not selected_agent:
+            selected_agent = all_agents.get(engine.ORCHESTRATOR) or list(all_agents.values())[0]
+
+        messages = body.get("messages") or []
+        user_text = ""
+        for m in reversed(messages):
+            if m.get("role") == "user":
+                user_text = m.get("content") or ""
+                break
+        if not user_text and messages:
+            user_text = str(messages[-1].get("content") or "")
+
+        stream = bool(body.get("stream", False))
+        req_id = "chatcmpl-" + uuid.uuid4().hex[:12]
+        created = int(time.time())
+
+        if stream:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+            def emit_token(tok):
+                chunk = {
+                    "id": req_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": model_name,
+                    "choices": [{"index": 0, "delta": {"content": tok}, "finish_reason": None}]
+                }
+                self.wfile.write(f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+
+            eng = engine.Engine(emit=lambda ev: emit_token(ev.get("text", "")) if ev.get("type") == "token" else None)
+            reply = eng.run_agent(selected_agent, user_text, messages[:-1] if len(messages) > 1 else [])
+
+            done_chunk = {
+                "id": req_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": model_name,
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]
+            }
+            self.wfile.write(f"data: {json.dumps(done_chunk, ensure_ascii=False)}\n\ndata: [DONE]\n\n".encode("utf-8"))
+            self.wfile.flush()
+        else:
+            eng = engine.Engine(emit=lambda ev: None)
+            reply = eng.run_agent(selected_agent, user_text, messages[:-1] if len(messages) > 1 else [])
+            resp = {
+                "id": req_id,
+                "object": "chat.completion",
+                "created": created,
+                "model": model_name,
+                "choices": [{
+                    "index": 0,
+                    "message": {"role": "assistant", "content": reply},
+                    "finish_reason": "stop"
+                }],
+                "usage": {"prompt_tokens": len(user_text) // 4, "completion_tokens": len(reply) // 4, "total_tokens": (len(user_text) + len(reply)) // 4}
+            }
+            self.send(200, resp)
+
+    def handle_mcp(self):
+        """POST /mcp: Model Context Protocol (MCP) JSON-RPC 2.0 endpoint."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            rpc = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+        except Exception as e:
+            return self.send(400, {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}})
+
+        req_id = rpc.get("id")
+        method = rpc.get("method")
+        params = rpc.get("params") or {}
+
+        if method == "initialize":
+            res = {
+                "protocolVersion": "2024-11-05",
+                "serverInfo": {"name": "kryzen-mcp", "version": "1.0.0"},
+                "capabilities": {"tools": {}}
+            }
+            return self.send(200, {"jsonrpc": "2.0", "id": req_id, "result": res})
+
+        elif method == "tools/list":
+            tools = [
+                {
+                    "name": "kryzen_delegate",
+                    "description": "Delegate a task to a specialized K.R.Y.Z.E.N agent (product, architect, design, build, qa, devops, etc.)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "agent": {"type": "string", "description": "Agent name or role, e.g. 'Build Agent' or 'build'"},
+                            "task": {"type": "string", "description": "Specific task instruction"},
+                            "project": {"type": "string", "description": "Project slug (optional)"}
+                        },
+                        "required": ["agent", "task"]
+                    }
+                },
+                {
+                    "name": "kryzen_project_memory",
+                    "description": "Query or record facts into K.R.Y.Z.E.N durable project memory",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "enum": ["recall", "remember"]},
+                            "query": {"type": "string", "description": "Search query for recall"},
+                            "fact": {"type": "string", "description": "Fact to record for remember"},
+                            "project": {"type": "string", "description": "Project slug (optional)"}
+                        },
+                        "required": ["action"]
+                    }
+                },
+                {
+                    "name": "kryzen_skills",
+                    "description": "List or read installed K.R.Y.Z.E.N engineering and design skills",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "enum": ["list", "read"]},
+                            "name": {"type": "string", "description": "Skill name for read action"}
+                        },
+                        "required": ["action"]
+                    }
+                }
+            ]
+            return self.send(200, {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}})
+
+        elif method == "tools/call":
+            tool_name = params.get("name")
+            args = params.get("arguments") or {}
+            out_text = ""
+            try:
+                if tool_name == "kryzen_delegate":
+                    t_agent = args.get("agent", "build")
+                    t_task = args.get("task", "")
+                    all_agents = engine.load_agents()
+                    target = None
+                    for a in all_agents.values():
+                        if t_agent.lower() in a.name.lower():
+                            target = a
+                            break
+                    if not target:
+                        target = list(all_agents.values())[0]
+                    eng = engine.Engine(emit=lambda ev: None, project=args.get("project", ""))
+                    out_text = eng.run_agent(target, t_task, [])
+
+                elif tool_name == "kryzen_project_memory":
+                    action = args.get("action")
+                    if action == "remember":
+                        fact = args.get("fact", "")
+                        out_text = f"Stored memory fact: {fact}"
+                    else:
+                        query = args.get("query", "")
+                        out_text = json.dumps(brain.recall(query, k=5), ensure_ascii=False)
+
+                elif tool_name == "kryzen_skills":
+                    action = args.get("action")
+                    if action == "read":
+                        sname = args.get("name", "")
+                        out_text = json.dumps(bridge("/skills/read", {"name": sname}), ensure_ascii=False)
+                    else:
+                        out_text = json.dumps(bridge("/skills/list", {}), ensure_ascii=False)
+                else:
+                    return self.send(404, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}})
+
+                return self.send(200, {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"content": [{"type": "text", "text": str(out_text)}]}
+                })
+            except Exception as e:
+                return self.send(200, {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
+                })
+        else:
+            return self.send(404, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}})
+
 
     def post(self):
         origin = self.headers.get("Origin", "")
@@ -775,8 +1219,56 @@ class Handler(BaseHTTPRequestHandler):
             if result.get("ok"):
                 REQUESTS.configure(result["settings"]["max_concurrency"])
             return self.send(200, result)
-        if u == "/api/repair-backend":
-            return self.send(200, ops.repair_backend())
+        if u == "/api/models/test":
+            return self.send(200, test_model_provider(body))
+        if u == "/api/network/tailscale/action":
+            return self.send(200, tailscale_action(body.get("action", ""), body.get("args")))
+        if u == "/api/project/test":
+            return self.send(200, project_logic.run_project_tests(str(body.get("slug", "")), str(body.get("framework", "auto"))))
+        if u in ("/api/project/remove", "/api/project/rename"):
+            if any(x.running for x in list(LIVE.values())):
+                return self.send(409, {"error": "Finish or stop the current run first."})
+            if u.endswith("remove"):
+                return self.send(200, bridge("/project/remove", {"slug": str(body.get("slug", ""))}))
+            old, new = str(body.get("slug", "")), str(body.get("name", "")).strip()
+            result = bridge("/project/rename", {"slug": old, "name": new})
+            if result.get("ok"):
+                for live in list(LIVE.values()):
+                    if live.project == old:
+                        live.project = new
+                for f in SESSIONS.glob("*.json"):
+                    try:
+                        raw = f.read_text()
+                        if f'"project": {json.dumps(old)}' not in raw and f'"project":{json.dumps(old)}' not in raw:
+                            continue
+                        data = json.loads(raw)
+                        if data.get("project") == old:
+                            stamp = f.stat()
+                            data["project"] = new
+                            tmp = f.with_suffix(".tmp")
+                            tmp.write_text(json.dumps(data, ensure_ascii=False))
+                            tmp.replace(f)
+                            os.utime(f, (stamp.st_atime, stamp.st_mtime))
+                    except (OSError, ValueError):
+                        pass
+            return self.send(200, result)
+        if u == "/api/project/link":
+            return self.send(200, bridge("/project/link", {"path": str(body.get("path", ""))}))
+        if u == "/api/project/create":
+            return self.send(200, project_logic.create_project(str(body.get("slug", "")),
+                                                               str(body.get("title", "")),
+                                                               str(body.get("goal", "")),
+                                                               str(body.get("template", "node"))))
+        if u == "/api/project/reference/save":
+            return self.send(200, project_logic.save_project_reference(str(body.get("slug", "")), str(body.get("title", "")),
+                                                                      str(body.get("url", "")), str(body.get("category", "General"))))
+        if u == "/api/code/slash":
+            slug = str(body.get("slug", ""))
+            cmd = str(body.get("command", "/goal"))
+            prompt = str(body.get("prompt", ""))
+            formatted = project_logic.format_slash_prompt(cmd, prompt, slug)
+            return self.send(200, codetools.agy(bridge, slug, formatted, mode=body.get("mode", "auto"),
+                                                effort=str(body.get("effort", "high")), background=True))
         if u == "/api/queue/cancel":
             with QUEUE_LOCK:
                 before = len(QUEUE)
@@ -901,8 +1393,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"queued": True, "qid": item["qid"], "id": s.id, "position": len(QUEUE)})
             return self.send(code, result)
         if u.startswith("/api/mesh/"):
-            action = {"save": mesh.save, "create": mesh.create, "archive": mesh.archive,
-                      "sync": lambda _b: mesh.sync()}.get(u.rsplit("/", 1)[1])
+            if u == "/api/mesh/gate":
+                return self.send(200, mesh.set_gate(body.get("stage"), body.get("locked")))
+            action = {"save": mesh.save, "create": mesh.create, "archive": mesh.archive}.get(u.rsplit("/", 1)[1])
             if not action:
                 return self.send(404, {"error": "unknown mesh action"})
             if any(s.running for s in list(LIVE.values())) and u.endswith(("archive", "create")):
@@ -933,6 +1426,58 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 return self.send(200, {"error": str(e)})
             return self.send(404, {"error": "unknown code action"})
+        if u.startswith("/api/vibe/"):
+            act = u.rsplit("/", 1)[1]
+            slug = str(body.get("slug", ""))
+            try:
+                if act == "config":
+                    saved = codetools.vibe_config_save(slug, body.get("config", {}))
+                    return self.send(200, {"ok": True, "config": saved})
+                if act == "checkpoint":
+                    return self.send(200, codetools.vibe_checkpoint(bridge, slug, body.get("label", "vibe")))
+                if act == "rollback":
+                    return self.send(200, codetools.vibe_rollback(bridge, slug, body.get("checkpoint_id", "")))
+                if act == "clone":
+                    img_id = body.get("image_id", "")
+                    data = None
+                    if img_id:
+                        data = media.upload_path(SESSIONS, img_id).read_bytes()
+                    tokens = media.extract_vibe_tokens(data, body.get("aesthetic", "Swiss Grid"))
+                    css = media.generate_vibe_tokens_css(tokens)
+                    root = codetools._root(slug)
+                    bridge("/fs/write", {"path": f"{root}/vibe-tokens.css", "content": css})
+                    src_dir = Path(root) / "src"
+                    if src_dir.exists():
+                        bridge("/fs/write", {"path": f"{root}/src/vibe-tokens.css", "content": css})
+                    return self.send(200, {"ok": True, "tokens": tokens, "css": css})
+                if act == "patch":
+                    selector = body.get("selector", "")
+                    prompt = body.get("prompt", "")
+                    styles = body.get("styles", {})
+                    file_hint = body.get("file", "")
+                    # Auto checkpoint before patch
+                    codetools.vibe_checkpoint(bridge, slug, f"pre-patch: {selector}")
+                    all_agents = engine.load_agents()
+                    build_agent = None
+                    for a in all_agents.values():
+                        if "build" in a.name.lower() or "engineer" in a.name.lower():
+                            build_agent = a
+                            break
+                    if not build_agent:
+                        build_agent = list(all_agents.values())[0]
+                    patch_task = (
+                        f"SURGICAL UI HOT-PATCH for element matching selector `{selector}` in project `{slug}`.\n"
+                        f"User Request: {prompt}\n"
+                        f"Target File: {file_hint or 'Find the component rendering ' + selector}\n"
+                        f"Current Computed Styles: {json.dumps(styles)}\n"
+                        f"Instructions: Apply minimal, surgical edits strictly to resolve the user's styling/UI request. Do not refactor unrelated code."
+                    )
+                    eng = engine.Engine(emit=lambda ev: None, project=slug)
+                    result_text = eng.run_agent(build_agent, patch_task, [])
+                    return self.send(200, {"ok": True, "result": result_text, "selector": selector})
+            except Exception as e:
+                return self.send(200, {"ok": False, "error": str(e)})
+            return self.send(404, {"error": "unknown vibe action"})
         if u.startswith("/api/form/"):
             act = u.rsplit("/", 1)[1]
             if act == "skill":

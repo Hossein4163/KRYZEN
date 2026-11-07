@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "LISTEN 0      4096         0.0.0.0:5173       0.0.0.0:*   \nLISTEN 0      512        127.0.0.1:5000       0.0.0.0:*   \nLISTEN 0      4096       127.0.0.1:5433       0.0.0.0:*   \nLISTEN 0      4096            [::]:5173          [::]:*   \nLISTEN 0      512            [::1]:5000          [::]:*   \n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

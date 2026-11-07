@@ -1,1 +1,0 @@
-{"exit_code": 1, "stdout": "=== full log head ===\n", "stderr": "head: cannot open '/tmp/backend_testing.log' for reading: No such file or directory\n", "cwd": "/home/kry/Projects/devpilot"}

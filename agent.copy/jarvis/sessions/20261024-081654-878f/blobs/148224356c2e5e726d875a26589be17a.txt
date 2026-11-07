@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ss -tlnp | grep -E ':(5000|5001|5002|5173|5174|5432|5433)\\\\b' || echo \\\"no listeners on those ports\\\"\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-f7535c2c-f66c-4729-8009-3238612ad60f", "type": "function"}]}

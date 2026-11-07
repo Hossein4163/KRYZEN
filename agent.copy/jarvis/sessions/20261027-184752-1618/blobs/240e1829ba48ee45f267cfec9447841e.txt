@@ -1,1 +1,0 @@
-{"content": "تحقیق و مرجع‌گیری تمام شد. حالا سیستم طراحی گلس مورفیسم را در DESIGN.md تعریف می‌کنم. ابتدا محتوای فعلی را می‌خوانم:\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/docs/design/DESIGN.md\"}", "name": "pc_read_file"}, "id": "call-002102cb-37e5-4264-877e-03acad8f0b11", "type": "function"}]}

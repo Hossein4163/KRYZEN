@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cd ~/Projects/devpilot/rame-studio/frontend && ls -R src/pages/ 2>/dev/null | head -60; echo \\\"---APP---\\\"; cat src/App.tsx 2>/dev/null | head -80\"}", "name": "pc_shell"}, "id": "call-351bbb9a-b6a9-4553-ad53-a2aebdb42f91", "type": "function"}]}

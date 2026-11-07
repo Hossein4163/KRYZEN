@@ -1,4 +1,0 @@
-STATUS: done
-DONE: Created docs/content/CALENDAR.md (14,059 bytes) with all four acceptance sections: landing copy outline (home/services/packages/about/blog/contact in fa/en), launch assets list (hero copy, CTAs, email templates, SEO/schema assets), editorial calendar (12 mirrored fa/en articles, 2026-11-02 to 2027-04-15), and Vitrea design voice tone/style guidelines. Verified against PLAN.md v3 and DESIGN.md locked tokens.
-NEXT: Await Marketing Agent's docs/marketing/STRATEGY.md before any publishing or spend; CALENDAR.md remains draft only.
-BLOCKERS: none

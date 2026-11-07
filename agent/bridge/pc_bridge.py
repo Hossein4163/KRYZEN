@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PC Bridge: lets the n8n AI agents (running in Docker) act on this PC.
+"""PC Bridge: lets the AI agents act on this PC through sandboxed tools.
 
 Endpoints (all POST, JSON body, header `X-Bridge-Token: <token>`):
   /shell        {cmd, cwd?, timeout?, background?}        run a shell command inside a bubblewrap sandbox
@@ -24,8 +24,7 @@ Every /shell, /fs/write, /agy and /project/init call inside a project is journal
 <project>/.devpilot/journal.jsonl.
   /health       (GET, no token)
 
-Only bind it to the Docker network gateway (default 172.22.0.1) so it is
-reachable from the n8n container but not from your LAN.
+It runs in-process with the web app; if you start it as a server, bind it to localhost only.
 """
 import html
 import json
@@ -46,6 +45,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 AGENT_DIR = HERE.parent
 sys.path.insert(0, str(AGENT_DIR / "workflow"))
+sys.path.insert(0, str(AGENT_DIR / "jarvis"))
 from projectdata import atomic_write, parse_tasks, revision, continuation
 HOST = os.environ.get("PC_BRIDGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PC_BRIDGE_PORT", "8765"))
@@ -61,6 +61,8 @@ def get_default_workspace():
     return (Path.home() / "Projects" / "devpilot").expanduser().resolve()
 
 WORKSPACE = get_default_workspace()
+LINKS_FILE = ".linked-projects.json"
+HIDDEN_FILE = ".hidden-projects.json"
 MAX_OUT = int(os.environ.get("PC_BRIDGE_MAX_OUT", "20000"))
 # agy's --dangerously-skip-permissions is always enabled for autonomous operation
 ALLOW_AGY_ACCEPT_ALL = True
@@ -87,13 +89,35 @@ def clip(text, limit=MAX_OUT):
     return text[:half] + f"\n…[{len(text) - limit} chars truncated]…\n" + text[-half:]
 
 
+def _linked_roots():
+    """Folders outside the workspace that the user added as projects (Projects > +)."""
+    try:
+        return [Path(p) for p in json.loads((WORKSPACE / LINKS_FILE).read_text())]
+    except (OSError, ValueError):
+        return []
+
+
+def _hidden_projects():
+    """Workspace folders the user removed from the Projects list. Their files stay on disk."""
+    try:
+        return set(json.loads((WORKSPACE / HIDDEN_FILE).read_text()))
+    except (OSError, ValueError):
+        return set()
+
+
+def _write_workspace_json(name, value):
+    tmp = WORKSPACE / (name + ".tmp")
+    tmp.write_text(json.dumps(value, indent=2))
+    tmp.replace(WORKSPACE / name)
+
+
 def resolve(path, base=None):
-    """Resolve a path and refuse anything outside the workspace (symlinks included)."""
+    """Resolve a path and refuse anything outside the workspace and linked project folders (symlinks included)."""
     p = Path(os.path.expanduser(str(path or ".")))
     if not p.is_absolute():
         p = (base or WORKSPACE) / p
     p = p.resolve()
-    if p != WORKSPACE and WORKSPACE not in p.parents:
+    if p != WORKSPACE and WORKSPACE not in p.parents and not any(p == r or r in p.parents for r in _linked_roots()):
         raise PermissionError(f"{p} is outside the workspace {WORKSPACE}")
     return p
 
@@ -125,6 +149,9 @@ def sandboxed(cmd, cwd):
         if (HOME / ro).exists():
             argv += ["--ro-bind", str(HOME / ro), str(HOME / ro)]
     argv += ["--bind", str(WORKSPACE), str(WORKSPACE)]
+    for root in _linked_roots():
+        if root.is_dir():
+            argv += ["--bind", str(root), str(root)]
     for d in PROTECTED:
         if d.exists():
             argv += ["--ro-bind", str(d), str(d)]
@@ -134,13 +161,18 @@ def sandboxed(cmd, cwd):
     return argv
 
 
+PRIVILEGE_ESCALATION = re.compile(r"\b(sudo|pkexec|su|doas)\b", re.IGNORECASE)
+
+
 def clean_env():
     keep = ("PATH", "LANG", "LC_ALL", "USER", "LOGNAME", "SHELL")
     env = {k: v for k, v in os.environ.items() if k in keep}
     env.update(HOME=str(HOME), NO_COLOR="1", TERM="dumb",
-               XDG_CACHE_HOME=str(SANDBOX_CACHE), npm_config_cache=str(SANDBOX_CACHE / "npm"),
-               SUDO_PASS=os.environ.get("SUDO_PASS", "33303330"),
-               SUDO_PASSWORD=os.environ.get("SUDO_PASSWORD", "33303330"))
+               XDG_CACHE_HOME=str(SANDBOX_CACHE), npm_config_cache=str(SANDBOX_CACHE / "npm"))
+    if "SUDO_PASS" in os.environ:
+        env["SUDO_PASS"] = os.environ["SUDO_PASS"]
+    if "SUDO_PASSWORD" in os.environ:
+        env["SUDO_PASSWORD"] = os.environ["SUDO_PASSWORD"]
     return env
 
 
@@ -155,10 +187,16 @@ def run(argv, cwd, timeout, background, shell=False):
     cwd.mkdir(parents=True, exist_ok=True)
     env = clean_env()
     if shell:
-        if re.search(r"\bsudo\b", argv) or os.environ.get("PC_BRIDGE_DISABLE_SANDBOX") == "1":
-            argv, shell = ["sh", "-c", argv], False
-        else:
-            argv, shell = sandboxed(argv, cwd), False
+        if isinstance(argv, str) and PRIVILEGE_ESCALATION.search(argv):
+            return {
+                "error": "PermissionApprovalRequired",
+                "approval_required": True,
+                "kind": "command",
+                "command": argv,
+                "cwd": str(cwd),
+                "reason": "Privilege escalation (sudo/pkexec) requires explicit user approval."
+            }
+        argv, shell = sandboxed(argv, cwd), False
     if background:
         job_id = uuid.uuid4().hex[:10]
         log = HERE / "jobs" / f"{job_id}.log"
@@ -188,12 +226,24 @@ def run(argv, cwd, timeout, background, shell=False):
 
 
 def h_shell(b):
-    return run(b["cmd"], b.get("cwd"), int(b.get("timeout") or 300), as_bool(b.get("background")),
+    cmd = str(b.get("cmd") or "")
+    if PRIVILEGE_ESCALATION.search(cmd):
+        return {
+            "error": "PermissionApprovalRequired",
+            "approval_required": True,
+            "kind": "command",
+            "command": cmd,
+            "cwd": str(b.get("cwd") or ""),
+            "reason": "Privilege escalation (sudo/pkexec) requires explicit user approval."
+        }
+    return run(cmd, b.get("cwd"), int(b.get("timeout") or 300), as_bool(b.get("background")),
                shell=True)
 
 
 def h_read(b):
     p = resolve(b["path"])
+    if not p.exists() or not p.is_file():
+        return {"error": f"FileNotFoundError: [Errno 2] No such file or directory: '{p}'"}
     if as_bool(b.get("raw")):
         if p.stat().st_size > 2_000_000:
             return {"error": "file too large to open (over 2 MB)"}
@@ -251,14 +301,29 @@ def h_agy(b):
         argv += ["--model", b["model"]]
     if b.get("effort"):
         argv += ["--effort", b["effort"]]
-    if as_bool(b.get("sandbox"), default=False):
+    if as_bool(b.get("sandbox"), default=True):
         argv.append("--sandbox")
-    if as_bool(b.get("accept_all"), default=True):
+    
+    allow_skip = False
+    try:
+        import runtime_settings
+        allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
+    except Exception:
+        allow_skip = False
+
+    if allow_skip and as_bool(b.get("accept_all"), default=False):
         argv.append("--dangerously-skip-permissions")
     if as_bool(b.get("continue")):
         argv.append("--continue")
     if as_bool(b.get("new_project")):
         argv.append("--new-project")
+
+    try:
+        import telemetry
+        telemetry.log_agy_invocation(b.get("agent"), b.get("prompt"), argv, b.get("cwd"))
+    except Exception:
+        pass
+
     return run(argv, b.get("cwd"), int(b.get("timeout") or 1800), as_bool(b.get("background")))
 
 
@@ -432,7 +497,9 @@ def _project_init(b):
 
 def h_project_list(_b):
     index = WORKSPACE / INDEX_FILE
-    dirs = sorted(p.name for p in WORKSPACE.iterdir() if p.is_dir() and not p.name.startswith((".", "_")))
+    dirs = sorted(p.name for p in WORKSPACE.iterdir() if p.is_dir() and not p.name.startswith((".", "_")) and (p / "PROJECT.md").exists())
+    hidden = _hidden_projects()
+    dirs = [d for d in dirs if d not in hidden]
     return {"workspace": str(WORKSPACE), "index": index.read_text() if index.exists() else "", "folders": dirs}
 
 
@@ -705,11 +772,111 @@ def h_chat_completions(b):
     }
 
 
+def h_project_folders(b):
+    """Folder picker: the sub-folders of a directory under the user's home."""
+    home = HOME.resolve()
+    p = Path(os.path.expanduser(str(b.get("path") or home))).resolve()
+    if p != home and home not in p.parents:
+        raise PermissionError("Choose a folder inside your home directory.")
+    dirs = sorted((c for c in p.iterdir() if c.is_dir() and not c.name.startswith(".")), key=lambda c: c.name.lower())
+    return {"path": str(p), "parent": str(p.parent) if p != home else "", "workspace": str(WORKSPACE),
+            "dirs": [{"name": c.name, "path": str(c)} for c in dirs[:500]]}
+
+
+def h_project_link(b):
+    """Add a folder as a project. Folders outside the workspace become agent-writable, so only the user's own click reaches this."""
+    home = HOME.resolve()
+    target = Path(os.path.expanduser(str(b.get("path") or ""))).resolve()
+    if not target.is_dir() or home not in target.parents:
+        raise ValueError("Choose a folder inside your home directory.")
+    if any(part.startswith(".") for part in target.relative_to(home).parts):
+        raise ValueError("Hidden folders cannot be projects.")
+    if target == WORKSPACE or target in WORKSPACE.parents:
+        raise ValueError("That folder contains the whole workspace. Choose a project folder inside it.")
+    if any(target == d or d in target.parents for d in PROTECTED):
+        raise ValueError("That folder is protected.")
+    if target.parent == WORKSPACE:
+        hidden = _hidden_projects()
+        if target.name in hidden:
+            hidden.discard(target.name)
+            _write_workspace_json(HIDDEN_FILE, sorted(hidden))
+        return {"ok": True, "slug": target.name, "linked": False}
+    for child in WORKSPACE.iterdir():
+        if child.is_symlink() and child.resolve() == target:
+            return {"ok": True, "slug": child.name, "linked": True}
+    base = re.sub(r"[^a-z0-9-]+", "-", target.name.lower()).strip("-")[:40]
+    base = base if len(base) >= 2 else "project"
+    slug, n = base, 2
+    while (WORKSPACE / slug).exists() or (WORKSPACE / slug).is_symlink():
+        slug, n = f"{base}-{n}", n + 1
+    if WORKSPACE not in target.parents:
+        roots = _linked_roots()
+        if target not in roots:
+            _write_workspace_json(LINKS_FILE, [str(r) for r in roots] + [str(target)])
+    (WORKSPACE / slug).symlink_to(target, target_is_directory=True)
+    return {"ok": True, "slug": slug, "linked": True}
+
+
+def _project_entry(slug):
+    name = str(slug or "")
+    if not name or name != Path(name).name or name.startswith((".", "_")):
+        raise ValueError("Choose a project.")
+    p = WORKSPACE / name
+    if not (p.is_dir() or p.is_symlink()):
+        raise ValueError("That project no longer exists.")
+    return p
+
+
+def h_project_remove(b):
+    """Take a project off the list. Never deletes project files: a link is unlinked, a folder is only hidden."""
+    p = _project_entry(b.get("slug"))
+    if p.is_symlink():
+        target = p.resolve()
+        p.unlink()
+        still_linked = any(c.is_symlink() and c.resolve() == target for c in WORKSPACE.iterdir())
+        roots = _linked_roots()
+        if target in roots and not still_linked:
+            _write_workspace_json(LINKS_FILE, [str(r) for r in roots if r != target])
+        return {"ok": True, "unlinked": True}
+    _write_workspace_json(HIDDEN_FILE, sorted(_hidden_projects() | {p.name}))
+    return {"ok": True, "unlinked": False}
+
+
+def h_project_rename(b):
+    p, new = _project_entry(b.get("slug")), str(b.get("name") or "")
+    if not SLUG_RE.fullmatch(new):
+        raise ValueError("Use 2 to 49 lowercase letters, numbers and dashes.")
+    dst = WORKSPACE / new
+    if dst.exists() or dst.is_symlink():
+        raise ValueError(f"A project named {new} already exists.")
+    p.rename(dst)
+    index = WORKSPACE / INDEX_FILE
+    if index.exists():
+        index.write_text(index.read_text().replace(f"[{p.name}]({p.name}/", f"[{new}]({new}/"))
+    return {"ok": True, "slug": new}
+
+
+def h_cli_agent(b):
+    """Generic CLIAgentProvider adapter for invoking claude -p, aider, or agy inside the sandbox."""
+    cli = str(b.get("cli") or "agy").lower()
+    prompt = str(b.get("prompt") or "")
+    cwd = b.get("cwd")
+    if cli == "claude":
+        argv = ["claude", "-p", prompt]
+    elif cli == "aider":
+        argv = ["aider", "--message", prompt, "--yes"]
+    else:
+        argv = ["agy", "-p", prompt, "--output-format", b.get("output_format", "text")]
+    return run(argv, cwd, int(b.get("timeout") or 1800), as_bool(b.get("background")))
+
+
 ROUTES = {
     "/shell": h_shell, "/fs/read": h_read, "/fs/write": h_write, "/fs/list": h_list,
-    "/agy": h_agy, "/browser": h_browser, "/skills/list": h_skills_list,
+    "/agy": h_agy, "/agent/cli": h_cli_agent, "/browser": h_browser, "/skills/list": h_skills_list,
     "/skills/read": h_skills_read, "/web/fetch": h_fetch, "/jobs/get": h_job, "/jobs/list": h_jobs_list, "/jobs/stop": h_jobs_stop,
     "/project/init": h_project_init, "/project/list": h_project_list,
+    "/project/folders": h_project_folders, "/project/link": h_project_link,
+    "/project/remove": h_project_remove, "/project/rename": h_project_rename,
     "/project/checkpoint": h_project_checkpoint, "/project/resume": h_project_resume,
     "/autoresume/attempt": h_autoresume_attempt,
     "/v1/chat/completions": h_chat_completions,

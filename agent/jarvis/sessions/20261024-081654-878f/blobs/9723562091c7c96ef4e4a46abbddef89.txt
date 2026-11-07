@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cd ~/Projects/devpilot/rame-studio && cat src/Api/Program.cs 2>/dev/null | tail -80\"}", "name": "pc_shell"}, "id": "call-90f3ee2d-4854-46bc-a831-736f6bb731dc", "type": "function"}]}

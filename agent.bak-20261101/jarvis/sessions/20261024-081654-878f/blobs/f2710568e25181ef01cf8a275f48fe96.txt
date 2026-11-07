@@ -1,1 +1,0 @@
-{"content": "The PLAN.md content is being truncated. Let me read the full blob content.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"id\":\"4d1539fa477e106fe37876429d6e1cdd\"}", "name": "read_blob"}, "id": "call-df7ed625-6f7d-4cbc-bbf1-ed6e9321304b", "type": "function"}]}

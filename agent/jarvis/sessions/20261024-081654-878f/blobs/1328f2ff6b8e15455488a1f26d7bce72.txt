@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 1, \"stdout\": \"Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-02580eb0-1328-4576-85ab-efd4f06b7456"}

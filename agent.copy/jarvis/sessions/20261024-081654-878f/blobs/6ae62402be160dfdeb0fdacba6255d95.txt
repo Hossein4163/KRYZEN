@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "Perf: 61\nA11y: 95\nBP: 100\nSEO: 82\nPWA: N/A\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

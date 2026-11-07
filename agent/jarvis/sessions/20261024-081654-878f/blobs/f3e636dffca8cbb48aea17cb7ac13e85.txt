@@ -1,1 +1,0 @@
-{"content": "Docker daemon isn't running. Let me start it.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"sudo dockerd > /tmp/dockerd.log 2>&1 & sleep 5; docker info 2>&1 | head -20\"}", "name": "pc_shell"}, "id": "call-4e56c773-6ee0-49e4-948c-5cd585bce1ef", "type": "function"}]}

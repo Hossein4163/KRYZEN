@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Domain/Common\", \"exists\": true, \"entries\": [\"BaseAuditableEntity.cs\", \"BaseEntity.cs\", \"Result.cs\"]}", "role": "tool", "tool_call_id": "call-844c3df2-4931-4b41-a804-eaeea248c519"}

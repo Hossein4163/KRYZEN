@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 7, \"stdout\": \"=== frontend 5175 ===\\nstatus: 000\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-faaa036d-23e9-4172-929a-ff95a289f497"}

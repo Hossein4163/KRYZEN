@@ -1,1 +1,0 @@
-{"error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/kry/Projects/devpilot/rame-studio/src/Api/Api.csproj'"}

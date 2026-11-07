@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"dotnet-ef       10.0.13      dotnet-ef\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-aed08785-c50a-4c22-b499-92af41ab2768"}

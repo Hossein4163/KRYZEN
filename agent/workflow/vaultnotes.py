@@ -53,7 +53,7 @@ def read_note(path):
 def note_intro(label, skills):
     links = " · ".join(f"[[Skills/{s}/SKILL|{s}]]" for s in skills)
     return ("> [!tip] Edit the **Description** and **Prompt** sections (and `model`, `max_iterations`, `tools` in the "
-            "properties above), then run `devpilot-sync` in a terminal to apply it to n8n.\n"
+            "properties above), then save from the agent editor in K.R.Y.Z.E.N to apply it.\n"
             "> Placeholders: `{SKILLS_NOTE}` `{UNTRUSTED}` `{HANDOFF}` `{CHECKPOINT}` `{P}` (= project folder) "
             "`{WORKSPACE}`. Tool names: see [[Tools]].\n\n"
             f"**Flow:** [[DevPilot Flow.canvas|DevPilot Flow]] · [[Orchestrator]] · [[Home]]  \n**Skills:** {links}")
@@ -68,7 +68,7 @@ def read_settings(defaults):
     """Shared prompt blocks from _DevPilot/Settings.md (created from `defaults` on first run)."""
     if not SETTINGS.exists():
         intro = ("> [!tip] These blocks are inserted wherever an agent prompt uses `{NAME}`. Edit them, then run "
-                 "`devpilot-sync` (or save from the Jarvis Control Center) to rebuild every agent.\n\n"
+                 "save from the Control Center in K.R.Y.Z.E.N to rebuild every agent.\n\n"
                  "See [[Home]] · [[Tools]]")
         write_note(SETTINGS, {"tags": ["devpilot/settings"]}, "DevPilot settings", intro,
                    [(k, defaults[k]) for k in FRAGMENT_KEYS])

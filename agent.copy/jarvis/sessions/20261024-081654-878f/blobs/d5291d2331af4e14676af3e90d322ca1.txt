@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "{\n  \"Logging\": {\n    \"LogLevel\": {\n      \"Default\": \"Information\",\n      \"Microsoft.AspNetCore\": \"Warning\"\n    }\n  }\n}\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

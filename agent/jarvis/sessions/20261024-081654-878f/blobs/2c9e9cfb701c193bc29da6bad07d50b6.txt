@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "---bin---\n---try running from snapshot---\nsh: line 1: /.snapshots/313/snapshot/usr/lib/postgresql/18/bin/postgres: No such file or directory\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

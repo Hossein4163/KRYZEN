@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"sleep 15; curl -s -o /dev/null -w \\\"%{http_code}\\\" http://localhost:5278/swagger/index.html 2>&1; echo \\\" - swagger\\\"; ps aux | grep dotnet | grep -v grep | head -3\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-f9ff6b49-d42a-4c24-a1a6-07c1bc71ce91", "type": "function"}]}

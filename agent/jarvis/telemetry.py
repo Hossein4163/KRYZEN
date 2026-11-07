@@ -163,3 +163,22 @@ def usage_summary(usage_file, now=None):
             day = time.strftime("%Y-%m-%d", time.localtime(r["t"]))
             out["by_day"][day] = out["by_day"].get(day, 0) + total
     return out
+
+
+def log_agy_invocation(agent, prompt, flags=None, cwd=None):
+    """Log every agy invocation for security auditing and telemetry."""
+    try:
+        rec = {
+            "t": time.time(),
+            "agent": str(getattr(agent, "name", agent) if agent else "anonymous"),
+            "flags": flags or [],
+            "cwd": str(cwd or ""),
+            "prompt_length": len(prompt) if prompt else 0,
+        }
+        log_dir = Path(__file__).resolve().parent / "sessions"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "_agy_audit.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec) + "\n")
+    except Exception:
+        pass
+

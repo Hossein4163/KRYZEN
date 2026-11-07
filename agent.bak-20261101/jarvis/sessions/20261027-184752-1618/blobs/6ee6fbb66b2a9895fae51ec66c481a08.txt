@@ -1,1 +1,0 @@
-{"content": "{\"error\": \"IsADirectoryError: [Errno 21] Is a directory: '/home/kry/Projects/devpilot/rame-studio/docs/references/images'\"}", "role": "tool", "tool_call_id": "call-56e41719-a0d3-4057-9864-100d9bdd267d"}

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"/usr/bin/dockerd\\nDocker version 29.9.2, build 0367cbeb49\\nuid=1000(kry) gid=1000(kry) groups=1000(kry),65534(nobody)\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot/rame-studio\"}", "role": "tool", "tool_call_id": "call-f7ce6b13-4cd5-4603-83ce-849a91fbc5be"}

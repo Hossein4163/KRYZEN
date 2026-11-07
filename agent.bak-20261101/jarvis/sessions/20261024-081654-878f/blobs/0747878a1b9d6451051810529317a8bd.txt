@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"localhost:5433 - accepting connections\\n---\\nsh: line 1: service: command not found\\nClient:\\n Version:    29.9.2\\n Context:    default\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-a4bd546f-1945-47e7-a5fc-43c3bb86a459"}

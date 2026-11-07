@@ -346,13 +346,30 @@ class CompactionTests(unittest.TestCase):
         self.assertLessEqual(sum(len(m["content"]) for m in out[2:]), 40000)
 
 
+try:
+    from PIL import Image, ImageDraw
+    HAS_PIL = True
+except ImportError:
+    Image = None
+    ImageDraw = None
+    HAS_PIL = False
+
+
 class MediaTests(unittest.TestCase):
     def _png(self, size=(2400, 1200), color="red"):
-        import io
-        from PIL import Image
-        buf = io.BytesIO()
-        Image.new("RGB", size, color).save(buf, "PNG")
-        return buf.getvalue()
+        if HAS_PIL:
+            import io
+            buf = io.BytesIO()
+            Image.new("RGB", size, color).save(buf, "PNG")
+            return buf.getvalue()
+        import struct, zlib
+        w, h = size
+        row = b"\x00" + b"\xff\x00\x00" * w
+        compressed = zlib.compress(row * h)
+        def chunk(tag, data):
+            return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
+        ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", compressed) + chunk(b"IEND", b"")
 
     def test_upload_is_validated_downscaled_and_deduplicated(self):
         import media
@@ -393,10 +410,10 @@ class MediaTests(unittest.TestCase):
         out = "  VITE v6  ready\n  ➜  Local:   http://localhost:5173/\n  ➜  Network: use --host\nready - started server on 0.0.0.0:3000, url: http://0.0.0.0:3000"
         self.assertEqual(media.preview_urls(out), ["http://localhost:5173", "http://127.0.0.1:3000"])
 
+    @unittest.skipUnless(HAS_PIL, "PIL required for analyze script")
     def test_analyze_script_stats_and_compare(self):
         import media
         import subprocess
-        from PIL import Image, ImageDraw
         with tempfile.TemporaryDirectory() as d:
             a, b, diff = Path(d) / "a.png", Path(d) / "b.png", Path(d) / "diff.png"
             Image.new("RGB", (100, 50), "white").save(a)

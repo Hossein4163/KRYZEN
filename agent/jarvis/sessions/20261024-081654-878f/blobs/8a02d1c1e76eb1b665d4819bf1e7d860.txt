@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cd ~/Projects/devpilot/rame-studio/src/Api && cat Properties/launchSettings.json 2>/dev/null | grep -E 'applicationUrl|sslPort' | head -5\"}", "name": "pc_shell"}, "id": "call-e4baad68-719b-419e-b805-2da4335b9dc0", "type": "function"}]}

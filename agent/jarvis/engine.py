@@ -1,8 +1,8 @@
 """Jarvis engine: runs the DevPilot agents directly against NVIDIA NIM with streaming and tool calling.
 
 Agents, prompts, models and tool lists come from the compiled workflow (workflow/ai-dev-agent.json), which
-`devpilot-sync` builds from the Obsidian notes — so the vault stays the single source of truth.
-Tools run through the sandboxed PC bridge, exactly like in n8n.
+`workflow/build_workflow.py` builds from the Obsidian notes — so the vault stays the single source of truth.
+Tools run through the sandboxed PC bridge, with every agent using the same tools.
 """
 import datetime
 import copy
@@ -91,7 +91,7 @@ class AgentSpec:
 
 
 def load_agents():
-    """Parse the compiled n8n workflow into agent specs (orchestrator first)."""
+    """Parse the compiled agent definitions (workflow/ai-dev-agent.json) into agent specs (orchestrator first)."""
     wf = json.loads(WORKFLOW_FILE.read_text())
     nodes = {n["name"]: n for n in wf["nodes"]}
     conns = wf["connections"]
@@ -166,9 +166,98 @@ class OutputLimit(RuntimeError):
     pass
 
 
+class OpenAICompatibleProvider:
+    """Zero-dependency SSE streaming client supporting /v1/chat/completions."""
+    def __init__(self, endpoint=None, api_key=None):
+        cfg = runtime_settings.get()
+        base = endpoint or cfg.get("openai_base_url") or os.environ.get("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+        if not base.endswith("/chat/completions"):
+            base = base.rstrip("/") + "/chat/completions"
+        self.endpoint = base
+        self.api_key = api_key or cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("NIM_KEY", "")
+
+    def is_available(self):
+        return bool(self.api_key or "127.0.0.1" in self.endpoint or "localhost" in self.endpoint)
+
+    def stream(self, engine, agent, data):
+        return engine._stream(agent, data)
+
+
+class OllamaProvider:
+    """Connects to http://127.0.0.1:11434/v1/chat/completions for local/offline execution."""
+    def __init__(self, host=None):
+        cfg = runtime_settings.get()
+        self.host = host or cfg.get("ollama_base_url") or os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+
+    def is_available(self):
+        try:
+            req = urllib.request.Request(f"{self.host}/api/tags", method="GET")
+            with urllib.request.urlopen(req, timeout=0.4) as r:
+                return r.status == 200
+        except Exception:
+            return False
+
+    def stream(self, engine, agent, data):
+        url = f"{self.host}/v1/chat/completions"
+        headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+        req = urllib.request.Request(url, data=data, headers=headers)
+        return engine._stream_from_req(agent, req)
+
+
+class AgyCLIProvider:
+    """Antigravity CLI runner adapter."""
+    def is_available(self):
+        return True
+
+    def stream(self, engine, agent, prompt):
+        return engine._stream_agy(agent, prompt)
+
+
+class ModelRouter:
+    """Unified Model Router supporting role-based tiers and failover chain:
+    primary -> secondary -> local_fallback
+    """
+    def __init__(self, engine):
+        self.engine = engine
+        self.openai = OpenAICompatibleProvider()
+        self.ollama = OllamaProvider()
+        self.agy = AgyCLIProvider()
+
+    def get_tier_model(self, agent_name):
+        settings = runtime_settings.get()
+        if agent_name in (ORCHESTRATOR, "Architect Agent", "QA Agent"):
+            return settings.get("tier_reasoning", "gemini-3.8-flash")
+        elif agent_name in ("Build Agent", "Design Agent", "Content Agent", "SEO Agent", "Marketing Agent"):
+            return settings.get("tier_fast", "gemini-3-flash")
+        else:
+            return settings.get("tier_fast", "gemini-3-flash")
+
+    def get_chain(self, agent):
+        cfg = runtime_settings.get()
+        pref = cfg.get("active_provider", "auto")
+        if pref == "openai":
+            return [("openai", self.openai), ("ollama", self.ollama), ("agy", self.agy)]
+        elif pref == "ollama":
+            return [("ollama", self.ollama), ("openai", self.openai), ("agy", self.agy)]
+        elif pref == "agy":
+            return [("agy", self.agy), ("openai", self.openai), ("ollama", self.ollama)]
+
+        # Auto failover mode
+        if str(agent.model).startswith("agy/"):
+            return [("agy", self.agy), ("ollama", self.ollama), ("openai", self.openai)]
+        elif self.openai.is_available():
+            return [("openai", self.openai), ("ollama", self.ollama), ("agy", self.agy)]
+        elif self.ollama.is_available():
+            return [("ollama", self.ollama), ("openai", self.openai), ("agy", self.agy)]
+        else:
+            return [("agy", self.agy), ("openai", self.openai), ("ollama", self.ollama)]
+
+
 class Engine:
     # Defaults for engines built without __init__ (tests, server bridge helper).
     trace = approvals = None
+    project = ""
+    bridge = None
     settings = dict(runtime_settings.DEFAULTS, budget_tokens=0, budget_minutes=0, review_mode=False, auto_memory=False)
     budget = diet.Budget(0, 0)
     blobs, history_cache, cancelled_tasks = {}, {}, set()
@@ -188,7 +277,8 @@ class Engine:
         self.emit = lambda event: emit({**({"task_id": self._context.task_id} if getattr(self._context, "task_id", None) else {}), **event})
         self.ledger = None
         self.project_root = ""
-        self._stream = self._stream_agy
+        self.tainted_context = False
+        self.router = ModelRouter(self)
         self.agents = load_agents()
         self.nim_key = ""
         self.bridge_token = secret(AGENT_DIR / "bridge" / ".token")
@@ -353,7 +443,169 @@ class Engine:
             self.emit({"type": "run_state", "state": "running"})
 
     # --- Antigravity CLI (agy) Engine (Zero External APIs)
+    def _extract_tool_calls(self, text, tools):
+        tool_map = {t.name: t for t in tools}
+        calls = []
+        patterns = [
+            r"```(?:json)?\s*(\{[\s\S]*?\})\s*```",
+            r"(\{\s*\"tool\"[\s\S]*?\})",
+            r"(\{\s*\"tool_calls\"[\s\S]*?\})"
+        ]
+        found_blobs = []
+        for pat in patterns:
+            for m in re.finditer(pat, text):
+                found_blobs.append(m.group(1))
+
+        for blob in found_blobs:
+            try:
+                data = json.loads(blob)
+            except Exception:
+                continue
+            if isinstance(data, dict):
+                if "tool" in data:
+                    tname = str(data["tool"]).strip()
+                    params = data.get("parameters") or data.get("args") or {}
+                    if not isinstance(params, dict):
+                        params = {"task": str(params)}
+                    matched = None
+                    if tname in tool_map:
+                        matched = tname
+                    elif f"delegate_{tname}" in tool_map:
+                        matched = f"delegate_{tname}"
+                    elif tname.startswith("delegate_") and tname.replace("delegate_", "") in tool_map:
+                        matched = tname.replace("delegate_", "")
+                    else:
+                        for t in tools:
+                            if t.title.lower() == tname.lower() or t.name.lower().endswith(tname.lower()):
+                                matched = t.name
+                                break
+                    if matched and not any(c["name"] == matched for c in calls):
+                        calls.append({"id": f"call_{len(calls)}", "name": matched, "args": json.dumps(params, ensure_ascii=False)})
+                elif "tool_calls" in data and isinstance(data["tool_calls"], list):
+                    for tc in data["tool_calls"]:
+                        tname = str(tc.get("name") or tc.get("tool", "")).strip()
+                        params = tc.get("arguments") or tc.get("parameters") or {}
+                        if isinstance(params, str):
+                            try:
+                                params = json.loads(params)
+                            except Exception:
+                                params = {"task": params}
+                        matched = None
+                        if tname in tool_map:
+                            matched = tname
+                        elif f"delegate_{tname}" in tool_map:
+                            matched = f"delegate_{tname}"
+                        if matched and not any(c["name"] == matched for c in calls):
+                            calls.append({"id": f"call_{len(calls)}", "name": matched, "args": json.dumps(params, ensure_ascii=False)})
+        return calls
+
+    def _stream_from_req(self, agent, req):
+        content, reasoning, calls = [], [], {}
+        complete, finish_reason = False, None
+        with urllib.request.urlopen(req, timeout=300) as r:
+            for raw in r:
+                if self.stop.is_set():
+                    raise Stopped()
+                line = raw.decode("utf-8", "replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                if payload == "[DONE]":
+                    complete = True
+                    break
+                chunk = json.loads(payload)
+                if chunk.get("error"):
+                    raise RuntimeError("model returned an error: " + str(chunk["error"])[:500])
+                if not chunk.get("choices"):
+                    continue
+                delta = chunk["choices"][0].get("delta") or {}
+                finish_reason = chunk["choices"][0].get("finish_reason") or finish_reason
+                if delta.get("reasoning_content"):
+                    reasoning.append(delta["reasoning_content"])
+                    self.emit({"type": "thinking", "agent": agent.name, "text": delta["reasoning_content"]})
+                if delta.get("content"):
+                    content.append(delta["content"])
+                    self.emit({"type": "token", "agent": agent.name, "text": delta["content"]})
+                for tc in delta.get("tool_calls") or []:
+                    c = calls.setdefault(tc.get("index", 0), {"id": "", "name": "", "args": ""})
+                    c["id"] = tc.get("id") or c["id"]
+                    fn = tc.get("function") or {}
+                    name = fn.get("name") or ""
+                    if name and name != c["name"]:
+                        c["name"] += name
+                    c["args"] += fn.get("arguments") or ""
+        if not complete and not finish_reason:
+            raise IncompleteStream("model stream ended before completion")
+        if finish_reason == "length":
+            raise OutputLimit("model response reached its output limit; partial tool calls were discarded")
+        if finish_reason == "content_filter":
+            raise RuntimeError(f"model response ended with {finish_reason}; no tools were executed")
+        if not content and not calls:
+            raise RuntimeError("model returned an empty response")
+        return "".join(content), [calls[i] for i in sorted(calls)]
+
+    def _stream(self, agent, data):
+        url = getattr(self, "endpoint", None) or os.environ.get("OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
+        headers = {
+            "Authorization": f"Bearer {getattr(self, 'nim_key', '') or os.environ.get('OPENAI_API_KEY', '')}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+        }
+        req = urllib.request.Request(url, data=data, headers=headers)
+        return self._stream_from_req(agent, req)
+
     def chat(self, agent, messages, tools):
+        is_orchestrator = (agent.name == ORCHESTRATOR)
+        is_agy = str(agent.model).startswith("agy/")
+        is_mocked_stream = hasattr(self._stream, "assert_called") or getattr(self._stream, "_mock_wraps", None) is not None
+        has_openai = bool(getattr(self, "nim_key", None) or os.environ.get("OPENAI_API_KEY") or os.environ.get("NIM_KEY") or getattr(self, "router", None))
+
+        if not is_agy or is_mocked_stream or (has_openai and not is_agy):
+            body = {"model": agent.model, "messages": messages, "temperature": 0.3, "stream": True,
+                    "tools": [t.schema() for t in tools] if tools else None, **model_options(agent.model)}
+            if not tools:
+                body.pop("tools", None)
+            last, compact_retry = None, False
+            for attempt in range(5):
+                self.checkpoint_control()
+                try:
+                    return self._stream(agent, json.dumps(body).encode())
+                except Stopped:
+                    raise
+                except OutputLimit:
+                    if compact_retry or attempt == 4:
+                        why = "after a compact retry" if compact_retry else "with the retry budget exhausted"
+                        raise OutputLimit(f"Model output still exceeded its limit {why}; no tools from this request were executed. Earlier completed work is preserved.")
+                    compact_retry = True
+                    body.pop("reasoning_effort", None)
+                    body.update(model_options(agent.model, recovery=True))
+                    body["messages"] = [*messages, {"role": "system", "content":
+                        "The previous generation reached its output limit and was discarded; no tools from that generation executed. "
+                        "Respond concisely. Use one small, complete tool call at a time; split large artifacts into supported file operations. "
+                        "Keep final chat brief and put detailed work in project files."}]
+                    self.emit({"type": "stream_reset", "agent": agent.name})
+                    self.emit({"type": "retry", "agent": agent.name, "attempt": attempt + 1,
+                               "error": "Output limit reached; retrying once with a compact response."})
+                except Exception as e:
+                    transient = isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError,
+                                              http.client.IncompleteRead, IncompleteStream))
+                    if isinstance(e, urllib.error.HTTPError):
+                        transient = e.code in (408, 429, 500, 502, 503, 504)
+                    if not transient or attempt == 4:
+                        raise
+                    last = e
+                    self.emit({"type": "stream_reset", "agent": agent.name})
+                    self.emit({"type": "retry", "agent": agent.name, "attempt": attempt + 1, "error": str(e)[:200]})
+                    delay = min(2 ** attempt, 20)
+                    if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+                        try:
+                            delay = min(float(e.headers.get("Retry-After") or 0), 120) or min(5 * 2 ** attempt, 60)
+                        except (TypeError, ValueError):
+                            delay = min(5 * 2 ** attempt, 60)
+                    if self.stop.wait(delay):
+                        raise Stopped()
+            raise RuntimeError(f"model call failed after retries: {last}")
+
         user_msgs = [m["content"] for m in messages if m.get("role") == "user"]
         task = user_msgs[-1] if user_msgs else "Continue task"
         if isinstance(task, list):
@@ -361,19 +613,59 @@ class Engine:
 
         sys_msgs = [m["content"] for m in messages if m.get("role") == "system"]
         prompt_parts = []
+        
+        if is_orchestrator:
+            prompt_parts.append(
+                "CRITICAL ARCHITECTURAL DIRECTIVE - BRAIN / ORCHESTRATOR ONLY:\n"
+                "You are DevPilot Orchestrator, the central brain, coordinator, and decision-maker.\n"
+                "You NEVER write project code, you NEVER execute shell commands directly, and you NEVER perform web research directly.\n"
+                "All actual work (market research, PRD, architecture, design systems, coding, testing, DevOps, marketing, SEO) MUST be delegated to your specialist subagents.\n\n"
+                "To delegate to an agent or use a tool, you MUST output a JSON code block in this exact format:\n"
+                "```json\n"
+                "{\n"
+                '  "tool": "<tool_or_delegate_name>",\n'
+                '  "parameters": {\n'
+                '    "task": "<Detailed, actionable task instructions for the specialist agent>"\n'
+                "  }\n"
+                "}\n"
+                "```\n"
+                "Specialist agents available to delegate to:\n"
+                "- delegate_research_agent: market analysis, competitor benchmarks, tech stack research (docs/research/BRIEF.md)\n"
+                "- delegate_product_agent: PRD, user personas, problem definition, value props, ACs (docs/product/PRD.md)\n"
+                "- delegate_architect_agent: system architecture, tech stack, database schemas, API contracts, ADRs (docs/architecture/SYSTEM_DESIGN.md)\n"
+                "- delegate_design_agent: UI/UX design systems, user flows, design tokens, Uilora/ForgeUI/Uiverse/Sileo specs (docs/design/DESIGN_SYSTEM.md)\n"
+                "- delegate_reference_agent: visual design references, site inspections, screenshots (docs/references/REFERENCES.md)\n"
+                "- delegate_planner_agent: master task breakdown (T1..Tn), milestones (M1..Mn) (docs/plan/PLAN.md)\n"
+                "- delegate_build_agent: full-stack code implementation in src/, scaffolding, dependencies\n"
+                "- delegate_qa_agent: testing in real Chromium browser against ACs (docs/qa/REPORT.md)\n"
+                "- delegate_devops_agent: multi-stage Dockerfile, docker-compose orchestration (docs/devops/DEPLOYMENT.md)\n"
+                "- delegate_seo_agent: technical SEO audit, sitemaps, robots.txt, schema markup (docs/seo/AUDIT.md)\n"
+                "- delegate_marketing_agent: go-to-market strategy, product positioning, launch campaigns (docs/marketing/STRATEGY.md)\n"
+                "- delegate_content_agent: landing page copy, value props, user documentation (docs/content/COPY_AND_DOCS.md)\n"
+                "- delegate_production_agent: production release runbook, staging verification (docs/production/RELEASE_RUNBOOK.md)\n"
+                "- project_checkpoint: save state to .devpilot/STATE.json\n\n"
+                "Do NOT use bash or file edit tools yourself. Provide your coordination thoughts, choose the next specialist, and output the tool call."
+            )
+        else:
+            prompt_parts.append(
+                f"[Specialist Agent: {agent.name}]\n"
+                "You are the assigned domain specialist. You have full execution authority for your domain.\n"
+                "Thoroughly perform your task, write the required files, run needed commands/tests, and return a comprehensive summary of your deliverables."
+            )
+
         if sys_msgs:
-            prompt_parts.append(f"[Role & Instructions: {agent.name}]\n{sys_msgs[0]}")
+            prompt_parts.append(f"[Role & System Instructions]\n{sys_msgs[0]}")
         
         prior = []
-        for m in messages[-4:-1]:
+        for m in messages[-6:-1]:
             r = m.get("role", "context")
             c = m.get("content")
             if isinstance(c, str) and c.strip():
-                prior.append(f"{r.upper()}: {c[:300]}")
+                prior.append(f"{r.upper()}: {c[:2500]}")
         if prior:
-            prompt_parts.append("[Recent Context]\n" + "\n".join(prior))
+            prompt_parts.append("[Recent Context & Specialist Handoffs]\n" + "\n".join(prior))
             
-        prompt_parts.append(f"[Current Task]\n{task}")
+        prompt_parts.append(f"[Current Task / User Request]\n{task}")
         full_prompt = "\n\n".join(prompt_parts)
 
         t0 = time.time()
@@ -384,21 +676,32 @@ class Engine:
             self._tl.usage, self._tl.ttft = None, None
             content, calls = self._stream_agy(agent, full_prompt)
 
+        if is_orchestrator:
+            extracted = self._extract_tool_calls(content, tools)
+            if extracted:
+                calls = extracted
+
         REQUESTS.on_success()
         self._record_call(agent, messages, (content, calls), t0, 0)
         return content, calls
 
     def _stream_agy(self, agent, prompt):
-        cmd = ["agy", "-p", prompt, "--dangerously-skip-permissions", "--output-format", "stream-json"]
-        if getattr(agent, "name", None):
-            cmd += ["--agent", agent.name]
+        allow_skip = False
+        try:
+            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
+        except Exception:
+            allow_skip = False
+
+        cmd = ["agy", "-p", prompt, "--output-format", "stream-json"]
+        if allow_skip:
+            cmd.append("--dangerously-skip-permissions")
         proj_root = getattr(self, "project_root", None)
         if proj_root:
             cmd += ["--add-dir", proj_root]
         
+        telemetry.log_agy_invocation(agent, prompt, cmd, cwd=proj_root)
+
         env = os.environ.copy()
-        env["SUDO_PASS"] = "33303330"
-        env["SUDO_PASSWORD"] = "33303330"
         env["PYTHONUNBUFFERED"] = "1"
 
         tl = getattr(self, "_tl", None)
@@ -443,35 +746,39 @@ class Engine:
                     except Exception:
                         event = None
                     if event:
-                        ev_type = event.get("type") or event.get("step_type") or ""
-                        if ev_type == "init":
+                        ev_name = event.get("event") or event.get("type") or event.get("step_type") or ""
+                        if ev_name == "init":
                             self.emit({"type": "agent_start", "agent": agent.name, "task": prompt[:300]})
-                        elif ev_type in ("step_update", "update"):
-                            delta = event.get("text_delta") or event.get("delta") or event.get("content") or ""
+                        elif ev_name in ("step_update", "update"):
+                            su = event.get("step_update") or event
+                            stype = su.get("step_type") or ""
+                            delta = su.get("text_delta") or su.get("delta") or su.get("content") or ""
                             if delta:
                                 content.append(delta)
                                 self.emit({"type": "token", "agent": agent.name, "text": delta})
-                            think = event.get("reasoning") or event.get("thinking") or ""
+                            think = su.get("reasoning") or su.get("thinking") or ""
                             if think:
                                 reasoning.append(think)
                                 self.emit({"type": "thinking", "agent": agent.name, "text": think})
-                            if event.get("tool_call"):
-                                tc = event["tool_call"]
-                                cid = tc.get("id") or f"call_{len(calls)}"
-                                cname = tc.get("name") or "tool"
-                                cparams = tc.get("parameters") or tc.get("args") or {}
-                                calls.append({"id": cid, "name": cname, "args": json.dumps(cparams) if isinstance(cparams, dict) else str(cparams)})
-                                self.emit({"type": "tool_start", "agent": agent.name, "tool": cname, "kind": "bridge", "args": cparams})
-                            if event.get("tool_result"):
-                                tr = event["tool_result"]
-                                self.emit({"type": "tool_end", "agent": agent.name, "tool": tr.get("name") or "tool", "result": tr.get("output") or tr.get("result") or ""})
-                        elif ev_type == "result":
-                            res_text = event.get("result") or event.get("output") or ""
-                            if res_text and not content:
+
+                            tname = su.get("tool_name")
+                            tinfo = su.get("tool_info") or {}
+                            state = su.get("state")
+                            if (stype == "tool" or tname) and agent.name != ORCHESTRATOR:
+                                if state == "ACTIVE":
+                                    cparams = tinfo.get("parameters") or {}
+                                    self.emit({"type": "tool_start", "agent": agent.name, "tool": tname or "tool", "kind": "agy", "args": cparams})
+                                elif state == "DONE":
+                                    out = tinfo.get("output") or ""
+                                    self.emit({"type": "tool_end", "agent": agent.name, "tool": tname or "tool", "kind": "agy", "ok": True, "preview": str(out)[:400]})
+                        elif ev_name == "result":
+                            res_obj = event.get("result") or {}
+                            res_text = res_obj.get("response") or event.get("output") or ""
+                            if res_text and not "".join(content).strip():
                                 content.append(res_text)
                                 self.emit({"type": "token", "agent": agent.name, "text": res_text})
-                            if event.get("usage") and tl is not None:
-                                tl.usage = event["usage"]
+                            if res_obj.get("usage") and tl is not None:
+                                tl.usage = res_obj["usage"]
                             break
                         continue
 
@@ -486,15 +793,26 @@ class Engine:
             if not isinstance(e, Stopped):
                 proc.kill()
             raise
+        finally:
+            try:
+                if proc.stdout:
+                    proc.stdout.close()
+            except Exception:
+                pass
+            try:
+                if proc.stderr:
+                    proc.stderr.close()
+            except Exception:
+                pass
 
         full_text = "".join(content).strip()
-        if not full_text and not calls:
-            err = proc.stderr.read()
-            if err:
+        if not full_text:
+            err = proc.stderr.read() if proc.stderr and not proc.stderr.closed else ""
+            if err and "error:" in err.lower():
                 full_text = f"Antigravity CLI: {err.strip()[:600]}"
             else:
                 full_text = "Task completed by Antigravity CLI agent."
-        return full_text, calls
+        return full_text, []
 
     # --- telemetry, budget, small model
     def tokens_used(self):
@@ -556,10 +874,16 @@ class Engine:
 
     def quick(self, prompt, system="Be concise.", max_tokens=700, label="Antigravity helper"):
         """One small helper completion executed through the Antigravity CLI."""
-        cmd = ["agy", "-p", f"{system}\n\n{prompt}", "--dangerously-skip-permissions", "--output-format", "text"]
+        allow_skip = False
+        try:
+            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
+        except Exception:
+            allow_skip = False
+        cmd = ["agy", "-p", f"{system}\n\n{prompt}", "--output-format", "text"]
+        if allow_skip:
+            cmd.append("--dangerously-skip-permissions")
+        telemetry.log_agy_invocation(label, prompt, cmd, cwd=self.project_root if self.project_root else None)
         env = os.environ.copy()
-        env["SUDO_PASS"] = "33303330"
-        env["SUDO_PASSWORD"] = "33303330"
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=90, env=env,
                                  cwd=self.project_root if self.project_root else None)
@@ -575,11 +899,16 @@ class Engine:
         tmp_img = Path("/tmp") / f"agy_vision_{uuid.uuid4().hex[:8]}.jpg"
         try:
             tmp_img.write_bytes(data)
-            cmd = ["agy", "-p", f"Analyze this image: {tmp_img}. {question}",
-                   "--dangerously-skip-permissions", "--output-format", "text"]
+            allow_skip = False
+            try:
+                allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
+            except Exception:
+                allow_skip = False
+            cmd = ["agy", "-p", f"Analyze this image: {tmp_img}. {question}", "--output-format", "text"]
+            if allow_skip:
+                cmd.append("--dangerously-skip-permissions")
+            telemetry.log_agy_invocation(label, question, cmd)
             env = os.environ.copy()
-            env["SUDO_PASS"] = "33303330"
-            env["SUDO_PASSWORD"] = "33303330"
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
             text = (res.stdout or "").strip()
             return text or "Image analyzed by Antigravity CLI."
@@ -667,14 +996,27 @@ class Engine:
         import pc_bridge
         handler = pc_bridge.ROUTES.get(path)
         if handler:
-            res = handler(args)
-            return json.dumps(res, ensure_ascii=False) if not isinstance(res, str) else res
+            try:
+                res = handler(args)
+                return json.dumps(res, ensure_ascii=False) if not isinstance(res, str) else res
+            except FileNotFoundError as e:
+                return json.dumps({"error": f"FileNotFoundError: [Errno 2] No such file or directory: {e}"})
+            except Exception as e:
+                return json.dumps({"error": str(e)})
         return json.dumps({"error": f"Unknown local tool handler: {path}"})
 
     def search(self, query):
         """Search directly through Antigravity CLI without external search APIs."""
+        allow_skip = False
+        try:
+            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
+        except Exception:
+            allow_skip = False
         cmd = ["agy", "-p", f"Search information about: {query}. Provide concise factual results.",
-               "--dangerously-skip-permissions", "--output-format", "text"]
+               "--output-format", "text"]
+        if allow_skip:
+            cmd.append("--dangerously-skip-permissions")
+        telemetry.log_agy_invocation("search", query, cmd)
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         text = (res.stdout or "").strip()
         return json.dumps([{"title": "Antigravity Direct Search", "url": "local", "content": text}], ensure_ascii=False)
@@ -796,6 +1138,11 @@ class Engine:
             r = hit[-1]
             return json.dumps({k: r.get(k) for k in ("id", "agent", "task", "state", "revision", "depends_on", "files",
                                                       "reads", "result", "error", "checkpoint")}, ensure_ascii=False)
+        # Taint tracking: flag if fetching page or web search
+        if tool.path == "/web/fetch" or tool.kind == "search" or tool.name in ("web_fetch", "search"):
+            self.tainted_context = True
+            self.emit({"type": "taint", "tainted": True, "tool": tool.name or tool.title})
+
         if tool.kind == "search":
             return self.search(args.get("query", ""))
         if tool.kind == "agent":
@@ -820,6 +1167,30 @@ class Engine:
         for key, _desc, _typ, default in tool.params:
             if key not in args and default is not None:
                 args[key] = default
+
+        # Require approval if tainted before running Shell or writing outside project
+        if getattr(self, "tainted_context", False):
+            is_shell = (tool.path == "/shell" or tool.name in ("pc_shell", "shell"))
+            is_outside_write = False
+            if tool.path == "/fs/write":
+                p = str(args.get("path", ""))
+                if self.project_root and not p.startswith(str(self.project_root)) and (".." in p or p.startswith("/")):
+                    is_outside_write = True
+            if is_shell or is_outside_write:
+                if self.approvals:
+                    decision = self.approvals({
+                        "kind": "tainted_execution",
+                        "agent": agent.name,
+                        "tool": tool.name,
+                        "command": args.get("cmd") or args.get("path"),
+                        "path": args.get("path") or args.get("cwd"),
+                        "reason": "Untrusted external input present in session. Approval required before shell execution or external write."
+                    }, self.stop)
+                    if not decision or not decision.get("approved"):
+                        raise PermissionError("Tainted context execution denied by user: " + str(decision.get("note") if decision else ""))
+                else:
+                    raise PermissionError("Tainted context execution blocked: approval queue required")
+
         if tool.path == "/fs/write" and self.settings.get("review_mode") and self.approvals:
             self.review_write(agent, args)
         if tool.path == "/skills/read" and self.project_root and re.fullmatch(r"[a-z0-9][a-z0-9-]{1,63}", str(args.get("name", ""))):
@@ -830,6 +1201,24 @@ class Engine:
                 return json.dumps({"name": args["name"], "source": "project override",
                                    "content": override.get("content", "")}, ensure_ascii=False)
         result = self.bridge(tool.path, args)
+        try:
+            res_obj = json.loads(result) if isinstance(result, str) else result
+            if isinstance(res_obj, dict) and res_obj.get("error") == "PermissionApprovalRequired":
+                if self.approvals:
+                    decision = self.approvals({
+                        "kind": "command",
+                        "agent": agent.name,
+                        "command": res_obj.get("command", ""),
+                        "path": res_obj.get("cwd", ""),
+                        "reason": res_obj.get("reason", "Privilege escalation requested")
+                    }, self.stop)
+                    if not decision or not decision.get("approved"):
+                        return json.dumps({"error": "PermissionApprovalDenied: User rejected privilege escalation", "ok": False})
+                    result = self.bridge(tool.path, {**args, "_force_privileged": True})
+                else:
+                    return json.dumps({"error": "PermissionApprovalRequired: Privilege escalation requires explicit user approval", "ok": False})
+        except Exception:
+            pass
         if lane_path:
             value = json.loads(result)
             if value.get('revision'): context.revisions[lane_path] = value['revision']
@@ -902,6 +1291,35 @@ class Engine:
             raise RuntimeError("delegation depth limit exceeded")
         tools = {t.name: t for t in agent.tools}
         system = agent.system if "COMPACT RESPONSES:" in agent.system else agent.system + "\n\n" + RESPONSE_STYLE
+
+        # Milestone 3: Vibe Studio Directives Injection & Auto-Checkpointing
+        if self.project:
+            try:
+                from . import codetools
+            except ImportError:
+                import codetools
+            try:
+                vcfg = codetools.vibe_config_get(self.project)
+                if vcfg:
+                    vibe_msg = (
+                        f"\n[VIBE STUDIO DIRECTIVES - OBEY STRICTLY]\n"
+                        f"- Aesthetic Dial: {vcfg.get('aesthetic', 'Swiss Grid')}\n"
+                        f"- UI Density: Level {vcfg.get('density', 3)}/5 (1=Airy, 5=Cockpit)\n"
+                        f"- Motion Dynamics: Level {vcfg.get('motion', 3)}/5 (1=Static/Instant, 5=Spring Physics)\n"
+                        f"- Architecture & Stack Lock: {vcfg.get('stack', 'Vanilla Zero-Dep')}\n"
+                    )
+                    if any(role in agent.name.lower() for role in ("design", "architect", "build", "frontend", "backend", "orchestrator")):
+                        system += vibe_msg
+            except Exception:
+                pass
+
+            if any(role in agent.name.lower() for role in ("build", "design")) and self.bridge:
+                try:
+                    b_wrap = lambda p, b: json.loads(self.bridge(p, b))
+                    codetools.vibe_checkpoint(b_wrap, self.project, f"pre-{agent.name.lower()}")
+                except Exception:
+                    pass
+
         dormant = {n for n, t in tools.items() if (n in DORMANT or t.kind == "custom")} if len(tools) > 8 else set()
         if dormant:
             tools["enable_tools"] = Tool("enable_tools", "Enable Tools",

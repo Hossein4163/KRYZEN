@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cd ~/Projects/devpilot/rame-studio/src/Api && cat Properties/launchSettings.json 2>/dev/null && echo \\\"---PROGRAM---\\\" && cat Program.cs 2>/dev/null | head -60\"}", "name": "pc_shell"}, "id": "call-e6d335ab-cb34-45ea-9010-42d200409eb6", "type": "function"}]}

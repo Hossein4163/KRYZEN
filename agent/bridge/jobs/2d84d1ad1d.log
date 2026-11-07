@@ -1,8 +1,0 @@
-Client:
- Version:    29.9.2
- Context:    default
- Debug Mode: false
- Plugins:
-sudo: /etc/sudo.conf is owned by uid 65534, should be 0
-sudo: The "no new privileges" flag is set, which prevents sudo from running as root.
-sudo: If sudo is running in a container, you may need to adjust the container configuration to disable the flag.

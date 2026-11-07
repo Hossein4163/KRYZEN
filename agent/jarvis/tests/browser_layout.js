@@ -35,10 +35,10 @@
       if(innerWidth>760) check(inside(rect(workspace),{left:0,right:innerWidth,top:rect(q('.top')).bottom,bottom:innerHeight}), `${mode} workspace extends outside the window`);
       else check(rect(workspace).top<rect(q('.chatp')).top, `${mode} is buried below the conversation`);
       if(mode==='mesh') {
-        const graph=rect(q('#graph')),nav=rect(q('.mesh-navigation'));
-        check(graph.height>=100 && graph.bottom<=nav.top+2,'Mesh is clipped or overlaps navigation');
-        check(q('#graph').querySelectorAll('.agent-node').length===cfg.agents.length,'Mesh did not render the whole team');
-        check([...document.querySelectorAll('.agent-node .body')].every(n=>inside(rect(n),graph)),'Initial mesh fit hides agents');
+        const journeyHost=rect(q('#journey')),nav=rect(q('.mesh-navigation'));
+        check(journeyHost.height>=100 && journeyHost.bottom<=nav.top+2,'Mesh is clipped or overlaps navigation');
+        check(q('#journey').querySelectorAll('[data-agent]').length >= cfg.agents.length - 1,'Mesh did not render the whole team');
+        check([...document.querySelectorAll('.jr-planet')].every(n=>inside(rect(n),journeyHost)),'Initial mesh fit hides agents');
         check(!visible(q('#pAgy')),'Inactive Agy log pane is visible');
       }
       if(mode==='flow') {

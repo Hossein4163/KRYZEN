@@ -7,7 +7,9 @@ context per turn, and a small model extracts new durable facts after each run (s
 """
 import json
 import re
+import sqlite3
 import time
+from pathlib import Path
 
 MEMORY_PATH = ".devpilot/memory.md"
 MEMORY_HEADER = ("# Project memory\n\nDurable facts, decisions and conventions learned by the agents. "
@@ -15,6 +17,105 @@ MEMORY_HEADER = ("# Project memory\n\nDurable facts, decisions and conventions l
 KINDS = ("decision", "convention", "fact", "gotcha", "preference", "todo")
 ENTRY = re.compile(r"^- (\d{4}-\d{2}-\d{2}) \((\w+)\) (.+)$")
 STOP = set("the a an and or of to in on for with is are be this that it as at by from use using into not no we you".split())
+
+
+class StateDB:
+    """Embedded SQLite state layer in WAL mode inside .devpilot/state.db.
+    Prevents file-locking race conditions across parallel task lanes,
+    while automatically syncing .devpilot/STATE.json and PLAN.md.
+    """
+    def __init__(self, root_dir):
+        self.root = Path(root_dir)
+        self.dot_dir = self.root / ".devpilot"
+        self.dot_dir.mkdir(parents=True, exist_ok=True)
+        self.db_path = self.dot_dir / "state.db"
+        self._init_db()
+
+    def _get_conn(self):
+        conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        return conn
+
+    def _init_db(self):
+        conn = self._get_conn()
+        try:
+            with conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS kv_state (
+                        key TEXT PRIMARY KEY,
+                        value TEXT,
+                        updated_at REAL
+                    )
+                """)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS task_state (
+                        id TEXT PRIMARY KEY,
+                        agent TEXT,
+                        state TEXT,
+                        data TEXT,
+                        updated_at REAL
+                    )
+                """)
+        finally:
+            conn.close()
+
+    def set_state(self, key, data):
+        """Save state into SQLite and sync human-readable .devpilot/STATE.json or PLAN.md."""
+        val = json.dumps(data, ensure_ascii=False) if not isinstance(data, str) else data
+        conn = self._get_conn()
+        try:
+            with conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO kv_state (key, value, updated_at) VALUES (?, ?, ?)",
+                    (key, val, time.time())
+                )
+        finally:
+            conn.close()
+        # Sync human-readable files
+        if key == "state" and isinstance(data, dict):
+            state_file = self.dot_dir / "STATE.json"
+            try:
+                state_file.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+            except Exception:
+                pass
+        elif key == "plan" and isinstance(data, str):
+            plan_file = self.root / "PLAN.md"
+            doc_plan = self.root / "docs" / "plan" / "PLAN.md"
+            try:
+                if doc_plan.parent.exists():
+                    doc_plan.write_text(data)
+                plan_file.write_text(data)
+            except Exception:
+                pass
+
+    def get_state(self, key, default=None):
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT value FROM kv_state WHERE key = ?", (key,))
+            row = cur.fetchone()
+            if row:
+                try:
+                    return json.loads(row[0])
+                except Exception:
+                    return row[0]
+        finally:
+            conn.close()
+        # Fallback to file if not in DB
+        if key == "state":
+            sf = self.dot_dir / "STATE.json"
+            if sf.exists():
+                try:
+                    return json.loads(sf.read_text())
+                except Exception:
+                    pass
+        elif key == "plan":
+            pf = self.root / "PLAN.md"
+            if pf.exists():
+                return pf.read_text()
+        return default
+
 
 VERIFY_POLICY = (
     "\nPLAN → ACT → VERIFY: give every delegated task 1-3 concrete acceptance criteria. Before reporting DONE, check "

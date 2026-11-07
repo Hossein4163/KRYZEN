@@ -19,7 +19,7 @@
   const visible=el=>!!el.getClientRects().length&&el.getBoundingClientRect().height>0;
   const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(sizes));}catch(_) {}};
   function bounds(name) {
-    const layout=mode(),style=getComputedStyle(main),padding=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||12;
+    const layout=mode(),style=getComputedStyle(main),padding=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||0;
     if(layout==='phone')return {min:240,max:Math.max(800,innerHeight*1.3),axis:'y'};
     if(layout==='tablet'&&name==='side')return {min:100,max:Math.max(100,main.clientHeight-padding-gap-180),axis:'y'};
     const other=name==='chat'?'side':'chat';
@@ -27,7 +27,7 @@
     return {min:200,max:Math.max(200,Math.min(520,main.clientWidth-padding-gap*(layout==='desktop'?2:1)-reserved-320)),axis:'x'};
   }
   function update() {
-    const layout=mode(),style=getComputedStyle(main),gap=parseFloat(style.columnGap)||12;
+    const layout=mode(),style=getComputedStyle(main),gap=parseFloat(style.columnGap)||0;
     const available=main.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
     if(layout==='desktop') {
       let chat=clamp(sizes.desktop.chat,200,520),side=clamp(sizes.desktop.side,200,520);
@@ -52,7 +52,7 @@
       handle.hidden=collapsed||!visible(panel);
       if(handle.hidden)continue;
       const r=panel.getBoundingClientRect(),b=bounds(name),vertical=b.axis==='x';
-      const x=layout==='desktop'&&name==='side'?r.left-root.left-12:r.right-root.left;
+      const x=layout==='desktop'&&name==='side'?r.left-root.left-6:r.right-root.left-6;
       if(vertical)Object.assign(handle.style,{left:(x-1)+'px',top:(r.top-root.top+12)+'px',width:'14px',height:Math.max(44,r.height-24)+'px'});
       else Object.assign(handle.style,{left:(r.left-root.left+12)+'px',top:(layout==='tablet'?r.top-root.top-12:r.bottom-root.top-1)+'px',width:Math.max(44,r.width-24)+'px',height:'14px'});
       handle.setAttribute('aria-orientation',vertical?'vertical':'horizontal');

@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"which dockerd-rootless.sh dockerd-rootless-setuptool.sh rootlesskit 2>/dev/null; ls /usr/bin/dockerd* 2>/dev/null; id\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-e925dbe7-2dae-4875-acbd-c17b55291b89", "type": "function"}]}

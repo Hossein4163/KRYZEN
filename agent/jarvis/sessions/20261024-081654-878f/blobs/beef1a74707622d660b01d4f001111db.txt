@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "no rootless docker found\nno rootless binaries\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

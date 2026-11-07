@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"which dockerd-rootless.sh 2>/dev/null && echo \\\"ROOTLESS_AVAILABLE\\\" || echo \\\"ROOTLESS_NOT_FOUND\\\"; ls /usr/bin/dockerd-rootless* 2>/dev/null || echo \\\"no rootless binaries\\\"\"}", "name": "pc_shell"}, "id": "call-97a812d2-79e4-430c-8371-6e7ae60ce03c", "type": "function"}]}

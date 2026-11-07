@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "=== run with verbosity ===\n    0 Error(s)\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

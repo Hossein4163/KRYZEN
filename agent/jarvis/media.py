@@ -39,7 +39,21 @@ def normalize(data):
     if len(data) > MAX_UPLOAD:
         raise ValueError("image is larger than 12 MB")
     if Image is None:
-        return data, "png", 800, 600
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            if len(data) < 24:
+                raise ValueError("not a readable image (truncated PNG)")
+            import struct
+            w, h = struct.unpack(">II", data[16:24])
+            if w * h > 60_000_000:
+                raise ValueError("image dimensions are too large")
+            if max(w, h) > MAX_SIDE:
+                scale = MAX_SIDE / max(w, h)
+                w, h = int(w * scale), int(h * scale)
+            return data, "png", w, h
+        elif data.startswith(b"\xff\xd8"):
+            return data, "jpg", 800, 600
+        else:
+            raise ValueError("not a readable image (unsupported or invalid image format)")
     try:
         im = Image.open(io.BytesIO(data))
         im.load()
@@ -228,3 +242,87 @@ else:
     raise SystemExit("mode must be stats, palette, contrast or compare")
 print(json.dumps(out))
 '''
+
+
+def extract_vibe_tokens(data_or_path=None, aesthetic="Swiss Grid"):
+    """Extract design tokens (palette, spacing, typography, radii) from an image or aesthetic preset."""
+    palette = ["#0A0A0A", "#141414", "#E60000", "#FFFFFF", "#737373"]
+    if data_or_path:
+        raw_bytes = None
+        if isinstance(data_or_path, (str, Path)):
+            p = Path(data_or_path)
+            if p.is_file():
+                raw_bytes = p.read_bytes()
+        elif isinstance(data_or_path, bytes):
+            raw_bytes = data_or_path
+
+        if raw_bytes and Image is not None:
+            try:
+                im = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+                im.thumbnail((128, 128))
+                q = im.quantize(colors=6, method=Image.Quantize.MEDIANCUT)
+                pal = q.getpalette()[:18]
+                counts = sorted(q.getcolors() or [], reverse=True)
+                extracted = ["#%02x%02x%02x" % tuple(pal[i * 3:i * 3 + 3]) for _, i in counts]
+                if extracted:
+                    palette = extracted
+            except Exception:
+                pass
+
+    aesthetic_lower = (aesthetic or "swiss grid").lower()
+    radius = "0px"
+    if "saas" in aesthetic_lower:
+        radius = "6px"
+    elif "playful" in aesthetic_lower:
+        radius = "12px"
+    elif "cyberpunk" in aesthetic_lower or "brutalist" in aesthetic_lower or "swiss" in aesthetic_lower:
+        radius = "0px"
+
+    bg = palette[0] if len(palette) > 0 else "#0A0A0A"
+    surface = palette[1] if len(palette) > 1 else "#141414"
+    accent = next((c for c in palette if c.upper() not in ("#000000", "#0A0A0A", "#FFFFFF", "#141414")), "#E60000")
+    text = "#FFFFFF" if bg.lower() in ("#000000", "#0a0a0a", "#141414", "#1a1a1a") else "#111111"
+    border = "#262626" if text == "#FFFFFF" else "#E5E5E5"
+
+    tokens = {
+        "bg": bg,
+        "surface": surface,
+        "accent": accent,
+        "text": text,
+        "text_muted": "#737373" if text == "#FFFFFF" else "#666666",
+        "border": border,
+        "radius": radius,
+        "font_sans": "'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "font_mono": "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+        "space_xs": "4px",
+        "space_sm": "8px",
+        "space_md": "16px",
+        "space_lg": "24px",
+        "space_xl": "32px"
+    }
+    return tokens
+
+
+def generate_vibe_tokens_css(tokens):
+    """Generate production-ready CSS variables stylesheet from tokens."""
+    return f"""/* K.R.Y.Z.E.N Vibe Studio Design Tokens */
+:root {{
+  --vibe-bg: {tokens.get('bg', '#0A0A0A')};
+  --vibe-surface: {tokens.get('surface', '#141414')};
+  --vibe-accent: {tokens.get('accent', '#E60000')};
+  --vibe-text: {tokens.get('text', '#FFFFFF')};
+  --vibe-text-muted: {tokens.get('text_muted', '#737373')};
+  --vibe-border: {tokens.get('border', '#262626')};
+  --vibe-radius: {tokens.get('radius', '0px')};
+
+  --vibe-font-sans: {tokens.get('font_sans')};
+  --vibe-font-mono: {tokens.get('font_mono')};
+
+  --vibe-space-xs: {tokens.get('space_xs', '4px')};
+  --vibe-space-sm: {tokens.get('space_sm', '8px')};
+  --vibe-space-md: {tokens.get('space_md', '16px')};
+  --vibe-space-lg: {tokens.get('space_lg', '24px')};
+  --vibe-space-xl: {tokens.get('space_xl', '32px')};
+}}
+"""
+

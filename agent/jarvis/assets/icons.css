@@ -1,0 +1,39 @@
+/* Lucide icon font: only the icons this app uses. Add a line here when using a new icon (codepoints: lucide-static font/lucide.css). */
+@font-face{font-family:"lucide";src:url("lucide.woff2") format("woff2");font-display:block}
+[class^="icon-"],[class*=" icon-"]{font-family:"lucide"!important;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}
+.icon-activity::before{content:"\e038"}
+.icon-arrow-up::before{content:"\e04e"}
+.icon-arrow-up-right::before{content:"\e051"}
+.icon-blocks::before{content:"\e4ff"}
+.icon-box::before{content:"\e065"}
+.icon-code::before{content:"\e097"}
+.icon-cpu::before{content:"\e0ad"}
+.icon-file-code::before{content:"\e0c7"}
+.icon-file-plus::before{content:"\e0cd"}
+.icon-folder::before{content:"\e0dc"}
+.icon-house::before{content:"\e0f8"}
+.icon-list-todo::before{content:"\e4c8"}
+.icon-message-square-plus::before{content:"\e411"}
+.icon-network::before{content:"\e129"}
+.icon-palette::before{content:"\e1dd"}
+.icon-panel-left::before{content:"\e12e"}
+.icon-panel-left-close::before{content:"\e21c"}
+.icon-panel-left-open::before{content:"\e21d"}
+.icon-panel-right-close::before{content:"\e437"}
+.icon-panel-right-open::before{content:"\e439"}
+.icon-plus::before{content:"\e141"}
+.icon-refresh-cw::before{content:"\e149"}
+.icon-search::before{content:"\e155"}
+.icon-server::before{content:"\e157"}
+.icon-sliders-horizontal::before{content:"\e29a"}
+.icon-sparkles::before{content:"\e417"}
+.icon-upload::before{content:"\e19e"}
+.icon-users::before{content:"\e1a4"}
+.icon-waypoints::before{content:"\e547"}
+.icon-wrench::before{content:"\e1b1"}
+.icon-x::before{content:"\e1b2"}
+.icon-folder-open::before{content:"\e247"}
+.icon-minus::before{content:"\e120"}
+.icon-ellipsis::before{content:"\e0ba"}
+.icon-pencil::before{content:"\e1f9"}
+.icon-copy::before{content:"\e0a2"}

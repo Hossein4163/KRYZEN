@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "psql: error: connection to server at \"127.0.0.1\", port 5433 failed: FATAL:  password authentication failed for user \"postgres\"\n---try trust---\nPassword for user postgres: \npsql: error: connection to server at \"127.0.0.1\", port 5433 failed: fe_sendauth: no password supplied\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

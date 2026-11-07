@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "src/Infrastructure/Persistence/SeedData.cs\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

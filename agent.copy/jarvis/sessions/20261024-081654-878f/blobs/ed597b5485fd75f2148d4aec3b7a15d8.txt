@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "=== log ===\n  ➜  Network: http://172.20.0.1:5175/\n  ➜  Network: http://172.18.0.1:5175/\n  ➜  Network: http://172.19.0.1:5175/\n  ➜  Network: http://172.22.0.1:5175/\n  ➜  Network: http://172.21.0.1:5175/\n=== curl ===\nstatus: 200\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

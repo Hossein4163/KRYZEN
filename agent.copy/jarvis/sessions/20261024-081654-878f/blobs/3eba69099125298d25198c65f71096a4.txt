@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ls frontend/ 2>&1 | head -20; echo \\\"---\\\"; ls src/ 2>&1; echo \\\"---\\\"; ls tests/ 2>&1\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-66105c99-7654-4660-8b4d-1a95ad31493b", "type": "function"}]}

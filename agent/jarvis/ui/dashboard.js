@@ -10,13 +10,12 @@ let data = null, health = null, timer = 0, healthTimer = 0, busy = false;
 const TABS = [["overview", "Overview"], ["shots", "Screenshots"], ["skills", "Skills"], ["memory", "Project memory"], ["settings", "Runtime settings"]];
 
 function shell() {
-  root().innerHTML = `<div class="kz-pad"><div class="kz-head"><div><div class="kz-eyebrow">K.R.Y.Z.E.N</div><h2>Home</h2></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="kz-btn" data-go="trace">Open trace</button><button class="kz-btn" id="kzPaletteHint" title="Command palette">⌘K / Ctrl+K</button></div></div>
+  root().innerHTML = `<div class="kz-pad"><div class="kz-head"><div><div class="kz-eyebrow">K.R.Y.Z.E.N / Mission</div><h2>Home</h2></div>
+      <button class="kz-btn" data-go="trace">Open trace<i class="icon-arrow-up-right"></i></button></div>
     <div class="kz-tabs" role="tablist">${TABS.map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div>
     <div id="kzHomeBody"></div></div>`;
   root().querySelector(".kz-tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; localStorage.setItem("kryzen.homeTab", tab); shell(); render(); } };
   root().querySelector('[data-go="trace"]').onclick = () => setMode("trace");
-  root().querySelector("#kzPaletteHint").onclick = () => window.dispatchEvent(new Event("kryzen:palette"));
 }
 
 async function refresh(force) {
@@ -38,8 +37,15 @@ function render() {
   if (tab === "settings") return renderSettings(body);
   if (!data) { body.innerHTML = '<div class="kz-empty">Loading…</div>'; return; }
   if (data.error) { body.innerHTML = `<div class="kz-empty" role="alert">${esc(data.error)}</div>`; return; }
-  body.innerHTML = `<div class="kz-grid">${nowCard()}${inboxCard()}${queueCard()}${spendCard()}${projectsCard()}${healthCard()}${recentCard()}</div>`;
+  body.innerHTML = `${statsRow()}<div class="kz-grid">${nowCard()}${inboxCard()}${queueCard()}${spendCard()}${healthCard()}${projectsCard()}${recentCard()}</div>`;
   wire(body);
+}
+
+function statsRow() {
+  const t = data.usage?.today || {};
+  const stats = [[(data.running || []).length, "Running now"], [(data.approvals || []).length + (data.queue || []).length, "Waiting on you"],
+    [fmtTokens((t.prompt || 0) + (t.completion || 0)), "Tokens today"], [(data.projects || []).length, "Projects"]];
+  return `<div class="mn-stats">${stats.map(([v, l]) => `<div><b>${esc(v)}</b><span>${l}</span></div>`).join("")}</div>`;
 }
 
 function nowCard() {
@@ -64,7 +70,7 @@ function inboxCard() {
   const bad = (health?.checks || []).filter(c => !c.ok);
   const rows = [
     ...items.map(a => `<div class="kz-row"><span class="kz-dot warn"></span><div class="grow"><div class="title">${esc(shortAgent(a.agent))} wants to ${a.new_file ? "create" : "edit"} ${esc(a.path)}</div><div class="sub">${esc(a.project || "")} · ${ago(a.t)}</div></div><button class="kz-btn primary" data-review="${esc(a.id)}">Review</button></div>`),
-    ...bad.map(c => `<div class="kz-row"><span class="kz-dot bad"></span><div class="grow"><div class="title">${esc(c.title)}</div><div class="sub">${esc(c.detail)}</div></div>${c.fix === "repair" ? '<button class="kz-btn" data-repair>Repair</button>' : ""}</div>`),
+    ...bad.map(c => `<div class="kz-row"><span class="kz-dot bad"></span><div class="grow"><div class="title">${esc(c.title)}</div><div class="sub">${esc(c.detail)}</div></div></div>`),
     ...failed.slice(0, 3).map(r => `<div class="kz-row"><span class="kz-dot bad"></span><div class="grow"><div class="title">${esc(r.title)}</div><div class="sub">${esc(r.last.replace(/^⚠️\s*/, ""))}</div></div><button class="kz-btn" data-open="${esc(r.id)}">Open</button></div>`)];
   return `<section class="kz-card"><h3>Attention <small>${rows.length || "all clear"}</small></h3>${rows.join("") || '<div class="kz-empty">Nothing needs you right now.</div>'}</section>`;
 }
@@ -90,22 +96,19 @@ function spendCard() {
 
 function projectsCard() {
   const ps = data.projects || [];
-  return `<section class="kz-card"><h3>Projects <small>${ps.length}</small></h3>${ps.map(p => {
+  return `<section class="kz-card wide"><h3>Projects <small>${ps.length}</small></h3>${ps.map(p => {
     const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
     return `<div class="kz-row"><div class="grow"><div class="title">${esc(p.slug)} <span class="kz-muted">${p.done}/${p.total}${p.state ? " · " + esc(p.state) : ""}</span></div>
       <div class="kz-bar ok" style="margin:5px 0"><i style="width:${pct}%"></i></div><div class="sub">${p.next ? "Next: " + esc(p.next) : p.total ? "All planned tasks done" : "No plan yet"}</div></div>
-      <button class="kz-btn" data-continue="${esc(p.slug)}">Continue</button></div>`;
+      <button class="kz-btn" data-continue="${esc(p.slug)}">Continue<i class="icon-arrow-up-right"></i></button></div>`;
   }).join("") || '<div class="kz-empty">No projects yet.</div>'}</section>`;
 }
 
 function healthCard() {
   const h = health || {checks: []};
-  const repairing = h.repair?.state === "running";
   return `<section class="kz-card"><h3>Health <small>${h.ok ? "all good" : "needs attention"}</small></h3>
     ${(h.checks || []).map(c => `<div class="kz-row"><span class="kz-dot ${c.ok ? "ok" : "bad"}"></span><div class="grow"><div class="title">${esc(c.title)}</div><div class="sub">${esc(c.detail)}</div></div></div>`).join("") || '<div class="kz-empty">Checking…</div>'}
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="kz-btn" data-recheck>Check again</button>
-    <button class="kz-btn" data-repair ${repairing ? "disabled" : ""}>${repairing ? "Repairing backend…" : "Repair backend"}</button>
-    ${h.repair?.state === "failed" ? '<span class="kz-chip bad">last repair failed</span>' : h.repair?.state === "done" ? '<span class="kz-chip ok">repaired</span>' : ""}</div></section>`;
+    <div style="margin-top:10px"><button class="kz-btn" data-recheck>Check again</button></div></section>`;
 }
 
 function recentCard() {
@@ -131,11 +134,6 @@ function wire(body) {
       return;
     }
     if ("recheck" in d) { health = null; return refresh(true); }
-    if ("repair" in d) {
-      if (!confirm("Repair the backend? This recreates the workflow/search containers and their network (data is kept). Running agent tool calls may fail briefly.")) return;
-      const r = await api("/api/repair-backend", {}); if (!r.ok) toast(r.error, "err"); else toast("Repairing backend…", "ok");
-      health = null; setTimeout(() => refresh(true), 1500);
-    }
   };
 }
 
@@ -146,13 +144,13 @@ async function renderSkills(body) {
   if (ins.error) { body.innerHTML = `<div class="kz-empty" role="alert">${esc(ins.error)}</div>`; return; }
   const drafts = ins.drafts || [];
   body.innerHTML = `<div class="kz-grid">
-    <section class="kz-card wide"><h3>Usage <small>${ins.skills.length} skills · ${ins.unused_assigned.length} assigned but never read</small></h3>
-      <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="text-align:left;color:var(--faint)"><th style="padding:6px 4px">Skill</th><th>Reads</th><th>OK</th><th>Last used</th><th>Used by</th><th>Versions</th><th></th></tr></thead>
-      <tbody>${ins.skills.map(s => `<tr style="border-top:1px solid rgba(255,255,255,.06)"><td style="padding:7px 4px"><b>${esc(s.name)}</b><div class="kz-muted">${esc(s.description).slice(0, 90)}</div></td>
+    <section class="kz-card full"><h3>Usage <small>${ins.skills.length} skills · ${ins.unused_assigned.length} assigned but never read</small></h3>
+      <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="text-align:left;color:var(--faint);font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--color-divider)"><th style="padding:6px 4px">Skill</th><th>Reads</th><th>OK</th><th>Last used</th><th>Used by</th><th>Versions</th><th></th></tr></thead>
+      <tbody>${ins.skills.map(s => `<tr style="border-bottom:1px solid rgba(243,242,242,.12)"><td style="padding:7px 4px"><b>${esc(s.name)}</b><div class="kz-muted">${esc(s.description).slice(0, 90)}</div></td>
         <td>${s.reads}</td><td>${s.ok_rate == null ? "—" : Math.round(s.ok_rate * 100) + "%"}</td><td>${s.last_used ? ago(s.last_used) : "never"}</td>
         <td class="kz-muted">${Object.keys(s.used_by).map(shortAgent).join(", ") || (s.assigned.length ? "assigned: " + s.assigned.map(shortAgent).join(", ") : "unassigned")}</td>
         <td>${s.versions ? `<button class="kz-btn" data-versions="${esc(s.name)}">${s.versions}</button>` : "0"}</td>
-        <td style="white-space:nowrap"><button class="kz-btn" data-test="${esc(s.name)}" data-prompt="${esc(s.test)}" title="${s.test ? "Run the saved test prompt" : "Set a test prompt"}">${s.test ? "▶ Test" : "Set test"}</button></td></tr>`).join("")}</tbody></table></div></section>
+        <td style="white-space:nowrap"><button class="kz-btn" data-test="${esc(s.name)}" data-prompt="${esc(s.test)}" title="${s.test ? "Run the saved test prompt" : "Set a test prompt"}">${s.test ? "Test" : "Set test"}</button></td></tr>`).join("")}</tbody></table></div></section>
     <section class="kz-card"><h3>Learned skill drafts <small>${drafts.length}</small></h3>
       ${drafts.map(d => `<div class="kz-row" style="align-items:flex-start"><div class="grow"><div class="title">${esc(d.name)}</div><div class="sub" style="white-space:normal">${esc(d.description)}</div><details><summary class="kz-muted" style="cursor:pointer">instructions</summary><pre class="kz-pre">${esc(d.body)}</pre></details></div>
         <button class="kz-btn primary" data-approve="${esc(d.name)}">Install</button><button class="kz-btn danger" data-discard="${esc(d.name)}">Discard</button></div>`).join("") || '<div class="kz-empty">No drafts. Create one from a successful run below.</div>'}
@@ -225,7 +223,21 @@ async function renderSettings(body) {
   const s = r.settings || {};
   const num = (k, label, hint) => `<label>${label}<input type="number" name="${k}" value="${esc(s[k])}" min="${r.limits?.[k]?.[0] ?? 0}" max="${r.limits?.[k]?.[1] ?? 999999999}"><span class="kz-muted">${hint}</span></label>`;
   body.innerHTML = `<section class="kz-card"><h3>Runtime settings <small>apply to new runs</small></h3><form class="kz-form" id="kzSettings">
-    <label>Small model (summaries, memory, skill drafts)<input type="text" name="small_model" value="${esc(s.small_model)}"><span class="kz-muted">Falls back to the orchestrator's model if unavailable.</span></label>
+    <label>Active Provider Architecture
+      <select name="active_provider">
+        <option value="auto" ${s.active_provider === "auto" ? "selected" : ""}>Automatic Failover (Primary → Secondary → Local Ollama)</option>
+        <option value="openai" ${s.active_provider === "openai" ? "selected" : ""}>OpenAI-Compatible REST (Direct Gemini, OpenRouter, NIM, LiteLLM)</option>
+        <option value="ollama" ${s.active_provider === "ollama" ? "selected" : ""}>Ollama (Local Offline Zero-Cost)</option>
+        <option value="agy" ${s.active_provider === "agy" ? "selected" : ""}>Antigravity CLI Subprocess</option>
+      </select>
+      <span class="kz-muted">Execution provider for agent tool calling and chat stream.</span>
+    </label>
+    <label>API Endpoint Base URL<input type="text" name="openai_base_url" value="${esc(s.openai_base_url || "https://generativelanguage.googleapis.com/v1beta/openai/")}"><span class="kz-muted">For Direct Gemini, OpenRouter, or NVIDIA NIM.</span></label>
+    <label>API Key / Bearer Token<input type="password" name="openai_api_key" value="${esc(s.openai_api_key || "")}" placeholder="Enter API key…"><span class="kz-muted">Kept secure in kryzen-runtime.json. Masked with ••••••••.</span></label>
+    <label>Reasoning Tier Model<input type="text" name="tier_reasoning" value="${esc(s.tier_reasoning || "gemini-3.8-flash")}"><span class="kz-muted">Orchestrator, Architect, QA.</span></label>
+    <label>Fast Tier Model<input type="text" name="tier_fast" value="${esc(s.tier_fast || "gemini-3-flash")}"><span class="kz-muted">Build, Design, Content, SEO.</span></label>
+    <label>Compact Tier Model<input type="text" name="tier_compact" value="${esc(s.tier_compact || "gemini-3-flash")}"><span class="kz-muted">diet.py context, brain.py memory.</span></label>
+    <label>Ollama Base URL<input type="text" name="ollama_base_url" value="${esc(s.ollama_base_url || "http://127.0.0.1:11434")}"><span class="kz-muted">Local offline fallback.</span></label>
     ${num("budget_tokens", "Token budget per run", "Warn at 80%, pause at 100% (0 = unlimited). Resume adds 50%.")}
     ${num("budget_minutes", "Time budget per run (minutes)", "0 = unlimited.")}
     ${num("max_concurrency", "Max parallel model requests", "Adapts down on rate limits, up after clean calls.")}
@@ -236,6 +248,9 @@ async function renderSettings(body) {
     ${num("budget_hard_tokens", "Hard cap per run (tokens)", "Never auto-resume past this (0 = no cap).")}
     ${num("auto_resume_seconds", "Auto-resume countdown (seconds)", "Time to press Keep paused after a budget pause.")}
     ${num("auto_continue_max", "Automatic continues in a row", "After a step limit or temporary failure (0 = never).")}
+    <label class="check"><input type="checkbox" name="allow_tailscale" ${s.allow_tailscale ? "checked" : ""}>Allow Tailscale connections (*.ts.net and 100.64.0.0/10)</label>
+    <label class="check"><input type="checkbox" name="allow_lan" ${s.allow_lan ? "checked" : ""}>Allow Local Network (LAN) connections (192.168.x.x, 10.x.x.x)</label>
+    <label class="check"><input type="checkbox" name="tailscale_serve" ${s.tailscale_serve ? "checked" : ""}>Tailscale Serve background proxy</label>
     <label class="check"><input type="checkbox" name="auto_screenshot" ${s.auto_screenshot ? "checked" : ""}>Screenshot the running app when a project run finishes</label>
     <label class="check"><input type="checkbox" name="auto_resume" ${s.auto_resume ? "checked" : ""}>Resume automatically after the token budget is reached</label>
     <label class="check"><input type="checkbox" name="auto_continue" ${s.auto_continue ? "checked" : ""}>Continue automatically after a step limit or temporary failure</label>
@@ -245,7 +260,15 @@ async function renderSettings(body) {
   $("#kzSettings").onsubmit = async e => {
     e.preventDefault();
     const f = new FormData(e.target), out = {};
-    for (const [k, v] of Object.entries(s)) out[k] = typeof v === "boolean" ? f.has(k) : typeof v === "number" ? Number(f.get(k)) : String(f.get(k) || "");
+    for (const [k, v] of Object.entries(s)) {
+      if (typeof v === "boolean") out[k] = f.has(k);
+      else if (typeof v === "number") out[k] = Number(f.get(k));
+      else {
+        const val = String(f.get(k) || "");
+        if (k === "openai_api_key" && (val === "••••••••" || !val)) continue;
+        out[k] = val;
+      }
+    }
     const res = await api("/api/settings/runtime", {settings: out});
     $("#kzSetState").textContent = res.ok ? "Saved — used from the next run." : (res.errors || [res.error]).join(" · ");
   };

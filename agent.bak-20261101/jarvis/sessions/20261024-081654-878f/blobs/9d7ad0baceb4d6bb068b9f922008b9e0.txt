@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"which dockerd; dockerd --version 2>&1; id\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-f7ce6b13-4cd5-4603-83ce-849a91fbc5be", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/Migrations\", \"exists\": true, \"entries\": [\"20261024062749_InitialCreate.Designer.cs\", \"20261024062749_InitialCreate.cs\", \"AppDbContextModelSnapshot.cs\"]}", "role": "tool", "tool_call_id": "call-15ca9c5d-2468-4229-ae34-a9dd12b64794"}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Generates ai-dev-agent.json — the DevPilot multi-agent n8n workflow. Re-run after editing,
-then import with: docker cp ai-dev-agent.json n8n-n8n-1:/tmp/wf.json && docker exec n8n-n8n-1 n8n import:workflow --input=/tmp/wf.json
+"""Generates ai-dev-agent.json, the compiled agent definitions the engine loads, plus the vault's views.
+Re-run after editing; saving an agent in the app does this for you.
 """
 import json
 import os
@@ -15,7 +15,6 @@ from vaultnotes import (AGENT_NOTES, SYS, VAULT, load_custom_tools, note_intro, 
                         read_settings, write_note)
 
 WORKFLOW_ID = "UHpLpx9tkH6AyFdc"
-RESUME_WORKFLOW_ID = "DevPilotResume01"
 BRIDGE = os.environ.get("KRYZEN_BRIDGE_URL", "http://127.0.0.1:8765")
 WORKSPACE = "~/Projects/devpilot"
 BRIDGE_CRED = {"httpHeaderAuth": {"id": "pcBridgeAuth0001", "name": "PC Bridge Token"}}
@@ -25,7 +24,7 @@ AGY_CRED = {"openAiApi": {"id": "pcBridgeAgy0001", "name": "Antigravity Bridge"}
 SUPER = "agy/gemini-3.8-flash"
 STRONG = FAST = REASON = SUPER
 
-# n8n sticky-note colours
+# Note colours
 YELLOW, ORANGE, GREEN, BLUE, PURPLE, RED, GRAY = 1, 2, 4, 5, 6, 3, 7
 
 nodes, connections = [], {}
@@ -60,7 +59,7 @@ def ai(key, desc, type_="string", default=None):
 
 
 def with_date(prompt):
-    """n8n expression: append the real current date so logs and research are dated correctly."""
+    """Prompt expression: append the real current date so logs and research are dated correctly."""
     return "=" + prompt + "\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd') }}. Use it for every date you write."
 
 
@@ -426,55 +425,8 @@ for i, (name, label, model, color, desc, system, tools, max_iter) in enumerate(A
 wf = {"id": WORKFLOW_ID, "name": "DevPilot – Agentic Project Builder", "nodes": nodes,
       "connections": connections, "pinData": {}, "active": False,
       "settings": {"executionOrder": "v1", "saveManualExecutions": True, "saveExecutionProgress": True,
-                   "errorWorkflow": RESUME_WORKFLOW_ID, "callerPolicy": "workflowsFromSameOwner"}}
+                   "callerPolicy": "workflowsFromSameOwner"}}
 out = Path(__file__).with_name("ai-dev-agent.json")
-atomic_write(out, json.dumps(wf, indent=2, ensure_ascii=False))
-print(f"wrote {out} ({len(nodes)} nodes)")
-
-
-# ---------------------------------------------------------------------------- DevPilot Auto-Resume (error workflow)
-nodes.clear()
-connections.clear()
-sticky("DevPilot Auto-Resume", (
-    "Runs when a **published** DevPilot execution fails (e.g. a model timeout). It asks the bridge for retry budget "
-    "(max 3 per 30 min), waits 60 s, then calls DevPilot with an **AUTO-RESUME** message so it reloads the project "
-    "state from files and continues where it stopped.\n\nEditor (manual) runs don't trigger error workflows — for "
-    "those just type *continue* in the chat."), (-80, -360), (560, 300), YELLOW)
-link(node("On DevPilot Error", "n8n-nodes-base.errorTrigger", 1, {}, (0, 0)), "Check Retry Budget")
-link(node("Check Retry Budget", "n8n-nodes-base.httpRequest", 4.2, {
-    "method": "POST", "url": BRIDGE + "/autoresume/attempt",
-    "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth", "sendBody": True,
-    "bodyParameters": {"parameters": [
-        {"name": "error", "value": "={{ $json.execution.error.message }}"},
-        {"name": "workflow", "value": "={{ $json.workflow.name }}"}]},
-    "options": {"timeout": 30000}}, (220, 0), BRIDGE_CRED, notes="max 3 resumes / 30 min"), "Budget Left?")
-node("Budget Left?", "n8n-nodes-base.if", 2.2, {
-    "conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "loose", "version": 2},
-                   "conditions": [{"id": "allow", "leftValue": "={{ $json.allow }}", "rightValue": "",
-                                   "operator": {"type": "boolean", "operation": "true", "singleValue": True}}],
-                   "combinator": "and"}, "options": {}}, (440, 0))
-connections["Budget Left?"] = {"main": [[{"node": "Cool Down 60s", "type": "main", "index": 0}],
-                                        [{"node": "Budget Used Up", "type": "main", "index": 0}]]}
-link(node("Cool Down 60s", "n8n-nodes-base.wait", 1.1, {"resume": "timeInterval", "amount": 60, "unit": "seconds"},
-          (660, -100)), "Build Resume Message")
-node("Budget Used Up", "n8n-nodes-base.noOp", 1, {}, (660, 120), notes="Stop: retry budget used up")
-link(node("Build Resume Message", "n8n-nodes-base.set", 3.4, {"assignments": {"assignments": [
-    {"id": "msg", "name": "chatInput", "type": "string", "value":
-     "=AUTO-RESUME: the last DevPilot run on project \"{{ $('Check Retry Budget').item.json.project }}\" stopped "
-     "with this error: {{ $('On DevPilot Error').item.json.execution.error.message }}. Call Resume Project, then "
-     "continue from the saved next action. Do not redo finished work."},
-    {"id": "sid", "name": "sessionId", "type": "string",
-     "value": "=auto-resume-{{ $('Check Retry Budget').item.json.project }}"}]}, "options": {}}, (880, -100)),
-     "Resume DevPilot")
-node("Resume DevPilot", "n8n-nodes-base.executeWorkflow", 1.2, {
-    "source": "database", "workflowId": {"__rl": True, "mode": "id", "value": WORKFLOW_ID},
-    "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [],
-                       "attemptToConvertTypes": False, "convertFieldsToString": True},
-    "options": {"waitForSubWorkflow": False}}, (1100, -100), notes="continue in the background")
-
-wf = {"id": RESUME_WORKFLOW_ID, "name": "DevPilot Auto-Resume", "nodes": nodes, "connections": connections,
-      "pinData": {}, "active": False, "settings": {"executionOrder": "v1"}}
-out = Path(__file__).with_name("autoresume.json")
 atomic_write(out, json.dumps(wf, indent=2, ensure_ascii=False))
 print(f"wrote {out} ({len(nodes)} nodes)")
 
@@ -539,10 +491,8 @@ for i, ph in enumerate(phases):
         c.edge(prev, nid, fs="right", ts="left")
     prev = nid
 c.add("group", -40, -420, 1260, 520, None, label="Entry & orchestration")
-chat = c.add("text", 0, -380, 300, 130, None, text="💬 **DevPilot Chat**\nOpen chat in n8n (or the hosted chat when "
-             "published). Say *continue* / *ادامه* to resume.")
-auto = c.add("text", 0, -200, 300, 130, "2", text="🔁 **Auto-Resume Entry**\nCalled by [[Auto-Resume Flow.canvas|"
-             "Auto-Resume]] when a published run fails.")
+chat = c.add("text", 0, -380, 300, 130, None, text="💬 **DevPilot Chat**\nStart in the K.R.Y.Z.E.N chat. Say *continue* / *ادامه* to resume.")
+auto = c.add("text", 0, -200, 300, 130, "2", text="🔁 **Auto-continue**\nThe engine resumes interrupted runs from saved state.")
 orch = c.add("file", 380, -390, 460, 450, None, file="_DevPilot/Agents/Orchestrator.md")
 otools = c.add("text", 880, -390, 300, 450, None, text=f"**Model** `{ORCH['model'].split('/')[-1]}`\n"
                f"**Max steps** {ORCH['max_iterations']}\n\n**Tools**\n" +
@@ -591,26 +541,6 @@ c.add("text", 440, 1180, 2040, 200, None, text="`PROJECT.md` status & checklist 
       "**PROJECT.md** from INDEX.md, or use Graph view to see projects and their docs.")
 c.save(SYS / "Flows" / "DevPilot Flow.canvas")
 
-# --- Auto-Resume Flow.canvas
-c = Canvas()
-steps = [("⚠️ **On DevPilot Error**\nA published DevPilot run failed.", "1"),
-         ("🧮 **Check Retry Budget**\nBridge `/autoresume/attempt` — max 3 per 30 min.", None),
-         ("❓ **Budget left?**", "3"),
-         ("⏳ **Cool down 60 s**", None),
-         ("✉️ **Build resume message**\n`AUTO-RESUME: … continue from the saved next action`", None),
-         ("▶️ **Resume DevPilot**\n→ Auto-Resume Entry in [[DevPilot Flow.canvas|DevPilot Flow]]", "4")]
-ids = []
-for i, (t, col) in enumerate(steps):
-    ids.append(c.add("text", i * 320, 0, 280, 150, col, text=t))
-    if i:
-        c.edge(ids[i - 1], ids[i], label="yes" if i == 3 else None, fs="right", ts="left")
-stop = c.add("text", 2 * 320, 260, 280, 110, "1", text="🛑 **Budget used up** — stop; type *continue* later.")
-c.edge(ids[2], stop, label="no")
-c.add("text", 0, -260, 1880, 180, None, text="## DevPilot Auto-Resume\nRuns only for **published** DevPilot "
-      "executions (editor runs don't trigger error workflows). DevPilot then calls **Resume Project**, reads "
-      "`.devpilot/STATE.json`, plan progress, the journal and git status, and continues where it stopped.")
-c.save(SYS / "Flows" / "Auto-Resume Flow.canvas")
-
 # --- notes
 (SYS / "Flows" / "Project Lifecycle.md").write_text(GEN + """
 # Project lifecycle
@@ -648,7 +578,7 @@ for k in ["think", "web_search"] + list(TOOLS):
     users = [n for n, *_r in AGENTS if k in _r[5]] + (["Orchestrator"] if k in ORCH["tools"] else [])
     rows.append(f"| `{k}` | {tool_title(k)} | {desc} | {', '.join(f'[[{u}]]' for u in users) or '—'} |")
 (SYS / "Tools.md").write_text(GEN + "\n# Tools\nUse the `id` in an agent note's `tools:` list.\n\n"
-                              "| id | Name in n8n | What it does | Used by |\n|---|---|---|---|\n" + "\n".join(rows) + "\n")
+                              "| id | Name | What it does | Used by |\n|---|---|---|---|\n" + "\n".join(rows) + "\n")
 agent_rows = "\n".join(f"| [[{n}]] | {ROLES[l]} | `{m.split('/')[-1]}` | {mi} | {len(t)} |"
                        for n, l, m, _c, _d, _s, t, mi in AGENTS)
 (SYS / "Home.md").write_text(GEN + f"""
@@ -656,11 +586,10 @@ agent_rows = "\n".join(f"| [[{n}]] | {ROLES[l]} | `{m.split('/')[-1]}` | {mi} | 
 
 | | |
 |---|---|
-| **Flows** | [[DevPilot Flow.canvas\\|DevPilot Flow]] · [[Auto-Resume Flow.canvas\\|Auto-Resume Flow]] · [[Project Lifecycle]] |
+| **Flows** | [[DevPilot Flow.canvas\\|DevPilot Flow]] · [[Project Lifecycle]] |
 | **Agents** | [[Orchestrator]] + {len(AGENTS)} specialists (table below) |
 | **Reference** | [[Tools]] · Skills in `_DevPilot/Skills/` · project skeleton in `_DevPilot/Templates/project/` |
 | **Jarvis** | http://127.0.0.1:8770 — HUD chat + live agent graph (standalone engine, same agents) |
-| **n8n** | http://localhost:5678/workflow/{WORKFLOW_ID} |
 
 ## Agents
 | Agent | Role | Model | Max steps | Tools |
@@ -670,7 +599,7 @@ agent_rows = "\n".join(f"| [[{n}]] | {ROLES[l]} | `{m.split('/')[-1]}` | {mi} | 
 
 ## Manage
 1. **Edit** an agent note (prompt, description, model, max steps, tools), a skill (`_DevPilot/Skills/*/SKILL.md`) or the project template.
-2. **Apply**: run `devpilot-sync` in a terminal — it rebuilds the workflow from these notes, regenerates the canvases and imports both workflows into n8n. Skills and templates apply immediately (no sync needed).
+2. **Apply**: save it in K.R.Y.Z.E.N (Control or the agent editor), or run `python3 agent/workflow/build_workflow.py`. Agents use it from the next message.
 3. Agents can read `_DevPilot/` but can't change it.
 
 ## Projects

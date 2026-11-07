@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"LISTEN 0      512        127.0.0.1:5000       0.0.0.0:*   \\nLISTEN 0      512            [::1]:5000          [::]:*   \\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-3bf8567e-b52e-4196-a23d-84241641c06f"}

@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "      \"applicationUrl\": \"http://localhost:5278\",\n      \"applicationUrl\": \"https://localhost:7134;http://localhost:5278\",\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

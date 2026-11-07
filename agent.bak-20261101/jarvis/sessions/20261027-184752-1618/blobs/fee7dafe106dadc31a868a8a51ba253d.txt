@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/decisions\", \"exists\": true, \"entries\": [\"0001-tech-stack.md\"]}", "role": "tool", "tool_call_id": "call-11a672f9-b9dd-4f6d-bbae-e98a249e7e92"}

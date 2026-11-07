@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "000 - swagger\n - health\n - seed\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

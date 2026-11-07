@@ -8,7 +8,7 @@ import shlex
 from pathlib import Path
 
 WORKSPACE = os.environ.get("KRYZEN_WORKSPACE") or (str(Path.home() / "Space" / "Projects") if (Path.home() / "Space" / "Projects").exists() else str(Path.home() / "Projects" / "devpilot"))
-SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{1,48}$")
+SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\-\.]{0,79}$")
 
 
 def _root(slug):
@@ -143,3 +143,95 @@ def agy(bridge, slug, prompt, mode="auto", model="", effort="high", background=T
 
 def stop(bridge, job_id):
     return bridge("/jobs/stop", {"id": job_id})
+
+
+def vibe_config_path(slug):
+    return Path(_root(slug)) / ".devpilot" / "vibe-config.json"
+
+
+def vibe_config_get(slug):
+    p = vibe_config_path(slug)
+    if p.exists():
+        try:
+            return json.loads(p.read_text())
+        except Exception:
+            pass
+    return {
+        "aesthetic": "Swiss Grid",
+        "density": 3,
+        "motion": 3,
+        "stack": "Vanilla Zero-Dep"
+    }
+
+
+def vibe_config_save(slug, config):
+    p = vibe_config_path(slug)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    cfg = vibe_config_get(slug)
+    cfg.update(config or {})
+    p.write_text(json.dumps(cfg, indent=2))
+    return cfg
+
+
+def vibe_checkpoint(bridge, slug, label="vibe"):
+    import time
+    ts = int(time.time())
+    tag = f"vibe-checkpoint-{ts}"
+    safe_label = shlex.quote(str(label or "checkpoint").replace('"', ''))
+    root = _root(slug)
+
+    # Commit with tag
+    cmd = (
+        f"git add -A && "
+        f"if git var GIT_AUTHOR_IDENT >/dev/null 2>&1; then "
+        f"git commit -m \"{tag}: {safe_label}\" --allow-empty; "
+        f"else git -c user.name=DevPilot -c user.email=devpilot@localhost commit -m \"{tag}: {safe_label}\" --allow-empty; fi && "
+        f"git tag -f {tag} && git rev-parse HEAD"
+    )
+    r = run(bridge, slug, cmd, timeout=30)
+    commit_hash = (r.get("stdout") or "").strip().splitlines()[-1] if r.get("stdout") else tag
+
+    # Save metadata
+    meta_dir = Path(root) / ".devpilot" / "vibe-checkpoints"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "tag": tag,
+        "hash": commit_hash,
+        "timestamp": ts,
+        "label": label or "Vibe checkpoint"
+    }
+    (meta_dir / f"{tag}.json").write_text(json.dumps(meta, indent=2))
+    return {"ok": True, **meta}
+
+
+def vibe_rollback(bridge, slug, checkpoint_id):
+    if not checkpoint_id or not re.match(r"^[a-zA-Z0-9_\-\.]+$", str(checkpoint_id)):
+        raise ValueError("invalid checkpoint id")
+    cmd = f"git reset --hard {shlex.quote(str(checkpoint_id))}"
+    r = run(bridge, slug, cmd, timeout=30)
+    if r.get("exit_code") != 0:
+        raise RuntimeError(f"rollback failed: {r.get('stderr') or r.get('error')}")
+    return {"ok": True, "restored": checkpoint_id}
+
+
+def vibe_checkpoints(bridge, slug):
+    root = _root(slug)
+    meta_dir = Path(root) / ".devpilot" / "vibe-checkpoints"
+    checkpoints = []
+    if meta_dir.exists():
+        for f in meta_dir.glob("vibe-checkpoint-*.json"):
+            try:
+                checkpoints.append(json.loads(f.read_text()))
+            except Exception:
+                pass
+    if not checkpoints:
+        # Fallback to git tags
+        r = run(bridge, slug, "git tag -l 'vibe-checkpoint-*' --sort=-creatordate", timeout=15)
+        if r.get("stdout"):
+            for t in r.get("stdout").splitlines()[:20]:
+                t = t.strip()
+                if t:
+                    checkpoints.append({"tag": t, "hash": t, "timestamp": 0, "label": t})
+    checkpoints.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+    return {"ok": True, "checkpoints": checkpoints}
+

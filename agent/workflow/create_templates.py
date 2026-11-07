@@ -1,7 +1,10 @@
 """Create standard 0-to-100 project template files for DevPilot & Jarvis."""
+import sys
 from pathlib import Path
 
-BASE = Path("/home/kryazzy/Projects/devpilot/_DevPilot/Templates/project")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from vaultnotes import VAULT
+BASE = VAULT / "_DevPilot" / "Templates" / "project"
 BASE.mkdir(parents=True, exist_ok=True)
 
 files = {}
@@ -108,6 +111,14 @@ files[".devpilot/STATE.json"] = """{
       "agent": "Orchestrator"
     }
   ]
+}
+"""
+
+files[".devpilot/plan-approval.json"] = """{
+  "status": "pending",
+  "approved_by": null,
+  "approved_at": null,
+  "revision": null
 }
 """
 

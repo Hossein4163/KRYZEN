@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docker\", \"exists\": true, \"entries\": [\"init-db/\", \"entrypoint.sh\", \"wait-for-db.sh\", \"init-db/.gitkeep\"]}", "role": "tool", "tool_call_id": "call-1299ab87-4f8b-4ade-88c5-e5ba3b3fea49"}

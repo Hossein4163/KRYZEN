@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"apt-get install -y postgresql 2>&1 | tail -5; echo \\\"---\\\"; which postgres pg_ctl initdb 2>&1\",\"timeout\":60}", "name": "pc_shell"}, "id": "call-3bc9ee34-9b66-4ec1-a0e5-b2e7c46344cc", "type": "function"}]}

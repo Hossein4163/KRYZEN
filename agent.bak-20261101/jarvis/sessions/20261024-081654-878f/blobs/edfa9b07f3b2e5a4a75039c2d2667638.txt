@@ -1,1 +1,0 @@
-{"content": "{\"job_id\": \"2d84d1ad1d\", \"status\": \"running\", \"cwd\": \"/home/kry/Projects/devpilot\", \"hint\": \"poll /jobs/get with this id\"}", "role": "tool", "tool_call_id": "call-a033dcdf-8e42-4731-8582-cf00bc79e3ec"}

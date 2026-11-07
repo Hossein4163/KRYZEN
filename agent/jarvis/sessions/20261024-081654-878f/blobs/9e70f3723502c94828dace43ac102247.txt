@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"id\":\"d62a9a3685\"}", "name": "pc_job_status"}, "id": "call-bce05e03-e530-45ec-9fc1-8bbf6d3dd9ee", "type": "function"}]}

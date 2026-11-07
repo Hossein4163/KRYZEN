@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ss -tlnp 2>/dev/null | grep 5278; echo \\\"---PROCESS---\\\"; ps aux | grep dotnet | grep -v grep\"}", "name": "pc_shell"}, "id": "call-d2add8dc-5fc7-4e51-be97-74bf3a894ed5", "type": "function"}]}

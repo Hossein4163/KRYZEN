@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/content/CALENDAR.md\", \"bytes\": 14059, \"revision\": \"0ae379af2bdc3e937c92a0452d6114c4be847aa48fb89b39ecd30cb78c66f2af\"}", "role": "tool", "tool_call_id": "call-783a6404-08b1-463b-8278-8a04d97b2d20"}

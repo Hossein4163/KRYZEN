@@ -1,1 +1,0 @@
-{"job_id": "d62a9a3685", "status": "running", "cwd": "/home/kry/Projects/devpilot/rame-studio", "hint": "poll /jobs/get with this id"}

@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"dockerd --host=unix:///var/run/docker.sock > /tmp/dockerd.log 2>&1 &\\nsleep 8\\ndocker info 2>&1 | head -5\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-60396755-b157-4a2c-bcaf-0fc123351296", "type": "function"}]}

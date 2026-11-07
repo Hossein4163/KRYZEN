@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"args\":\"click @e13\"}", "name": "browser"}, "id": "call-6c32a206-93ba-4bbd-8673-6d650eddb5e4", "type": "function"}]}

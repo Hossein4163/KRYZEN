@@ -113,7 +113,9 @@ class TaskLedger:
         read=self.call('/fs/read',{'path':self.path,'raw':True})
         if read.get('error'):
             # The bridge reports missing files as errors; all other failures must remain visible.
-            if 'FileNotFoundError' not in read['error'] and 'No such file' not in read['error']:raise ValueError(read['error'])
+            err = str(read['error']).lower()
+            if not any(p in err for p in ('not found', 'no such file', 'filenotfounderror', 'errno 2')):
+                raise ValueError(read['error'])
         else:
             self.data=json.loads(read['content']);self.revision=read.get('revision')
             if self.data.get('version')!=1 or not isinstance(self.data.get('tasks'),dict):raise ValueError('Unsupported saved execution ledger')
@@ -136,8 +138,10 @@ class TaskLedger:
             if not self._ignore_ready:
                 path=self.root+'/.gitignore'
                 current=self.call('/fs/read',{'path':path,'raw':True})
-                if current.get('error') and 'FileNotFoundError' not in str(current['error']) and 'No such file' not in str(current['error']):
-                    raise RuntimeError('Cannot protect local execution history: '+str(current['error']))
+                if current.get('error'):
+                    err = str(current['error']).lower()
+                    if not any(p in err for p in ('not found', 'no such file', 'filenotfounderror', 'errno 2')):
+                        raise RuntimeError('Cannot protect local execution history: '+str(current['error']))
                 text=current.get('content','')
                 missing=[p for p in ('.devpilot/execution.json','.devpilot/task-history/') if p not in text.splitlines()]
                 if missing:
@@ -159,13 +163,19 @@ class TaskLedger:
             result=self.call('/fs/write',args)
             if result.get('error'):raise RuntimeError('Execution checkpoint could not save: '+str(result['error']))
             self.revision=result['revision']
+            try:
+                import brain
+                brain.StateDB(self.root).set_state("ledger", self.data)
+            except Exception:
+                pass
 
     def fingerprints(self, paths):
         result={}
         for name in sorted(set(paths)):
             value=self.call('/fs/read',{'path':self.root+'/'+source_path(name),'raw':True})
             if value.get('error'):
-                if 'FileNotFoundError' in value['error'] or 'No such file' in value['error']:result[name]='missing'
+                err = str(value['error']).lower()
+                if any(p in err for p in ('not found', 'no such file', 'filenotfounderror', 'errno 2')):result[name]='missing'
                 else:raise ValueError('Cannot verify source '+name+': '+str(value['error']))
             else:result[name]=value.get('revision') or hashlib.sha256(value['content'].encode()).hexdigest()
         return result

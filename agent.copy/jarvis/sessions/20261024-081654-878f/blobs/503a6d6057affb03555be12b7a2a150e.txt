@@ -1,1 +1,0 @@
-{"content": "PostgreSQL isn't running. Let me try to start it.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"apt list --installed 2>/dev/null | grep -i postgres; service postgresql start 2>&1; pg_isready 2>&1\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-970082bc-abcc-4cc0-94eb-edfb14ad09be", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"DOCKER NOT RUNNING\\n---\\nNO COMPOSE\\n---\\n10.0.113\\n---\\nv26.12.1\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-1bddec4b-d9cb-4ed1-80b8-62dca75f3328"}

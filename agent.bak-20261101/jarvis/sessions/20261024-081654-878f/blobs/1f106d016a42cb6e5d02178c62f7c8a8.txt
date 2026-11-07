@@ -1,1 +1,0 @@
-{"content": "Let me read the connection string from appsettings.json properly.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/src/Api/appsettings.json\"}", "name": "pc_read_file"}, "id": "call-27cf747e-547b-48f0-bb37-f9a84066c2ec", "type": "function"}]}

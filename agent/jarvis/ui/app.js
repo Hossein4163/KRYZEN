@@ -7,10 +7,33 @@ import "./palette.js";
 import "./runstatus.js";
 import "./chatcompact.js";
 import "./media.js";
+import "./projects.js";
 import {askNotifyPermission} from "./review.js";
 
 // Ask for notification permission on the first user interaction (browsers require a gesture).
 document.addEventListener("click", askNotifyPermission, {once: true});
+
+// Prevent native browser right-click context menu across the platform
+window.addEventListener("contextmenu", e => e.preventDefault(), true);
+document.addEventListener("contextmenu", e => e.preventDefault(), true);
+const pvFrame = document.getElementById("pvFrame");
+if (pvFrame) {
+  pvFrame.addEventListener("load", () => {
+    try {
+      const doc = pvFrame.contentDocument || pvFrame.contentWindow?.document;
+      if (doc) doc.addEventListener("contextmenu", e => e.preventDefault(), true);
+    } catch (_) {}
+  });
+}
+
+for (const id of ["#paletteBtn", "#paletteHint"]) $(id)?.addEventListener("click", () => window.dispatchEvent(new Event("kryzen:palette")));
+
+async function statusTokens() {
+  const t = (await api("/api/dashboard").catch(() => null))?.usage?.today;
+  if (t && $("#stTokens")) $("#stTokens").textContent = `${fmtTokens((t.prompt || 0) + (t.completion || 0))} tokens today`;
+}
+statusTokens();
+setInterval(() => { if (!document.hidden) statusTokens(); }, 60000);
 
 function activity(agent, head, detail) {
   // Same structured row as every other Activity entry (defined by the page script).

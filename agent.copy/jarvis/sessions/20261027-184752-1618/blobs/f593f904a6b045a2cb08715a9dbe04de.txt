@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 1, \"stdout\": \"Cannot find a tool in the manifest file that has a command named 'dotnet-ef'.\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-d0e136f4-4a8c-4ac3-88e9-9ac06b7bd91f"}

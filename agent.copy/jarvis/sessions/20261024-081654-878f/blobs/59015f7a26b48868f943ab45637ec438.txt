@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/seo/AUDIT.md\", \"bytes\": 13492, \"revision\": \"b8993ede413cae44f1ce1d7bdce4cbf49176c5dddfa18abfcebba66c2a8321c8\"}", "role": "tool", "tool_call_id": "call-1710263b-d1cb-4322-85b1-651412f5e3f8"}

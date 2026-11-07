@@ -1,1 +1,0 @@
-{"exit_code": 2, "stdout": "sh: line 1: service: command not found\n/run/postgresql:5432 - no response\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

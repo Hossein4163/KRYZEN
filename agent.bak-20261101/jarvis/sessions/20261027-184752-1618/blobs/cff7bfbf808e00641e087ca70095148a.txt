@@ -1,1 +1,0 @@
-{"exit_code": 1, "stdout": "", "stderr": "Unknown command: ls\n", "cwd": "/home/kry/Projects/devpilot"}

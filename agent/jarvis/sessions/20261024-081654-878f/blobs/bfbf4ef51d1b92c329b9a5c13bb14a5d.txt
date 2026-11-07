@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"=== backend sitemap ===\\n\\nHTTP 000\\n=== backend robots ===\\n\\nHTTP 000\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-827a2352-60e4-4b8b-8a3d-6fa163bff4af"}

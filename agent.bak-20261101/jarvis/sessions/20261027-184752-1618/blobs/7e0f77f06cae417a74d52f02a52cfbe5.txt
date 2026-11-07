@@ -1,1 +1,0 @@
-{"error": "IsADirectoryError: [Errno 21] Is a directory: '/home/kry/Projects/devpilot/rame-studio/docs/references/images'"}

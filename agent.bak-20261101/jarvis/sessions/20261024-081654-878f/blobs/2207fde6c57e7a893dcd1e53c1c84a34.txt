@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"tail -20 /tmp/dockerd.log 2>&1\"}", "name": "pc_shell"}, "id": "call-327e51a8-14ff-41cf-9cac-73f97e996a6e", "type": "function"}]}

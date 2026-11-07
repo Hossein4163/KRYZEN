@@ -1,1 +1,0 @@
-{"exit_code": 7, "stdout": "---SWAGGER---\n000", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

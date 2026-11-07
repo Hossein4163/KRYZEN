@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"/home/kry/Projects/devpilot/rame-studio/docs/plan/PLAN.md\",\"limit\":200}", "name": "pc_read_file"}, "id": "call-b5d30455-e778-4caf-aa60-d1a30dde7d78", "type": "function"}]}

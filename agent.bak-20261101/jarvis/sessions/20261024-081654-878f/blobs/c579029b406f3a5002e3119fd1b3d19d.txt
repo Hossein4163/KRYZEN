@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "=== CHECK 5278 ===\n=== SWAGGER 5278 ===\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

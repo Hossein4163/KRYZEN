@@ -1,4 +1,4 @@
-"""Operations for the dashboard: approval inbox, deep health checks, backend repair and project overview."""
+"""Operations for the dashboard: approval inbox, deep health checks and project overview."""
 import json
 import os
 import re
@@ -62,8 +62,6 @@ def pending_approvals(include_diff=False):
 
 # ----------------------------------------------------------------------------- deep health
 _health_cache = {"t": 0, "data": None}
-COMPOSE_PROJECT = os.environ.get("KRYZEN_COMPOSE_PROJECT", "n8n")
-N8N_CONTAINER = os.environ.get("N8N_CONTAINER", f"{COMPOSE_PROJECT}-n8n-1")
 
 
 def _sh(cmd, timeout=8):
@@ -81,28 +79,6 @@ def deep_health(force=False):
     for s in control.services()["services"]:
         checks.append({"id": s["id"], "title": s["title"], "ok": s["up"],
                        "detail": "responding" if s["up"] else "not responding"})
-    code, out = _sh(["docker", "info", "--format", "{{.ServerVersion}}"])
-    checks.append({"id": "docker", "title": "Docker", "ok": code == 0,
-                   "detail": f"engine {out}" if code == 0 else out[:200]})
-    if code == 0:
-        _, gw = _sh(["docker", "network", "inspect", f"{COMPOSE_PROJECT}_default", "-f",
-                     "{{range .IPAM.Config}}{{.Gateway}}{{end}}"])
-        _, addrs = _sh(["ip", "-4", "-br", "addr"])
-        gw = gw.split()[0] if gw else ""
-        has_gw = bool(gw) and re.search(rf"\b{re.escape(gw)}/", addrs) is not None
-        checks.append({"id": "network", "title": "Backend network", "ok": has_gw,
-                       "detail": f"gateway {gw} present" if has_gw else
-                       f"gateway {gw or '?'} has no address on the host — Repair backend recreates it",
-                       "fix": None if has_gw else "repair"})
-        docker0 = re.search(r"^docker0\s+\S+\s+(\d+\.\d+\.\d+\.\d+)", addrs, re.M)
-        checks.append({"id": "docker0", "title": "Docker default bridge", "ok": bool(docker0),
-                       "detail": "address present" if docker0 else
-                       "docker0 has no address; containers relying on daemon DNS fail. Fix: sudo systemctl restart docker"})
-        code, out = _sh(["docker", "exec", N8N_CONTAINER, "nslookup", "registry.npmjs.org"], timeout=8)
-        dns_ok = code == 0 and re.search(r"Address:?\s*\d+\.\d+\.\d+\.\d+", out.split("Name:", 1)[-1]) is not None
-        checks.append({"id": "dns", "title": "Container DNS", "ok": dns_ok,
-                       "detail": "resolving" if dns_ok else "lookups fail inside the backend containers",
-                       "fix": None if dns_ok else "repair"})
     for label, path in (("Workspace disk", os.environ.get("KRYZEN_WORKSPACE", str(Path.home() / "Projects"))),
                         ("App disk", str(Path(__file__).parent))):
         try:
@@ -115,36 +91,6 @@ def deep_health(force=False):
     data = {"checks": checks, "ok": all(c["ok"] for c in checks), "t": time.time()}
     _health_cache.update(t=time.time(), data=data)
     return data
-
-
-# ----------------------------------------------------------------------------- backend repair
-REPAIR = {"state": "idle", "log": "", "t": 0}
-
-
-def repair_backend():
-    if REPAIR["state"] == "running":
-        return {"ok": False, "error": "a repair is already running"}
-    REPAIR.update(state="running", log="", t=time.time())
-
-    def work():
-        root = str(control.N8N_DIR)
-        log = []
-        for cmd in (["docker", "compose", "-p", COMPOSE_PROJECT, "down"],
-                    ["docker", "compose", "-p", COMPOSE_PROJECT, "up", "-d"]):
-            try:
-                r = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=600)
-                code, out = r.returncode, r.stdout + r.stderr
-            except (OSError, subprocess.TimeoutExpired) as e:
-                code, out = 1, str(e)
-            log.append("$ " + " ".join(cmd) + "\n" + out[-3000:])
-            if code:
-                REPAIR.update(state="failed", log="\n".join(log))
-                return
-        _sh(["systemctl", "--user", "restart", os.environ.get("KRYZEN_BRIDGE_UNIT", "pc-bridge")], timeout=30)
-        _health_cache["data"] = None
-        REPAIR.update(state="done", log="\n".join(log))
-    threading.Thread(target=work, daemon=True).start()
-    return {"ok": True, "state": "running"}
 
 
 # ----------------------------------------------------------------------------- projects overview

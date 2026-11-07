@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"ss -tlnp 2>/dev/null | grep 5278; echo \\\"---\\\"; curl -v http://localhost:5278/api/health 2>&1 | head -20\"}", "name": "pc_shell"}, "id": "call-2108d6ad-dc88-47eb-8f6a-9b7a6dd6d49f", "type": "function"}]}

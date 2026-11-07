@@ -1,1 +1,0 @@
-{"exit_code": 1, "stdout": "", "stderr": "✗ Unknown ref: e60\n", "cwd": "/home/kry/Projects/devpilot"}

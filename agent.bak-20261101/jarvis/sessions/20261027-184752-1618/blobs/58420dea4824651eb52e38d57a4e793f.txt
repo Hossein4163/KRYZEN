@@ -1,1 +1,0 @@
-{"content": "{\"error\": \"IsADirectoryError: [Errno 21] Is a directory: '/home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/Configurations'\"}", "role": "tool", "tool_call_id": "call-a9e74447-5d76-4349-b202-efe53b508dec"}

@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "test-auth.html\n---\ntotal 4\ndrwxr-xr-x 1 kry kry   28 Oct 25 11:15 .\ndrwxr-xr-x 1 kry kry  328 Oct 25 11:15 ..\n-rw------- 1 kry kry 1010 Oct 25 11:15 test-auth.html\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

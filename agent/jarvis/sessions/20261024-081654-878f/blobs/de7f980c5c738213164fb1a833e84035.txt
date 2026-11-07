@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"sleep 10 && curl -s http://localhost:5001/api/health 2>&1; echo \\\"---\\\"; tail -5 /tmp/api2.log 2>&1\",\"timeout\":30}", "name": "pc_shell"}, "id": "call-c6bf27e4-081b-4b1a-b22e-dde9435ab5be", "type": "function"}]}

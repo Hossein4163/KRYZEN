@@ -1,1 +1,0 @@
-{"exit_code": 7, "stdout": "=== curl frontend ===\nfrontend status: 000\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

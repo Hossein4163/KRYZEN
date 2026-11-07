@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/qa/REPORT.md\", \"bytes\": 7581, \"revision\": \"6a7102ca0b004c1c94e14841796ec06882f948ef486dfbddc4f169ad5099e7b4\"}", "role": "tool", "tool_call_id": "call-de8de08c-569a-4cf6-ac8c-212c58538617"}

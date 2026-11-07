@@ -3,43 +3,86 @@ import {api, currentProject, currentSession, esc, setMode, toast} from "./core.j
 
 let box = null, items = [], shown = [], cursor = 0;
 
-const VIEWS = [["home", "Home dashboard"], ["trace", "Trace — what exactly happened"], ["mesh", "Agent mesh"], ["flow", "Flow canvas"],
-  ["plan", "Project plan"], ["code", "Code workspace"], ["control", "Control center"]];
-const CONTROL = [["appearance", "Appearance"], ["agents", "Agents"], ["blocks", "Prompt blocks"], ["tools", "Tools"], ["skills", "Skills"],
-  ["projects", "Projects"], ["models", "Models"], ["services", "Services"], ["advanced", "Advanced files"]];
+const VIEWS = [
+  ["home", "Home dashboard"],
+  ["mesh", "Agent mesh"],
+  ["flow", "Flow studio & canvases"],
+  ["plan", "Plan studio (docs/plan/PLAN.md)"],
+  ["code", "Code workspace & IDE"],
+  ["trace", "Trace — execution & telemetry"],
+  ["control", "Control center"]
+];
 
-async function collect() {
+const CONTROL = [
+  ["appearance", "Appearance & branding"],
+  ["agents", "Agents & roles"],
+  ["blocks", "Prompt blocks"],
+  ["tools", "Tools"],
+  ["skills", "Skills"],
+  ["projects", "Projects"],
+  ["models", "Models & API router"],
+  ["network", "Network & Tailscale remote access"],
+  ["services", "Services & system daemons"],
+  ["advanced", "Advanced vault & code files"]
+];
+
+function collectStatic() {
   const out = [];
   const add = (group, label, run, hint = "") => out.push({group, label, run, hint});
-  VIEWS.forEach(([m, l]) => add("Go to", l, () => setMode(m)));
-  add("Actions", "New chat", () => document.getElementById("newBtn")?.click(), "");
+
+  VIEWS.forEach(([m, l]) => add("Go to", l, () => {
+    setMode(m);
+  }));
+
+  add("Actions", "New chat session", () => document.getElementById("newBtn")?.click(), "");
   add("Actions", "New project…", () => document.getElementById("newProjectBtn")?.click());
-  add("Actions", "Continue selected project", () => window.continueProject?.(), currentProject());
-  add("Actions", "Pause / resume current run", () => document.getElementById("pauseBtn")?.click());
-  add("Actions", "Stop current run", () => document.getElementById("stopBtn")?.click());
-  add("Actions", "Trace this conversation", () => { window.dispatchEvent(new CustomEvent("kryzen:trace", {detail: {id: currentSession()}})); setMode("trace"); });
-  add("Actions", "Draft a skill from the last run", async () => { const r = await api("/api/skills2/draft", {id: currentSession()}); r.ok ? toast("Draft ready: " + r.draft.name + " (Home › Skills)", "ok") : toast((r.errors || [r.error]).join(" "), "err"); });
-  add("Actions", "Toggle review mode (approve writes)", async () => {
+  add("Actions", "Continue selected project", () => (window.continueProject || window.continueProject)?.(), currentProject());
+  add("Actions", "Pause / resume active run", () => document.getElementById("pauseBtn")?.click());
+  add("Actions", "Stop active run", () => document.getElementById("stopBtn")?.click());
+  add("Actions", "Trace active conversation", () => {
+    window.dispatchEvent(new CustomEvent("kryzen:trace", {detail: {id: currentSession()}}));
+    setMode("trace");
+  });
+  add("Actions", "Draft a skill from last run", async () => {
+    const r = await api("/api/skills2/draft", {id: currentSession()});
+    r.ok ? toast("Draft ready: " + r.draft.name + " (Home › Skills)", "ok") : toast((r.errors || [r.error]).join(" "), "err");
+  });
+  add("Actions", "Toggle review mode (approval queue)", async () => {
     const {settings} = await api("/api/settings/runtime");
     const r = await api("/api/settings/runtime", {settings: {review_mode: !settings.review_mode}});
     toast(r.ok ? `Review mode ${r.settings.review_mode ? "on" : "off"} for new runs` : (r.errors || []).join(" "), r.ok ? "ok" : "err");
   });
-  add("Actions", "Repair backend", async () => { if (confirm("Recreate the backend containers and network? Data is kept.")) { const r = await api("/api/repair-backend", {}); toast(r.ok ? "Repairing backend…" : r.error, r.ok ? "ok" : "err"); } });
-  CONTROL.forEach(([k, l]) => add("Settings", l, () => { setMode("control"); window.showSection?.(k); }));
+
+  CONTROL.forEach(([k, l]) => add("Settings", l, () => {
+    setMode("control");
+    if (window.showSection) window.showSection(k);
+  }));
+
   add("Settings", "Runtime settings (budgets, models, review)", () => window.dispatchEvent(new CustomEvent("kryzen:hometab", {detail: "settings"})));
   add("Settings", "Project memory", () => window.dispatchEvent(new CustomEvent("kryzen:hometab", {detail: "memory"})));
   add("Go to", "Screenshots gallery", () => window.dispatchEvent(new CustomEvent("kryzen:hometab", {detail: "shots"})));
-  const [sessions, projects] = await Promise.all([api("/api/sessions"), api("/api/projects")]);
-  (sessions.sessions || []).forEach(s => add("Conversations", s.title || s.id, () => window.openSession?.(s.id), (s.running ? "● running · " : "") + (s.project || "")));
-  (projects.folders || []).forEach(p => add("Projects", p, () => { window.switchProject?.(p); toast("Project: " + p, "ok"); }));
-  const slug = currentProject();
-  if (slug) {
-    try {
-      const tree = await api("/api/code/tree?slug=" + encodeURIComponent(slug));
-      const files = (tree.entries || []).filter(e => typeof e === "string" && !e.endsWith("/"));
-      files.slice(0, 3000).forEach(f => add("Files", f, async () => { setMode("code"); setTimeout(() => window.cwOpen?.(f), 200); }, slug));
-    } catch (_) { /* file list is optional */ }
-  }
+
+  return out;
+}
+
+async function collectDynamic() {
+  const out = [];
+  const add = (group, label, run, hint = "") => out.push({group, label, run, hint});
+
+  try {
+    const [sessions, projects] = await Promise.all([api("/api/sessions"), api("/api/projects")]);
+    (sessions.sessions || []).forEach(s => add("Conversations", s.title || s.id, () => window.openSession?.(s.id), (s.running ? "● running · " : "") + (s.project || "")));
+    (projects.folders || []).forEach(p => add("Projects", p, () => { window.switchProject?.(p); toast("Project: " + p, "ok"); }));
+    const slug = currentProject();
+    if (slug) {
+      try {
+        const tree = await api("/api/code/tree?slug=" + encodeURIComponent(slug));
+        const files = (tree.entries || []).filter(e => typeof e === "string" && !e.endsWith("/"));
+        files.slice(0, 2000).forEach(f => add("Files", f, async () => { setMode("code"); setTimeout(() => window.cwOpen?.(f), 150); }, slug));
+      } catch (_) {}
+    }
+  } catch (_) {}
+
   return out;
 }
 
@@ -67,13 +110,20 @@ function draw(q) {
 }
 
 function close() { box?.remove(); box = null; }
-async function run(it) { close(); try { await it.run(); } catch (e) { toast(e.message, "err"); } }
+async function run(it) {
+  close();
+  try {
+    await it.run();
+  } catch (e) {
+    toast(e.message, "err");
+  }
+}
 
-export async function openPalette() {
+export function openPalette() {
   if (box) return close();
   box = document.createElement("div");
   box.className = "kz-palette";
-  box.innerHTML = `<div class="kz-palette-box" role="dialog" aria-label="Command palette"><input type="text" placeholder="Type a command, conversation, project or file…" role="combobox" aria-expanded="true" aria-controls="kzpList" aria-autocomplete="list"><ul id="kzpList" role="listbox"></ul></div>`;
+  box.innerHTML = `<div class="kz-palette-box" role="dialog" aria-label="Command palette"><input type="text" placeholder="Type a view, setting, project or file…" role="combobox" aria-expanded="true" aria-controls="kzpList" aria-autocomplete="list"><ul id="kzpList" role="listbox"></ul></div>`;
   document.body.appendChild(box);
   const input = box.querySelector("input");
   box.addEventListener("mousedown", e => { if (e.target === box) close(); });
@@ -86,8 +136,18 @@ export async function openPalette() {
     else if (e.key === "Enter" && shown[cursor]) { e.preventDefault(); run(shown[cursor]); }
   });
   input.focus();
-  items = [{group: "Go to", label: "Loading…", run: () => {}, hint: ""}]; draw("");
-  items = await collect(); if (box) draw(input.value);
+
+  // Instant zero-latency render of static navigation & settings items
+  items = collectStatic();
+  draw("");
+
+  // Background fetch of conversations, projects, and files
+  collectDynamic().then(dyn => {
+    if (box) {
+      items = [...collectStatic(), ...dyn];
+      draw(input.value);
+    }
+  });
 }
 
 document.addEventListener("keydown", e => {

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"---find pg_hba---\\n---data dir---\\n/usr/include/absl/base\\n/usr/include/aemu/base\\n/usr/include/upb/base\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-35f48cec-05aa-48d9-8d13-739d8a37ecaf"}

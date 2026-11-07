@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/Domain/Interfaces\", \"exists\": true, \"entries\": [\"IRepository.cs\"]}", "role": "tool", "tool_call_id": "call-00890a80-63bc-4e7f-89a6-8b3e28e60bb9"}

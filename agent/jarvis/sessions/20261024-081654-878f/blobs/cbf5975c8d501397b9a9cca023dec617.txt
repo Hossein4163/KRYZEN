@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "Client:\n Version:    29.9.2\n Context:    default\n Debug Mode: false\n Plugins:\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

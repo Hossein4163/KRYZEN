@@ -1,1 +1,0 @@
-{"error": "PermissionError: /home/kry/Projects/rame-studio is outside the workspace /home/kry/Projects/devpilot"}

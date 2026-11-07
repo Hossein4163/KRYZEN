@@ -1,1 +1,0 @@
-{"content": "Reached the limit of 70 steps. Say 'continue' to inspect the saved project progress and carry on.", "role": "tool", "tool_call_id": "call-41e75a17-41b3-447a-91cd-8536ca5123f6"}

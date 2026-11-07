@@ -10,6 +10,11 @@ Keep reasoning and delegation focused. Prefer a small complete tool call over a 
 
 
 def model_options(model, recovery=False):
-    """Reasoning and token controls for Antigravity CLI."""
+    """Only send reasoning controls verified for the selected model family."""
     options = {"max_tokens": RECOVERY_OUTPUT_TOKENS if recovery else OUTPUT_TOKENS}
+    if str(model).startswith("nvidia/nemotron-3.5-super-vl"):
+        if recovery:
+            options["chat_template_kwargs"] = {"enable_thinking": False}
+        else:
+            options["reasoning_effort"] = "low"
     return options

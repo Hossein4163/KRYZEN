@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"✓ 12 Glassmorphism UI Features, Best Practices, and Examples\\n  https://uxpilot.ai/blogs/glassmorphism-ui\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-75afbb55-a15b-44e5-8e05-790dfec77a93"}

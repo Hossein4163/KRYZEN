@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 1, \"stdout\": \"\", \"stderr\": \"✗ Element not found: @theme-toggle. Verify the selector, role, or name is correct and the element exists in the DOM.\\n\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-f07659ad-b049-4706-ae55-aa0d47afae04"}

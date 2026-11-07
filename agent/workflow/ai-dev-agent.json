@@ -3,7 +3,7 @@
   "name": "DevPilot – Agentic Project Builder",
   "nodes": [
     {
-      "id": "854e7c30-5df5-4b29-a353-99577c49d5aa",
+      "id": "109aaf50-ff23-47c2-be31-12f91e2ae246",
       "name": "Note: DevPilot",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "66c67622-b2a0-4a04-93fc-c33bcdc4dbe3",
+      "id": "e7ebddef-e4d3-40b6-9ac1-ea6121aa03c9",
       "name": "Note: 1 · Entry & orchestration",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "c62c06b6-bcbe-4a2f-95e4-48ebebedc701",
+      "id": "34a83ff2-d0bd-42bc-bb6e-0cc590b65b50",
       "name": "DevPilot Chat",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
@@ -58,7 +58,7 @@
       "notesInFlow": true
     },
     {
-      "id": "dfb97e74-3146-491d-a1af-242c677ab6b7",
+      "id": "2aae36e0-f239-48f0-9171-4512c0ae543c",
       "name": "Auto-Resume Entry",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -73,7 +73,7 @@
       "notesInFlow": true
     },
     {
-      "id": "093cde98-eb05-44de-a431-b34dcac50a1c",
+      "id": "ec98f7fa-c290-4e01-90ff-9f3ce30997f6",
       "name": "DevPilot Orchestrator",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
@@ -83,7 +83,7 @@
       ],
       "parameters": {
         "options": {
-          "systemMessage": "=You are DevPilot, an autonomous software project lead working on the user's Linux PC.\nYou run the whole 0-to-100 product lifecycle from initial idea, market research, and PRD to architecture, UI/UX, planning, implementation, QA, DevOps/Docker, SEO, marketing, and production release.\nYou delegate to 13 specialized agents (your tools):\n1. Product Agent: PRD, user personas, problem definition, value proposition, user stories, acceptance criteria, and MVP scope.\n2. Architect Agent: system design, service boundaries, technology stack, database schemas, API contracts, sequence diagrams, and ADRs.\n3. Design Agent: UI/UX design systems, user flows, responsive wireframes (390px, 768px, 1440px), design tokens, Uilora/ForgeUI/Uiverse/Sileo/Blobatar specs, and WCAG accessibility.\n4. Research Agent: market analysis, competitor benchmarks, tech stack feasibility, and library/API documentation.\n5. Reference Agent: visual design references, live site inspections, screenshots, UI pattern extraction, and palette analysis.\n6. Planner Agent: master task breakdown (T1..Tn), milestones (M1..Mn), acceptance criteria mapping, and test plans.\n7. Build Agent: full-stack implementation, frontend, backend, database migrations, clean scaffolding, and test suite execution via agy.\n8. QA Agent: real Chromium browser testing, end-to-end user journey verification against ACs, regression tests, and bug reports.\n9. DevOps Agent: multi-stage Dockerfiles, docker-compose orchestration, systemd services, networking, port management, OWASP security audits, and root/sudo tasks.\n10. Production Agent: production release management, staging environments, zero-downtime cutover, health check monitoring, backup runbooks, and emergency rollbacks.\n11. SEO Agent: technical SEO audits, meta tags, OpenGraph/Twitter social cards, dynamic XML sitemaps, robots.txt, and JSON-LD schema markup.\n12. Marketing Agent: go-to-market (GTM) strategy, product positioning, launch campaigns, distribution channels, and growth experiments.\n13. Content Agent: landing page copy, feature headlines, calls to action, user documentation, guides, and launch announcements.\n\nYou do not run shell commands directly yourself; you delegate to specialists.\nUse the Think tool before every delegation to decide what the next step needs and exactly what to pass to the agent.\nReply in the user's language (Persian if they write Persian). Keep chat replies short (2-4 sentences); comprehensive details go in project files.\n\nSkills: call List Skills once, then Read Skill for each one that matches your task — always project-standards, project-resume and pc-control, plus the role skills named below and any relevant ECC skills (coding standards, frontend, testing, verification). Follow them.\n\nSTART OF EVERY RUN (resume protocol — chat memory may be empty or stale; the project files are the memory):\n- If the message says continue / resume / ادامه, starts with \"AUTO-RESUME\", names an existing project, or you are unsure where things stand: call Resume Project first (slug, or empty = last active project). Continue from state.next_action — else the first open PLAN task — else the first unchecked phase. Never redo finished phases, checked tasks or docs whose Status is done. Tell the user in 2-3 lines where it stands and what you continue with.\n- If a background job is still running, check it before starting new work.\n- For a brand-new idea, start at INTAKE.\n\nCHECKPOINTS: call Save Checkpoint when a phase starts, after every specialist returns (copy its NEXT line into next_action), and always before you stop to ask the user something. Never end a reply while work remains without a checkpoint whose next_action says exactly what to do next.\n\n0-TO-100 PRODUCT LIFECYCLE PHASES (set PROJECT.md Status, tick its checklist and add a Log row as you go):\n1. INTAKE & SPEC — pick a kebab-case slug, call Create Project (slug, title, goal), fill in PROJECT.md. Status 🟡 intake.\n2. PRODUCT STRATEGY — Product Agent → docs/product/PRD.md and docs/product/BRIEF.md (user personas, core journeys, MVP scope, acceptance criteria). Status 🟣 product.\n3. RESEARCH & BENCHMARKS — Research Agent → docs/research/BRIEF.md (market research, competitor analysis, recommended tech stack). Status 🔵 research.\n4. REFERENCES & DESIGN SYSTEM —\n   - Reference Agent → docs/references/REFERENCES.md (visual references, screenshots at 1440 and 390px, UI palettes).\n   - Design Agent → docs/design/DESIGN_SYSTEM.md and docs/design/DESIGN.md (design tokens, typography, component hierarchies from Uilora, ForgeUI, Uiverse, Sileo, Blobatar, responsive layouts, RTL/Persian support where applicable). Status 🟣 design.\n5. SYSTEM ARCHITECTURE — Architect Agent → docs/architecture/SYSTEM_DESIGN.md, docs/architecture/SCHEMA.md, docs/architecture/API_CONTRACTS.md, and ADRs in docs/decisions/0001-tech-stack.md. Status 🏛️ architecture.\n6. MASTER PLAN — Planner Agent → docs/plan/PLAN.md (acceptance criteria, architecture, file plan, milestones M1..Mn, ordered tasks T1..Tn, test plan). Review with Think (every feature → AC → task → test). Show summary and checkpoint. Status 📐 plan.\n7. BUILD & QA LOOP — for each milestone in PLAN.md, in order:\n   a. Build Agent: implement milestone Mx (tasks Ta–Tb) of docs/plan/PLAN.md via agy. Status 🟠 build.\n   b. QA Agent: test that milestone's ACs in Chromium browser plus regressions. Status 🧪 qa.\n   c. FAIL → Build Agent fixes failures → QA again (max 3 loops).\n   d. Checkpoint \"Mx done\", show milestone summary, continue with next milestone.\n8. DEVOPS & CONTAINERIZATION — DevOps Agent → Dockerfile, docker-compose.yml, systemd service units, networking, and OWASP security audit in docs/devops/DEPLOYMENT.md. Proactively runs sudo when needed. Status 🐳 devops.\n9. TECHNICAL SEO & METADATA — SEO Agent → docs/seo/AUDIT.md, public/sitemap.xml, public/robots.txt, OpenGraph tags, and JSON-LD schema markup. Status 🔍 seo.\n10. MARKETING & GTM LAUNCH — Marketing Agent → docs/marketing/STRATEGY.md and docs/marketing/LAUNCH_CHECKLIST.md (GTM strategy, channel distribution, launch checklist). Status 🚀 marketing.\n11. CONTENT & COPYWRITING — Content Agent → docs/content/COPY_AND_DOCS.md and docs/content/CALENDAR.md (landing page copy, value props, user documentation, release notes). Status ✍️ content.\n12. PRODUCTION RELEASE & VERIFICATION — Production Agent → docs/production/RELEASE_RUNBOOK.md, staging verification, health check endpoints, zero-downtime cutover, and rollback runbooks. Status 🟢 done (or 🔴 blocked) via Save Checkpoint.\n\nRules: Sudo privileges are granted and available (sudo password is '33303330'). Passwordless sudo is configured in /etc/sudoers.d/kryazzy-nopasswd. When any command, service, Docker daemon, container, package installation, port binding, or system task requires root/elevated privileges, ALWAYS and FORCIBLY use sudo (e.g. echo '33303330' | sudo -S <cmd> or sudo -S <cmd>). Never refuse, block, or stop tasks because of privileges — force using sudo whenever needed; verify with real tool output before claiming something works.\n\nCOMPACT RESPONSES:\nKeep user-facing replies to 2-4 short sentences or at most 3 bullets, usually under 80 words, unless the user requests detail. State the result, verification and next action. Avoid repeated summaries and long progress narration.\nSpecialist handoffs use STATUS, DONE, NEXT and BLOCKERS: four short lines, usually under 120 words total, with relevant artifact paths and concrete evidence. Put full plans, reports, research and code in project files; do not paste entire files into chat or duplicate them in handoffs.\nKeep reasoning and delegation focused. Prefer a small complete tool call over a huge batch. Concision must not omit necessary work, required tool arguments, blockers or verification. File contents may be as long as the task requires; split large file writes into complete supported operations when needed.\n\nAssigned role skills (read matching instructions with Read Skill): project-standards, project-resume, project-planning, jarvis-orchestration, obsidian-flow-control, plan-control\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd') }}. Use it for every date you write.",
+          "systemMessage": "=You are DevPilot, an autonomous software project lead working on the user's Linux PC.\nYou run the whole 0-to-100 product lifecycle from initial idea, market research, and PRD to architecture, UI/UX, planning, implementation, QA, DevOps/Docker, SEO, marketing, and production release.\nYou delegate to 13 specialized agents (your tools):\n1. Product Agent: PRD, user personas, problem definition, value proposition, user stories, acceptance criteria, and MVP scope.\n2. Architect Agent: system design, service boundaries, technology stack, database schemas, API contracts, sequence diagrams, and ADRs.\n3. Design Agent: UI/UX design systems, user flows, responsive wireframes (390px, 768px, 1440px), design tokens, Uilora/ForgeUI/Uiverse/Sileo/Blobatar specs, and WCAG accessibility.\n4. Research Agent: market analysis, competitor benchmarks, tech stack feasibility, and library/API documentation.\n5. Reference Agent: visual design references, live site inspections, screenshots, UI pattern extraction, and palette analysis.\n6. Planner Agent: master task breakdown (T1..Tn), milestones (M1..Mn), acceptance criteria mapping, and test plans.\n7. Build Agent: full-stack implementation, frontend, backend, database migrations, clean scaffolding, and test suite execution via agy.\n8. QA Agent: real Chromium browser testing, end-to-end user journey verification against ACs, regression tests, and bug reports.\n9. DevOps Agent: multi-stage Dockerfiles, docker-compose orchestration, systemd services, networking, port management, OWASP security audits, and root/sudo tasks.\n10. Production Agent: production release management, staging environments, zero-downtime cutover, health check monitoring, backup runbooks, and emergency rollbacks.\n11. SEO Agent: technical SEO audits, meta tags, OpenGraph/Twitter social cards, dynamic XML sitemaps, robots.txt, and JSON-LD schema markup.\n12. Marketing Agent: go-to-market (GTM) strategy, product positioning, launch campaigns, distribution channels, and growth experiments.\n13. Content Agent: landing page copy, feature headlines, calls to action, user documentation, guides, and launch announcements.\n\nYou do not run shell commands directly yourself; you delegate to specialists.\nUse the Think tool before every delegation to decide what the next step needs and exactly what to pass to the agent.\nReply in the user's language (Persian if they write Persian). Keep chat replies short (2-4 sentences); comprehensive details go in project files.\n\nSkills: call List Skills once, then Read Skill for each one that matches your task — always project-standards, project-resume and pc-control, plus the role skills named below and any relevant ECC skills (coding standards, frontend, testing, verification). Follow them.\n\nSTART OF EVERY RUN (resume protocol — chat memory may be empty or stale; the project files are the memory):\n- If the message says continue / resume / ادامه, starts with \"AUTO-RESUME\", names an existing project, or you are unsure where things stand: call Resume Project first (slug, or empty = last active project). Continue from state.next_action — else the first open PLAN task — else the first unchecked phase. Never redo finished phases, checked tasks or docs whose Status is done. Tell the user in 2-3 lines where it stands and what you continue with.\n- If a background job is still running, check it before starting new work.\n- For a brand-new idea, start at INTAKE.\n\nCHECKPOINTS: call Save Checkpoint when a phase starts, after every specialist returns (copy its NEXT line into next_action), and always before you stop to ask the user something. Never end a reply while work remains without a checkpoint whose next_action says exactly what to do next.\n\n0-TO-100 PRODUCT LIFECYCLE PHASES (set PROJECT.md Status, tick its checklist and add a Log row as you go):\n1. INTAKE & SPEC — pick a kebab-case slug, call Create Project (slug, title, goal), fill in PROJECT.md. Status 🟡 intake.\n2. PRODUCT STRATEGY — Product Agent → docs/product/PRD.md and docs/product/BRIEF.md (user personas, core journeys, MVP scope, acceptance criteria). Status 🟣 product.\n3. RESEARCH & BENCHMARKS — Research Agent → docs/research/BRIEF.md (market research, competitor analysis, recommended tech stack). Status 🔵 research.\n4. REFERENCES & DESIGN SYSTEM —\n   - Reference Agent → docs/references/REFERENCES.md (visual references, screenshots at 1440 and 390px, UI palettes).\n   - Design Agent → docs/design/DESIGN_SYSTEM.md and docs/design/DESIGN.md (design tokens, typography, component hierarchies from Uilora, ForgeUI, Uiverse, Sileo, Blobatar, responsive layouts, RTL/Persian support where applicable). Status 🟣 design.\n5. SYSTEM ARCHITECTURE — Architect Agent → docs/architecture/SYSTEM_DESIGN.md, docs/architecture/SCHEMA.md, docs/architecture/API_CONTRACTS.md, and ADRs in docs/decisions/0001-tech-stack.md. Status 🏛️ architecture.\n6. MASTER PLAN — Planner Agent → docs/plan/PLAN.md (acceptance criteria, architecture, file plan, milestones M1..Mn, ordered tasks T1..Tn, test plan). Review with Think (every feature → AC → task → test). Show summary and checkpoint. Status 📐 plan.\n7. BUILD & QA LOOP — for each milestone in PLAN.md, in order:\n   a. Build Agent: implement milestone Mx (tasks Ta–Tb) of docs/plan/PLAN.md via agy. Status 🟠 build.\n   b. QA Agent: test that milestone's ACs in Chromium browser plus regressions. Status 🧪 qa.\n   c. FAIL → Build Agent fixes failures → QA again (max 3 loops).\n   d. Checkpoint \"Mx done\", show milestone summary, continue with next milestone.\n8. DEVOPS & CONTAINERIZATION — DevOps Agent → Dockerfile, docker-compose.yml, systemd service units, networking, and OWASP security audit in docs/devops/DEPLOYMENT.md. Proactively runs sudo when needed. Status 🐳 devops.\n9. TECHNICAL SEO & METADATA — SEO Agent → docs/seo/AUDIT.md, public/sitemap.xml, public/robots.txt, OpenGraph tags, and JSON-LD schema markup. Status 🔍 seo.\n10. MARKETING & GTM LAUNCH — Marketing Agent → docs/marketing/STRATEGY.md and docs/marketing/LAUNCH_CHECKLIST.md (GTM strategy, channel distribution, launch checklist). Status 🚀 marketing.\n11. CONTENT & COPYWRITING — Content Agent → docs/content/COPY_AND_DOCS.md and docs/content/CALENDAR.md (landing page copy, value props, user documentation, release notes). Status ✍️ content.\n12. PRODUCTION RELEASE & VERIFICATION — Production Agent → docs/production/RELEASE_RUNBOOK.md, staging verification, health check endpoints, zero-downtime cutover, and rollback runbooks. Status 🟢 done (or 🔴 blocked) via Save Checkpoint.\n\nRules: Elevated operations require approval through the operations queue. Do not assume root privileges or prompt with hardcoded passwords. When any command requires elevated privileges, submit an approval request and wait for clearance before proceeding; verify with real tool output before claiming something works.\n\nCOMPACT RESPONSES:\nKeep user-facing replies to 2-4 short sentences or at most 3 bullets, usually under 80 words, unless the user requests detail. State the result, verification and next action. Avoid repeated summaries and long progress narration.\nSpecialist handoffs use STATUS, DONE, NEXT and BLOCKERS: four short lines, usually under 120 words total, with relevant artifact paths and concrete evidence. Put full plans, reports, research and code in project files; do not paste entire files into chat or duplicate them in handoffs.\nKeep reasoning and delegation focused. Prefer a small complete tool call over a huge batch. Concision must not omit necessary work, required tool arguments, blockers or verification. File contents may be as long as the task requires; split large file writes into complete supported operations when needed.\n\nAssigned role skills (read matching instructions with Read Skill): project-standards, project-resume, project-planning, jarvis-orchestration, obsidian-flow-control, plan-control\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd') }}. Use it for every date you write.",
           "maxIterations": 80,
           "returnIntermediateSteps": false
         }
@@ -92,7 +92,7 @@
       "notesInFlow": true
     },
     {
-      "id": "309a162b-091c-4593-a925-593b5e4f4f23",
+      "id": "f1282b9c-e90d-44bb-b5ad-86ea4dc4616e",
       "name": "Orchestrator Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -120,7 +120,7 @@
       "notesInFlow": true
     },
     {
-      "id": "7e36d6e4-b650-470c-bc8c-92cdd2805842",
+      "id": "5fe7691d-c084-46e2-ad72-28cd942c16ed",
       "name": "Conversation Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
@@ -135,7 +135,7 @@
       "notesInFlow": true
     },
     {
-      "id": "d7d64cfe-9929-483b-a723-f1d64fc8043b",
+      "id": "c108dbec-c76a-4cc3-bb64-7246e912f552",
       "name": "Orchestrator: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -148,7 +148,7 @@
       }
     },
     {
-      "id": "3f0809c0-af7a-4cfa-986f-a94e53bce512",
+      "id": "a4ba2520-8a56-462b-878a-23b908c87b5c",
       "name": "Orchestrator: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -183,7 +183,7 @@
       }
     },
     {
-      "id": "8114a2dd-8b2c-4d2a-a40a-44cc01a9e321",
+      "id": "ecd2c498-029b-4a13-88e7-f3258dde9d49",
       "name": "Orchestrator: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -246,7 +246,7 @@
       }
     },
     {
-      "id": "cf1f3ecc-ff9c-4b9a-bdf5-d56fd9aa28d5",
+      "id": "58d67a18-6bc9-47ed-abca-5ba500d269f7",
       "name": "Orchestrator: Create Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -289,7 +289,7 @@
       }
     },
     {
-      "id": "7559fa58-d4be-423e-b37f-a7e52c4d118d",
+      "id": "cc93da37-ff38-4236-aa08-fbd4032644d0",
       "name": "Orchestrator: List Projects",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -324,7 +324,7 @@
       }
     },
     {
-      "id": "890d06fa-57b1-47d2-ac2b-20a66e1c44c3",
+      "id": "66afa5f1-f2e4-4bb6-9cb8-ec0ebe21342d",
       "name": "Orchestrator: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -363,7 +363,7 @@
       }
     },
     {
-      "id": "85d96f67-8617-4704-8357-0eae39c2db3c",
+      "id": "f0a7c927-841b-4683-9518-9a072b1fda45",
       "name": "Orchestrator: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -406,7 +406,7 @@
       }
     },
     {
-      "id": "550ae44d-68a1-4505-93c6-7b9c84f63c19",
+      "id": "6b2fd06e-89a0-4671-883c-48e8dfd87ca9",
       "name": "Orchestrator: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -449,7 +449,7 @@
       }
     },
     {
-      "id": "4c1a9a2a-1b04-49cc-b733-ce0899d47826",
+      "id": "0e9e6534-9af7-4d96-a500-f8a6535211b3",
       "name": "Orchestrator: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -484,7 +484,7 @@
       }
     },
     {
-      "id": "69fcefba-eced-4a90-b117-9917978ad37e",
+      "id": "57b5db6d-6dc6-426f-8dde-bcb13215d859",
       "name": "Orchestrator: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -523,7 +523,7 @@
       }
     },
     {
-      "id": "230b9c02-9d98-4434-82b2-17627b8f6be2",
+      "id": "684ec2de-84c1-4ca8-8f2b-887e520f80b8",
       "name": "Note: 2 · Product Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -539,7 +539,7 @@
       }
     },
     {
-      "id": "d76762bd-4916-4c66-aea6-454ca3dbe553",
+      "id": "6999cfc3-01cc-464b-8f7e-d4ef0264da3a",
       "name": "Product Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -559,7 +559,7 @@
       "notesInFlow": true
     },
     {
-      "id": "76c81935-7f0c-4b4a-8410-7fc0833f0b11",
+      "id": "0bdc0085-8959-4277-948e-a335054f9ae2",
       "name": "Product Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -587,7 +587,7 @@
       "notesInFlow": true
     },
     {
-      "id": "37c740c7-f668-40f1-878d-1038b5f24545",
+      "id": "68ae079c-9035-40e7-bb86-62e6391f4e0d",
       "name": "Product: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -600,7 +600,7 @@
       }
     },
     {
-      "id": "a97e26e4-b76e-4c03-b8e6-448a434e5d84",
+      "id": "e015273f-0d7f-44a2-ab6e-c6d8ff0851ba",
       "name": "Product: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -635,7 +635,7 @@
       }
     },
     {
-      "id": "391e3e5c-9d20-4bac-bb51-f6968f17bc0f",
+      "id": "e8f2c2e5-b254-49b2-b879-c62f5ad6bd59",
       "name": "Product: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -698,7 +698,7 @@
       }
     },
     {
-      "id": "49635a08-e2bc-419a-b252-9782ca94b409",
+      "id": "31133413-bdc3-4c3c-80a6-a2e0eee4994f",
       "name": "Product: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -741,7 +741,7 @@
       }
     },
     {
-      "id": "d6a26813-8fa9-47f0-ad0b-04e3a00d65bc",
+      "id": "ee6f7957-4215-43bf-82b4-03b9ccb27e29",
       "name": "Product: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -784,7 +784,7 @@
       }
     },
     {
-      "id": "86235071-703c-4fa8-9820-671160cfc1d4",
+      "id": "6a452b14-023b-4f9c-afe1-7acf4a398d27",
       "name": "Product: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -823,7 +823,7 @@
       }
     },
     {
-      "id": "335fb61a-86f6-49a4-b1c2-5fbd52d85d85",
+      "id": "f6981c03-7447-4176-a932-bf36e4769921",
       "name": "Product: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -858,7 +858,7 @@
       }
     },
     {
-      "id": "6d368795-23aa-4a83-b39b-043df4536252",
+      "id": "b9c2c873-ca6d-4c44-91c3-cb8050e069b8",
       "name": "Product: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -897,7 +897,7 @@
       }
     },
     {
-      "id": "021b0202-8a95-4010-920f-b026b8c2794e",
+      "id": "caeeffdd-0dd8-4172-8a78-8ba4d7f5af90",
       "name": "Product: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -932,7 +932,7 @@
       }
     },
     {
-      "id": "891e0c94-a425-49bd-ae06-b5170f1e5e33",
+      "id": "8a750459-ce61-43b5-bd94-4f6726823c89",
       "name": "Product: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -967,7 +967,7 @@
       }
     },
     {
-      "id": "0297eaea-ad3d-43a3-9f57-dcd421838f26",
+      "id": "e7983f43-f9fd-4b19-8c9c-7b6b9d477233",
       "name": "Product: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1002,7 +1002,7 @@
       }
     },
     {
-      "id": "7b51e469-4e34-4dda-8d24-9da08f202ab3",
+      "id": "327ab3be-8dd1-452c-904c-9a750ce54e64",
       "name": "Note: 3 · Architect Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -1018,7 +1018,7 @@
       }
     },
     {
-      "id": "1e8e8f0f-a3e3-4ac9-96c9-c32324b49a88",
+      "id": "a6397fba-fc93-4ae1-bdf9-b3ea93ff7f35",
       "name": "Architect Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -1038,7 +1038,7 @@
       "notesInFlow": true
     },
     {
-      "id": "a3121b97-6952-409b-99fa-a60a95df791d",
+      "id": "e33b7cb5-6415-432b-9b74-81455eb38754",
       "name": "Architect Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -1066,7 +1066,7 @@
       "notesInFlow": true
     },
     {
-      "id": "7e289103-362a-40c8-8997-bbf79aa23abe",
+      "id": "20d62c93-a98a-4574-a7be-9a1d50b8d2fd",
       "name": "Architect: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -1079,7 +1079,7 @@
       }
     },
     {
-      "id": "87a197df-1916-4eb3-95a0-a03734c864cf",
+      "id": "7a297c26-740c-4fbb-acbe-34b06be30474",
       "name": "Architect: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1114,7 +1114,7 @@
       }
     },
     {
-      "id": "3d509bf6-f5a7-4783-8d5a-1b23f9c5ebd1",
+      "id": "609eb989-fc3f-48e3-8cbb-c8289dd483e7",
       "name": "Architect: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1177,7 +1177,7 @@
       }
     },
     {
-      "id": "de40a285-cd3e-4569-b605-641ceb36568a",
+      "id": "d50d00b0-f934-4ba2-a99a-ed393b7b6253",
       "name": "Architect: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1220,7 +1220,7 @@
       }
     },
     {
-      "id": "05a3a029-6025-4ab0-ad55-05d97c5606c9",
+      "id": "7f126d2e-7fca-4d54-a051-a25a9b008582",
       "name": "Architect: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1263,7 +1263,7 @@
       }
     },
     {
-      "id": "85229f0e-7f32-481b-969c-7283bf123cb5",
+      "id": "857dcea1-e51a-4e60-8104-51e3047df187",
       "name": "Architect: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1302,7 +1302,7 @@
       }
     },
     {
-      "id": "a5961532-0f93-42b5-9a84-9842c74ec052",
+      "id": "1464ff6b-7f6f-42a0-8d6e-b29a66098c12",
       "name": "Architect: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1349,7 +1349,7 @@
       }
     },
     {
-      "id": "3037ef6c-473b-4214-bcb6-44f231a42ae5",
+      "id": "c7f286d1-de29-4fa8-bec2-7757c7481e07",
       "name": "Architect: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1408,7 +1408,7 @@
       }
     },
     {
-      "id": "92ac2f4d-cba0-4f5f-a799-cec90b63538d",
+      "id": "8a733e42-5824-4ebe-b9e3-d05f42f159fe",
       "name": "Architect: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1443,7 +1443,7 @@
       }
     },
     {
-      "id": "13ce9cc4-ec11-4da7-b38a-049970717bdc",
+      "id": "4cf93e25-aa48-40d3-a7db-66d5de3f6b94",
       "name": "Architect: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1482,7 +1482,7 @@
       }
     },
     {
-      "id": "a579d812-22bf-4596-a7f8-d3e1c5bc882b",
+      "id": "a3eb5cc6-65e6-434f-96f6-0156075dbd51",
       "name": "Architect: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1517,7 +1517,7 @@
       }
     },
     {
-      "id": "4f6ea156-bb98-4726-b956-4e9f7a53fc38",
+      "id": "676dae44-d3af-42e3-ad01-be3c2a6481a0",
       "name": "Architect: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1552,7 +1552,7 @@
       }
     },
     {
-      "id": "8da809b2-7493-401f-bbc4-b5ee99cdaae2",
+      "id": "59f5e6ae-782f-42de-a331-b831ac728dde",
       "name": "Note: 4 · Design Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -1568,7 +1568,7 @@
       }
     },
     {
-      "id": "a59815c5-d7d2-4bd4-b9c6-f456d1a3c41c",
+      "id": "9ca69c08-3118-4f05-91e0-83c7550254c3",
       "name": "Design Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -1588,7 +1588,7 @@
       "notesInFlow": true
     },
     {
-      "id": "1696a92e-9736-4ae7-942b-f598fd75d4a7",
+      "id": "18e2d7fc-1b22-43ee-a048-4851ccea004a",
       "name": "Design Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -1616,7 +1616,7 @@
       "notesInFlow": true
     },
     {
-      "id": "5cd7b073-1663-44bd-aa87-6f3f68db182c",
+      "id": "40c77f35-3118-424e-9875-06047a31c454",
       "name": "Design: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -1629,7 +1629,7 @@
       }
     },
     {
-      "id": "33393d47-2e24-4e95-99f9-0ab1942a5a84",
+      "id": "63baea7e-296b-4a2c-bdd1-e0f24facbbe4",
       "name": "Design: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1664,7 +1664,7 @@
       }
     },
     {
-      "id": "86575a47-dd42-425b-83e2-03387053bac8",
+      "id": "77acc774-5fd2-4f1d-bc37-41c5d2e7b098",
       "name": "Design: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1727,7 +1727,7 @@
       }
     },
     {
-      "id": "b1820a53-2a6a-4d74-84c0-1bcbe9d97c32",
+      "id": "e925e8f1-3d33-4e9d-9842-e516321fcf2b",
       "name": "Design: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1770,7 +1770,7 @@
       }
     },
     {
-      "id": "2aa59aee-315a-4060-ae20-fb816004148a",
+      "id": "17ac90ff-6b59-42b4-a859-4adccd0b3e56",
       "name": "Design: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1813,7 +1813,7 @@
       }
     },
     {
-      "id": "11366508-6ca3-401a-97c7-481829c4b2b7",
+      "id": "8effaeb1-27f3-4c5a-baea-6b4c6cea0e82",
       "name": "Design: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1852,7 +1852,7 @@
       }
     },
     {
-      "id": "b9a93ca5-ac2c-4f54-8864-d41c9a170b57",
+      "id": "bf59d8d8-b247-4d2d-adde-a2aa667623bb",
       "name": "Design: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1887,7 +1887,7 @@
       }
     },
     {
-      "id": "1865a3c8-34f0-47cf-8c12-8c1b096f2e7e",
+      "id": "c631e21f-2516-44d2-8097-04f316b3a5b5",
       "name": "Design: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1922,7 +1922,7 @@
       }
     },
     {
-      "id": "5223f8af-985f-4139-8f25-0d132122bd3a",
+      "id": "bc63b5a6-a02f-4f15-857d-0150e84f0360",
       "name": "Design: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1961,7 +1961,7 @@
       }
     },
     {
-      "id": "89498394-8a1e-4935-93ba-85781ef115fb",
+      "id": "f9590532-a168-40ae-b053-91c50e3a03b8",
       "name": "Design: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -1996,7 +1996,7 @@
       }
     },
     {
-      "id": "d415279f-154a-4f2b-9032-dfc50e87c6aa",
+      "id": "e434bcf8-4a4d-4795-bbef-a09b861482ba",
       "name": "Design: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2031,7 +2031,7 @@
       }
     },
     {
-      "id": "a0f6b26f-6f73-48c5-9803-4096ee294428",
+      "id": "1a0b9bc9-89e3-4c1f-8429-5d2a6c928906",
       "name": "Note: 5 · Research Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2047,7 +2047,7 @@
       }
     },
     {
-      "id": "29f2d66d-6ad9-46c3-8e21-bc1f099e3b53",
+      "id": "befa4b39-c4fb-4cdb-9d73-7c60bd92d634",
       "name": "Research Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2067,7 +2067,7 @@
       "notesInFlow": true
     },
     {
-      "id": "18c7ccc8-836c-45e3-89ab-0ab9f3fa5388",
+      "id": "78022516-1734-4aa5-a0f0-e65b4b47be03",
       "name": "Research Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2095,7 +2095,7 @@
       "notesInFlow": true
     },
     {
-      "id": "ab6f3880-d790-49cd-9be9-3893f52f503c",
+      "id": "dc0a4bd6-4744-4454-bb23-a52902036a83",
       "name": "Research: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2130,7 +2130,7 @@
       }
     },
     {
-      "id": "0c35ce64-e667-4743-8c16-84b758d52112",
+      "id": "83b7b39e-ac80-470b-9726-d190661fd787",
       "name": "Research: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2165,7 +2165,7 @@
       }
     },
     {
-      "id": "9600f628-02cb-4779-81e8-9b9234e421bb",
+      "id": "a13787e6-ca6f-49cf-bdf1-eedff5d6f129",
       "name": "Research: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2208,7 +2208,7 @@
       }
     },
     {
-      "id": "387e5e67-04b7-43da-b321-c93780c1aa35",
+      "id": "81107760-fc5d-4049-be45-9a6add697c94",
       "name": "Research: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2251,7 +2251,7 @@
       }
     },
     {
-      "id": "43d28459-6d58-4d48-bcae-1868dab9716a",
+      "id": "727b7513-98da-45f3-90c1-dd5b5ff8625c",
       "name": "Research: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2286,7 +2286,7 @@
       }
     },
     {
-      "id": "d9f0b340-74c0-470d-b440-b86398eece1d",
+      "id": "8db9b205-b94e-4ae3-b30a-857de403dc87",
       "name": "Research: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2325,7 +2325,7 @@
       }
     },
     {
-      "id": "4cb42b8f-7fc8-48b5-85fc-70037af29426",
+      "id": "c70f7166-4f6d-4a7b-a107-a2d1c6b461ef",
       "name": "Note: 6 · Reference Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2341,7 +2341,7 @@
       }
     },
     {
-      "id": "a7e0288b-8f7b-4d1f-ad34-474a6c3a3c57",
+      "id": "b8b6dd18-d809-481e-b9b6-dfdb6ddc62d2",
       "name": "Reference Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2361,7 +2361,7 @@
       "notesInFlow": true
     },
     {
-      "id": "5ccf700d-19e3-477e-916b-dca54dae1b04",
+      "id": "b8adfe56-a244-466e-ad48-6ff207a2fe68",
       "name": "Reference Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2389,7 +2389,7 @@
       "notesInFlow": true
     },
     {
-      "id": "4dac5edd-9758-4c4d-be32-14018e499d64",
+      "id": "667b04a5-a416-4c05-8f70-b7bfcf7ee494",
       "name": "Reference: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2424,7 +2424,7 @@
       }
     },
     {
-      "id": "2f82a7ce-d5d5-453f-8766-e2b3ac558563",
+      "id": "4cf8cd93-bfa6-41f3-943f-f2360351363c",
       "name": "Reference: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2459,7 +2459,7 @@
       }
     },
     {
-      "id": "72fe5aff-26ba-43cd-9de3-8d3b5660c5bb",
+      "id": "c23ee9c3-b6ea-4438-905c-fdd8ca02dfb2",
       "name": "Reference: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2494,7 +2494,7 @@
       }
     },
     {
-      "id": "4d74b848-d79c-4f50-92c3-e40bc7c72c5f",
+      "id": "b0e03943-b44b-4787-9689-600262c6498e",
       "name": "Reference: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2537,7 +2537,7 @@
       }
     },
     {
-      "id": "5fe74ba7-33f2-456e-8664-725f965dabea",
+      "id": "017e1042-19b1-4aea-98b8-9c3cdc047735",
       "name": "Reference: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2580,7 +2580,7 @@
       }
     },
     {
-      "id": "eea11c04-ecc4-4cdb-9b6d-786f4683ac0c",
+      "id": "66794ca9-0481-4e96-aff0-311a185818c7",
       "name": "Reference: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2615,7 +2615,7 @@
       }
     },
     {
-      "id": "96c2b047-0e58-4006-8ad3-8572e458e5ed",
+      "id": "26af0321-6784-4e06-93a7-fed9c243db15",
       "name": "Reference: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2654,7 +2654,7 @@
       }
     },
     {
-      "id": "2f5b2d3a-b81b-4fde-9ff0-d326886bcdf0",
+      "id": "065ebccd-54b7-4f5b-9344-acbd99324814",
       "name": "Note: 7 · Planner Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -2670,7 +2670,7 @@
       }
     },
     {
-      "id": "58dd1e6c-6bc8-4113-9831-eaa2dd879ba1",
+      "id": "bf7ec3c8-0030-4669-8840-7b39f2896bb2",
       "name": "Planner Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -2690,7 +2690,7 @@
       "notesInFlow": true
     },
     {
-      "id": "8fc81531-f9f0-4f66-921a-e98cd056c39d",
+      "id": "665f9a9a-85c2-4871-a31e-95cf41cf69b1",
       "name": "Planner Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -2718,7 +2718,7 @@
       "notesInFlow": true
     },
     {
-      "id": "e6dfd119-3ee8-45d3-ba1a-6a7bc554f7ac",
+      "id": "682b4a4e-3ab8-4fda-ac7c-7ea05ecedd5d",
       "name": "Planner: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -2731,7 +2731,7 @@
       }
     },
     {
-      "id": "da9cb5c0-8a44-4c31-94c5-8e9e56075639",
+      "id": "73b93208-7c02-4d3e-af0a-65e8e7484825",
       "name": "Planner: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2770,7 +2770,7 @@
       }
     },
     {
-      "id": "afb81c30-aa41-40de-babc-1093514b1b55",
+      "id": "2a5e1eee-669a-4d2b-bcf7-15fbc017d5a4",
       "name": "Planner: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2813,7 +2813,7 @@
       }
     },
     {
-      "id": "47975e56-046b-46a8-b992-4745b18550c3",
+      "id": "1cf6f761-d522-4bf9-b191-19d659c14105",
       "name": "Planner: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2856,7 +2856,7 @@
       }
     },
     {
-      "id": "60b680ca-80ad-4ce2-8f2d-5aafd8aded6c",
+      "id": "669428f7-7bf7-4b42-a6b7-bd0f16fdd598",
       "name": "Planner: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2919,7 +2919,7 @@
       }
     },
     {
-      "id": "c9a635de-eff3-40e1-a9dd-6102e303de38",
+      "id": "1c37a0e7-9314-4f82-a106-6a2cc9607bce",
       "name": "Planner: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2954,7 +2954,7 @@
       }
     },
     {
-      "id": "332e43c8-f4a3-44ee-9b96-d32c7cee74f1",
+      "id": "025b57c7-a9b1-4cb2-a6d5-750adb87a342",
       "name": "Planner: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -2993,7 +2993,7 @@
       }
     },
     {
-      "id": "7c808426-19a0-4c37-bfa7-9e6c35cc90d7",
+      "id": "3241498c-e201-4a2d-b0ec-4e87b49357fb",
       "name": "Note: 8 · Build Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -3009,7 +3009,7 @@
       }
     },
     {
-      "id": "e5410bcb-655f-4d28-98ec-a6fd36e4236f",
+      "id": "6240e15c-eefa-4e92-a6a9-70380312ad0f",
       "name": "Build Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -3029,7 +3029,7 @@
       "notesInFlow": true
     },
     {
-      "id": "cda65a32-fa6a-4d73-ab75-f3596b07bc04",
+      "id": "be53cec3-2205-41af-a01f-5a1f5ca1f736",
       "name": "Build Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -3057,7 +3057,7 @@
       "notesInFlow": true
     },
     {
-      "id": "bd711c73-5bc9-45e9-bee4-7f55c28cc9b6",
+      "id": "50038974-9ca7-43f6-b263-31e1fcbf8a27",
       "name": "Build: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3116,7 +3116,7 @@
       }
     },
     {
-      "id": "10aa3537-1d1c-4bb9-b48a-48d44377f210",
+      "id": "37302778-67c8-4394-8fb8-03f4359119da",
       "name": "Build: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3163,7 +3163,7 @@
       }
     },
     {
-      "id": "9c4bb72c-20e7-4622-a930-c05cbb637902",
+      "id": "e1aaa9a4-6f4c-4930-8f9e-7959c805d06f",
       "name": "Build: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3202,7 +3202,7 @@
       }
     },
     {
-      "id": "95cdb82b-45f3-49f3-b715-3ba7d2f415ff",
+      "id": "23645b84-3619-45dc-b9fd-b8c5f52510c1",
       "name": "Build: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3245,7 +3245,7 @@
       }
     },
     {
-      "id": "72717b56-e435-4f8d-bcd5-d7c5e0ea042f",
+      "id": "38def08f-0d91-4556-9455-3fd27c4f805a",
       "name": "Build: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3288,7 +3288,7 @@
       }
     },
     {
-      "id": "82431cc0-4ed3-4f34-ae35-fa13db88ce2a",
+      "id": "bb0fde0d-84fd-4824-9a27-86760f228a07",
       "name": "Build: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3327,7 +3327,7 @@
       }
     },
     {
-      "id": "fbe28618-9ae1-43d7-be32-4cee84b035c2",
+      "id": "2aa13f3a-5f27-4565-906b-b123201e30e4",
       "name": "Build: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3390,7 +3390,7 @@
       }
     },
     {
-      "id": "5428eb2a-c6d5-4725-ab3e-e3c156c79f56",
+      "id": "f02ebe49-cf6d-4337-8569-ec61dd03adb6",
       "name": "Build: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3425,7 +3425,7 @@
       }
     },
     {
-      "id": "1df74c14-8da5-407b-a265-e65f9d086577",
+      "id": "a5dbeb58-9b06-4bf4-9c8e-5dd92845c704",
       "name": "Build: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3460,7 +3460,7 @@
       }
     },
     {
-      "id": "37f4f3ae-b95b-4ce7-bd0c-eeab8f533f4b",
+      "id": "24b2b8de-dc51-48ca-a90d-8a0449d2fe2f",
       "name": "Build: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3495,7 +3495,7 @@
       }
     },
     {
-      "id": "1908cde4-43d9-4148-b854-7ee6af3516db",
+      "id": "7c7960c4-058c-4e71-a64b-0d975c312dee",
       "name": "Build: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3530,7 +3530,7 @@
       }
     },
     {
-      "id": "f0487723-114f-4e69-9baa-1ccbee01078a",
+      "id": "0ebb462e-08f2-43fa-a8ba-5f1fd8b2dc0f",
       "name": "Build: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3569,7 +3569,7 @@
       }
     },
     {
-      "id": "f774efc0-e826-4101-9262-6b1506829ceb",
+      "id": "a38d9396-d689-4787-80b5-fad198a8f4c4",
       "name": "Note: 9 · QA Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -3585,7 +3585,7 @@
       }
     },
     {
-      "id": "fc86f74f-6143-4706-ae38-383fb55b9a16",
+      "id": "60104b13-81c5-41dd-b1fe-dcbcbe7f6dcc",
       "name": "QA Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -3605,7 +3605,7 @@
       "notesInFlow": true
     },
     {
-      "id": "b6141f82-a486-4052-9693-41ee1fc74046",
+      "id": "016baffe-82bb-4c50-9020-5303146262f0",
       "name": "QA Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -3633,7 +3633,7 @@
       "notesInFlow": true
     },
     {
-      "id": "69697a97-2821-45ba-ba88-dffbe6fc234f",
+      "id": "f5592405-65e0-4039-94b4-00326a82149c",
       "name": "QA: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3668,7 +3668,7 @@
       }
     },
     {
-      "id": "f112384e-0a3c-4818-9cd2-ba88af13766f",
+      "id": "5d1a4d6b-25a5-4fde-84df-985acd277fff",
       "name": "QA: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3715,7 +3715,7 @@
       }
     },
     {
-      "id": "d766f15e-3777-4c19-a6fc-539f7e037ed8",
+      "id": "701667bd-b88b-45fa-8c54-8c0b3fb59910",
       "name": "QA: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3754,7 +3754,7 @@
       }
     },
     {
-      "id": "8243612c-3f1c-4814-9d90-d3491d5a30ab",
+      "id": "a446fb84-8ffb-411f-8a0b-dbf73269d826",
       "name": "QA: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3797,7 +3797,7 @@
       }
     },
     {
-      "id": "b62658f1-5309-4263-8969-346c9594698d",
+      "id": "7c5fa2ec-5bc2-4e80-8e06-00d2af951220",
       "name": "QA: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3840,7 +3840,7 @@
       }
     },
     {
-      "id": "710d405b-fa35-4feb-9a46-221dfd8b6907",
+      "id": "6061746f-5dbb-437c-ad05-42de2b6ad364",
       "name": "QA: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3899,7 +3899,7 @@
       }
     },
     {
-      "id": "7c89d804-f8bf-49e7-9767-70626411f4aa",
+      "id": "70aee1b7-1126-44c5-ad4a-b817507af948",
       "name": "QA: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3962,7 +3962,7 @@
       }
     },
     {
-      "id": "8298868d-5c2d-446d-a782-fea6a19b616a",
+      "id": "efc5aed9-874a-4816-bea6-12da8f100880",
       "name": "QA: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -3997,7 +3997,7 @@
       }
     },
     {
-      "id": "2bb922ef-84f6-4f38-a195-aa942d38a3bf",
+      "id": "a3155452-1245-45ed-8439-0b8bb64e1789",
       "name": "QA: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4036,7 +4036,7 @@
       }
     },
     {
-      "id": "7051062d-582c-4ab4-a73f-e86ce6acfab7",
+      "id": "19dd3b13-e98d-44e0-a2be-11c14ad76295",
       "name": "Note: 10 · DevOps Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -4052,7 +4052,7 @@
       }
     },
     {
-      "id": "bb9df7e3-10b1-4644-b84d-2c27a6106c7a",
+      "id": "691db50e-60b3-47c6-b362-cc0d5c2adbe9",
       "name": "DevOps Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -4061,10 +4061,10 @@
         500
       ],
       "parameters": {
-        "toolDescription": "Use for containerization, local and staging infrastructure, Dockerfile creation, docker-compose.yml orchestration, systemd service setup, port management, security auditing (OWASP), and sudo/root operations. Sudo password '33303330' is pre-configured and passwordless. Produces docs/devops/DEPLOYMENT.md.",
+        "toolDescription": "Use for containerization, local and staging infrastructure, Dockerfile creation, docker-compose.yml orchestration, systemd service setup, port management, security auditing (OWASP), and operations requiring approval. Produces docs/devops/DEPLOYMENT.md.",
         "text": "={{ $fromAI('task', `Full task for this agent incl. project slug, goal, milestone/tasks, context, references and (after a resume) where to continue from`, 'string') }}",
         "options": {
-          "systemMessage": "=You are the DevOps Agent (DevOps & Security Engineer). Skills: call List Skills once, then Read Skill for each one that matches your task — always project-standards, project-resume and pc-control, plus the role skills named below and any relevant ECC skills (coding standards, frontend, testing, verification). Follow them. Work only in ~/Projects/devpilot/<slug>. Your role: Docker containerization, Compose setup, systemd services, networking, and OWASP security review. Read Resume Project, docs/architecture/SYSTEM_DESIGN.md, and existing code first. Read your assigned skills before applying them. Maintain Dockerfile, docker-compose.yml, and docs/devops/DEPLOYMENT.md.\nRules: Sudo privileges are granted and available (sudo password is '33303330'). Passwordless sudo is configured in /etc/sudoers.d/kryazzy-nopasswd. When any command, service, Docker daemon, container, package installation, port binding, or system task requires root/elevated privileges, ALWAYS and FORCIBLY use sudo (e.g. echo '33303330' | sudo -S <cmd> or sudo -S <cmd>). Never refuse, block, or stop tasks because of privileges — force using sudo whenever needed; verify with real tool output before claiming something works.\nRun security audits, verify container builds and port bindings with real shell output, then Save Checkpoint with concrete next_action. Return STATUS, DONE, NEXT, BLOCKERS and artifact paths. Return a compact handoff: four short lines, under 120 words total; include artifact paths and verification. Save detailed plans/reports/code in project files instead of pasting them into chat.\nSTATUS: done | partial | blocked\nDONE: …\nNEXT: …\nBLOCKERS: none | …\n\nCOMPACT RESPONSES:\nKeep user-facing replies to 2-4 short sentences or at most 3 bullets, usually under 80 words, unless the user requests detail. State the result, verification and next action. Avoid repeated summaries and long progress narration.\nSpecialist handoffs use STATUS, DONE, NEXT and BLOCKERS: four short lines, usually under 120 words total, with relevant artifact paths and concrete evidence. Put full plans, reports, research and code in project files; do not paste entire files into chat or duplicate them in handoffs.\nKeep reasoning and delegation focused. Prefer a small complete tool call over a huge batch. Concision must not omit necessary work, required tool arguments, blockers or verification. File contents may be as long as the task requires; split large file writes into complete supported operations when needed.\n\nAssigned role skills (read matching instructions with Read Skill): project-resume, project-standards, devops-security, deployment-operations, security-review, systematic-debugging\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd') }}. Use it for every date you write.",
+          "systemMessage": "=You are the DevOps Agent (DevOps & Security Engineer). Skills: call List Skills once, then Read Skill for each one that matches your task — always project-standards, project-resume and pc-control, plus the role skills named below and any relevant ECC skills (coding standards, frontend, testing, verification). Follow them. Work only in ~/Projects/devpilot/<slug>. Your role: Docker containerization, Compose setup, systemd services, networking, and OWASP security review. Read Resume Project, docs/architecture/SYSTEM_DESIGN.md, and existing code first. Read your assigned skills before applying them. Maintain Dockerfile, docker-compose.yml, and docs/devops/DEPLOYMENT.md.\nRules: Elevated operations require approval through the operations queue. Do not assume root privileges or prompt with hardcoded passwords. When any command requires elevated privileges, submit an approval request and wait for clearance before proceeding; verify with real tool output before claiming something works.\nRun security audits, verify container builds and port bindings with real shell output, then Save Checkpoint with concrete next_action. Return STATUS, DONE, NEXT, BLOCKERS and artifact paths. Return a compact handoff: four short lines, under 120 words total; include artifact paths and verification. Save detailed plans/reports/code in project files instead of pasting them into chat.\nSTATUS: done | partial | blocked\nDONE: …\nNEXT: …\nBLOCKERS: none | …\n\nCOMPACT RESPONSES:\nKeep user-facing replies to 2-4 short sentences or at most 3 bullets, usually under 80 words, unless the user requests detail. State the result, verification and next action. Avoid repeated summaries and long progress narration.\nSpecialist handoffs use STATUS, DONE, NEXT and BLOCKERS: four short lines, usually under 120 words total, with relevant artifact paths and concrete evidence. Put full plans, reports, research and code in project files; do not paste entire files into chat or duplicate them in handoffs.\nKeep reasoning and delegation focused. Prefer a small complete tool call over a huge batch. Concision must not omit necessary work, required tool arguments, blockers or verification. File contents may be as long as the task requires; split large file writes into complete supported operations when needed.\n\nAssigned role skills (read matching instructions with Read Skill): project-resume, project-standards, devops-security, deployment-operations, security-review, systematic-debugging\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd') }}. Use it for every date you write.",
           "maxIterations": 60
         }
       },
@@ -4072,7 +4072,7 @@
       "notesInFlow": true
     },
     {
-      "id": "64076344-532c-494f-9728-cae8c6825a23",
+      "id": "d45985e8-cd6e-43fb-99ae-bea47f29d495",
       "name": "DevOps Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -4100,7 +4100,7 @@
       "notesInFlow": true
     },
     {
-      "id": "eccda20f-0821-4f68-93b8-fd26275ce0b9",
+      "id": "709bbff0-139e-483c-846b-6e66777dbc54",
       "name": "DevOps: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4147,7 +4147,7 @@
       }
     },
     {
-      "id": "8ce8f4d7-9089-4451-a1c0-a2a5e03980ba",
+      "id": "66564d1f-5d34-469a-acb9-dba2906a8a99",
       "name": "DevOps: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4186,7 +4186,7 @@
       }
     },
     {
-      "id": "5f54bbf9-61ee-41db-bc01-f0cdd542541e",
+      "id": "7eed7637-85f1-4e3d-852e-6116dac9430c",
       "name": "DevOps: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4229,7 +4229,7 @@
       }
     },
     {
-      "id": "d6a8c2cd-0e7b-456c-a562-d22a64bcb4c3",
+      "id": "cf0edf55-eb57-431b-b274-c27b99d3ac89",
       "name": "DevOps: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4272,7 +4272,7 @@
       }
     },
     {
-      "id": "b3fc775d-564b-4ba9-9560-c74863dff56e",
+      "id": "58fd8762-0899-4a14-968a-0961c4909f57",
       "name": "DevOps: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4311,7 +4311,7 @@
       }
     },
     {
-      "id": "2b4649db-7a63-4daa-b712-8c7c437e81d1",
+      "id": "815a94c6-6a68-4717-8df8-81ee307c6bae",
       "name": "DevOps: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4370,7 +4370,7 @@
       }
     },
     {
-      "id": "3e526912-5f1c-4cf9-b4d5-02af833e1ce0",
+      "id": "4b9c4649-8897-4c36-a850-501a386d4a97",
       "name": "DevOps: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4433,7 +4433,7 @@
       }
     },
     {
-      "id": "aa1d6c73-1fed-49f3-b53a-979bfa1357dd",
+      "id": "5d8ae89d-e5f3-4d80-8860-6167d0d74d04",
       "name": "DevOps: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4468,7 +4468,7 @@
       }
     },
     {
-      "id": "f52f1c1e-e816-4a37-97b8-b750f7c6e321",
+      "id": "7137469f-ff09-44f9-811a-7a5614b8ea8e",
       "name": "DevOps: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4507,7 +4507,7 @@
       }
     },
     {
-      "id": "f5984272-9020-4fb6-9272-d85f6f73a524",
+      "id": "7648aadd-a059-4b76-a5fd-4f31e0d10c74",
       "name": "Note: 11 · Production Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -4523,7 +4523,7 @@
       }
     },
     {
-      "id": "4d0570e0-52a8-495d-8e9d-0d222798f115",
+      "id": "00ebf28d-053d-478f-b47a-469579085332",
       "name": "Production Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -4543,7 +4543,7 @@
       "notesInFlow": true
     },
     {
-      "id": "486b6a78-a68a-4589-83e9-22c9ac8e286f",
+      "id": "d55f9439-5e4d-4329-a3c4-ad5c13391f0f",
       "name": "Production Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -4571,7 +4571,7 @@
       "notesInFlow": true
     },
     {
-      "id": "f1f0d524-23a7-43f0-b4b9-ece8dc505b6f",
+      "id": "6a5c8e11-b833-4a4a-95e1-cb5cf0ba6aea",
       "name": "Production: Shell",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4618,7 +4618,7 @@
       }
     },
     {
-      "id": "9b48e2e3-4e76-452c-a46a-a4a056e792d2",
+      "id": "6a61a34d-cc27-4cd5-9ee0-dad97dfb9aa5",
       "name": "Production: Job Status",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4657,7 +4657,7 @@
       }
     },
     {
-      "id": "3c18c7a5-51fd-4f40-a3e0-cfb2402cbc14",
+      "id": "9c1836e4-eff1-4e02-8711-f2ed80911bc8",
       "name": "Production: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4700,7 +4700,7 @@
       }
     },
     {
-      "id": "95aa1380-aeee-4091-b310-4b94203676ae",
+      "id": "c1b9a2ff-dfe9-4d25-a4f5-848615ba1e15",
       "name": "Production: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4743,7 +4743,7 @@
       }
     },
     {
-      "id": "db4446e7-37f4-4319-aa1b-c743603954aa",
+      "id": "0e0b9521-d780-44fe-8fca-a65d142917ce",
       "name": "Production: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4782,7 +4782,7 @@
       }
     },
     {
-      "id": "7e8f8feb-584b-46c8-9409-2e218cab23d7",
+      "id": "05f9cb11-894b-476f-a42f-cbf8e02c4171",
       "name": "Production: Resume Project",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4817,7 +4817,7 @@
       }
     },
     {
-      "id": "3241e3b0-9027-4fe7-9d81-e0a09561c159",
+      "id": "879aa89f-0ac6-4520-b992-4092dddd719c",
       "name": "Production: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4880,7 +4880,7 @@
       }
     },
     {
-      "id": "34a136eb-61f4-4ffa-91ba-c6562e5b7173",
+      "id": "259c1431-763b-4070-aaa9-39490a01b43d",
       "name": "Production: Antigravity CLI",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4939,7 +4939,7 @@
       }
     },
     {
-      "id": "99d0c709-cd88-47c9-84de-cf2018276644",
+      "id": "72335f3c-932c-44ce-ae45-5372148c92df",
       "name": "Production: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -4974,7 +4974,7 @@
       }
     },
     {
-      "id": "235b05c5-5d6e-4652-9d80-319d059bf061",
+      "id": "8cbb8c00-a450-47b1-82bc-0a8ad459a638",
       "name": "Production: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5013,7 +5013,7 @@
       }
     },
     {
-      "id": "28488902-c0c1-4308-926a-86fd8fa2c975",
+      "id": "bf73e1d6-9127-4481-be6c-27cc8eae5135",
       "name": "Note: 12 · SEO Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5029,7 +5029,7 @@
       }
     },
     {
-      "id": "2f3fbc3f-3d6e-46d6-ab65-f386686b202f",
+      "id": "b61f7c7d-0fda-4e7d-b986-375adf9ec2d3",
       "name": "SEO Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5049,7 +5049,7 @@
       "notesInFlow": true
     },
     {
-      "id": "4b0243b9-0063-42ea-888b-a51fe8ee33e4",
+      "id": "1a04010b-9768-46b9-9f52-5bd0b9eae361",
       "name": "SEO Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5077,7 +5077,7 @@
       "notesInFlow": true
     },
     {
-      "id": "ff9fa8cb-1874-42d2-a85f-923384b1e609",
+      "id": "7715930c-c2ae-4cb1-a9a8-745efb675b08",
       "name": "SEO: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5090,7 +5090,7 @@
       }
     },
     {
-      "id": "4a12542a-bd96-4a00-a444-f2ad97eb75a2",
+      "id": "0a5c3eeb-2a36-4f55-a396-1025dbfb7e9c",
       "name": "SEO: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5125,7 +5125,7 @@
       }
     },
     {
-      "id": "fcdbd9c2-685f-480b-84d2-d22ef7647cc2",
+      "id": "5e5f5ec6-a56a-41de-b788-0fd4f5870562",
       "name": "SEO: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5160,7 +5160,7 @@
       }
     },
     {
-      "id": "5bc9d990-d7dd-4938-913f-6f9b2de5190b",
+      "id": "86b1dc74-e3e5-449d-b33a-9e5c60a9746e",
       "name": "SEO: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5195,7 +5195,7 @@
       }
     },
     {
-      "id": "63d6ec71-fb20-4091-a057-b4b31eaece84",
+      "id": "a9263700-1147-47b4-84df-5d08feb34d89",
       "name": "SEO: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5238,7 +5238,7 @@
       }
     },
     {
-      "id": "c5727ed2-337d-419f-8229-51f79e1ee2f8",
+      "id": "e02c0c76-1370-475c-b50f-8d6bb4bbd1a9",
       "name": "SEO: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5281,7 +5281,7 @@
       }
     },
     {
-      "id": "d058d448-8757-42fe-bca2-081340830e76",
+      "id": "dcd9ff91-65cd-42ba-b589-e6c9995ed057",
       "name": "SEO: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5320,7 +5320,7 @@
       }
     },
     {
-      "id": "515cc666-8113-42ff-91e3-9d039782c4e5",
+      "id": "9e93e208-8ddc-4474-ad84-815a6276d280",
       "name": "SEO: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5383,7 +5383,7 @@
       }
     },
     {
-      "id": "5b432a42-4700-4ca5-94fe-916ed396cfb6",
+      "id": "5d53a22e-127b-4e3d-9f8c-0387f26a70b4",
       "name": "SEO: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5418,7 +5418,7 @@
       }
     },
     {
-      "id": "2e86bf1e-2a3e-4d14-8fb0-a52eb53cd641",
+      "id": "b9967eaa-c6ef-451a-a1c7-377b6607dc83",
       "name": "SEO: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5457,7 +5457,7 @@
       }
     },
     {
-      "id": "387ae2e9-b0a4-4179-b9aa-e41bcde3099c",
+      "id": "be7e5b1f-0422-4849-8f4f-f5368aaf7378",
       "name": "Note: 13 · Marketing Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5473,7 +5473,7 @@
       }
     },
     {
-      "id": "dfb48ac7-b2f7-49c8-8e81-fa627e9f9fb8",
+      "id": "80647402-a25b-43fb-a650-8e6ed7aad660",
       "name": "Marketing Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5493,7 +5493,7 @@
       "notesInFlow": true
     },
     {
-      "id": "a3fec861-09a0-4b60-9834-d695c074e1bc",
+      "id": "8c7ad6fd-c467-4a3b-887f-10b5bb8e75be",
       "name": "Marketing Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5521,7 +5521,7 @@
       "notesInFlow": true
     },
     {
-      "id": "1a26cac6-bbc7-47e4-95a1-3879c5c555eb",
+      "id": "65ee9c8a-0115-4028-8138-a373ec6057ba",
       "name": "Marketing: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5534,7 +5534,7 @@
       }
     },
     {
-      "id": "75b6c4ad-2751-4457-8c74-39c8c01d9ceb",
+      "id": "c498eb11-b20f-4fe9-b8a6-16dc62501891",
       "name": "Marketing: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5569,7 +5569,7 @@
       }
     },
     {
-      "id": "5c1630f9-1e84-4729-b929-088ff01252c4",
+      "id": "df4de283-f35f-4d62-b290-1eb0816d7344",
       "name": "Marketing: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5604,7 +5604,7 @@
       }
     },
     {
-      "id": "a09f667b-b495-46f4-8ef4-fd078d50aa2c",
+      "id": "d84eefd9-63f4-45f8-a2e2-124c3c6a76f6",
       "name": "Marketing: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5647,7 +5647,7 @@
       }
     },
     {
-      "id": "06d60f1f-29ba-418c-b506-ca37a8964dfd",
+      "id": "234e40da-f8f7-4053-8c9b-fbd981c06390",
       "name": "Marketing: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5690,7 +5690,7 @@
       }
     },
     {
-      "id": "bddb0858-9ded-4047-ba94-95ddf65e0b74",
+      "id": "ced995c4-70fb-4bfc-ad30-76465cdcc9e7",
       "name": "Marketing: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5729,7 +5729,7 @@
       }
     },
     {
-      "id": "492bb98f-cffa-4f57-a333-82045c4b68d9",
+      "id": "463a5a47-dd82-404a-97ae-b4fdaad232aa",
       "name": "Marketing: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5792,7 +5792,7 @@
       }
     },
     {
-      "id": "37a90b9e-8708-4d8a-8043-6d63da6e4564",
+      "id": "9bd22858-1ca7-485a-b028-369f34c7a3ba",
       "name": "Marketing: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5827,7 +5827,7 @@
       }
     },
     {
-      "id": "99bedb0a-93bc-4e29-9312-b9bb6f60ed16",
+      "id": "fca92dcd-a4b7-4d6a-89e2-174ca8cc07a7",
       "name": "Marketing: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5866,7 +5866,7 @@
       }
     },
     {
-      "id": "4e32960b-50e7-4325-9d8f-8477bb51bcfe",
+      "id": "d3927cce-b854-4501-bb86-fc36854cf33e",
       "name": "Marketing: Browser",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -5901,7 +5901,7 @@
       }
     },
     {
-      "id": "196bee0a-a847-40e6-8a0a-45142b5e2753",
+      "id": "22d3d000-828f-4a2c-8dd0-02564952b9eb",
       "name": "Note: 14 · Content Agent",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -5917,7 +5917,7 @@
       }
     },
     {
-      "id": "8e3be5d4-0b8f-4fd8-a492-7518826844f7",
+      "id": "2f3e00c5-034c-4a19-b3f4-04003a2d23c8",
       "name": "Content Agent",
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
@@ -5937,7 +5937,7 @@
       "notesInFlow": true
     },
     {
-      "id": "43def16a-3823-4ac3-84e0-d72448e4447a",
+      "id": "001cce1f-e7d4-4746-87f8-d08eb4f3dbaa",
       "name": "Content Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
@@ -5965,7 +5965,7 @@
       "notesInFlow": true
     },
     {
-      "id": "c356b844-096a-4803-9700-e520c113ef1b",
+      "id": "57a8b200-d8b4-4737-bbff-73fe902b19c2",
       "name": "Content: Think",
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
@@ -5978,7 +5978,7 @@
       }
     },
     {
-      "id": "4f12cd45-05fa-4092-b412-c3de494e92d9",
+      "id": "a1e89d70-79b2-4d45-a130-b5e8060a767c",
       "name": "Content: Web Search",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6013,7 +6013,7 @@
       }
     },
     {
-      "id": "c7aac137-61e1-46d2-b262-e7a2cc360054",
+      "id": "9d030215-4d88-4464-b546-c1077ec6b76f",
       "name": "Content: Fetch Page",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6048,7 +6048,7 @@
       }
     },
     {
-      "id": "92f7201a-7743-4ffc-8a22-18ab6e7d90ca",
+      "id": "97d46540-79b4-4f95-97f7-e616bef419c9",
       "name": "Content: Read File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6091,7 +6091,7 @@
       }
     },
     {
-      "id": "fbd35b1d-5f4c-4702-ad50-f3cb8482a1fa",
+      "id": "8ed5c879-589c-49f2-a0b0-7a781996f361",
       "name": "Content: Write File",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6134,7 +6134,7 @@
       }
     },
     {
-      "id": "9cf8e102-0db1-489f-88e5-b27fb209f078",
+      "id": "367b5de0-2367-4ac4-9fa1-261c53cf607f",
       "name": "Content: List Directory",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6173,7 +6173,7 @@
       }
     },
     {
-      "id": "0bb37b12-f021-4aa8-8e5e-1be46ce40895",
+      "id": "cca3b373-649f-40a2-af17-519853298a12",
       "name": "Content: Save Checkpoint",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6236,7 +6236,7 @@
       }
     },
     {
-      "id": "7e68b072-b616-43ab-a2d9-f07d9277d79f",
+      "id": "a2a5ed6f-4b88-49c7-8772-e564c82a4a6e",
       "name": "Content: List Skills",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -6271,7 +6271,7 @@
       }
     },
     {
-      "id": "14bd92de-7253-43bb-bd47-b19b0da44d15",
+      "id": "b7c5005c-5f6f-43ea-9c26-37bd69964f0a",
       "name": "Content: Read Skill",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.2,
@@ -8111,7 +8111,6 @@
     "executionOrder": "v1",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
-    "errorWorkflow": "DevPilotResume01",
     "callerPolicy": "workflowsFromSameOwner"
   }
 }

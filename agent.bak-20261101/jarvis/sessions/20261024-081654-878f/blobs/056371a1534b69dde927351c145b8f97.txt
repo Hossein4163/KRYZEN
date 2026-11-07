@@ -1,1 +1,0 @@
-{"exit_code": 1, "stdout": "ls: cannot access '/tmp/lighthouse-home.json': No such file or directory\n/tmp/lighthouse-home.json: cannot open `/tmp/lighthouse-home.json' (No such file or directory)\nhead: cannot open '/tmp/lighthouse-home.json' for reading: No such file or directory\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

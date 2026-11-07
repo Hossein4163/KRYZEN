@@ -1,1 +1,0 @@
-{"content": "Docker compose config is valid. Let me start the services.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"docker compose up -d 2>&1\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":120}", "name": "pc_shell"}, "id": "call-930acc78-75c9-4563-8ae5-568e8c6e0b34", "type": "function"}]}

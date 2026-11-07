@@ -9,6 +9,6 @@ All agents in Jarvis run directly on the **Antigravity CLI** (`agy`). No third-p
 | `agy/gemini-3-pro` | ✅ | ✅ | ✅ | Verified |
 | `agy/auto` | ✅ | ✅ | ✅ | Verified |
 
-- **Permissions**: Full auto-approval via `--dangerously-skip-permissions`.
-- **Sudo Privilege**: Password `33303330` available in all environments (`SUDO_PASSWORD`, `SUDO_PASS`).
+- **Permissions**: Strict permission boundaries by default; scoped access via runtime settings.
+- **Sudo Privilege**: Hardcoded credentials removed. Privilege escalation requires structured user approval.
 - **Orchestration**: Direct subagent spawning and multi-agent coordination managed via Antigravity CLI.

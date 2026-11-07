@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cat /tmp/dockerd.log 2>/dev/null | tail -30\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\"}", "name": "pc_shell"}, "id": "call-dcacd61b-c223-4bd3-a6ea-b620997f164a", "type": "function"}]}

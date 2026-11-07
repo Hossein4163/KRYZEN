@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"=== run with verbosity ===\\n    0 Error(s)\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-6265c5a8-4de7-459e-8801-7b1ffd7ea371"}

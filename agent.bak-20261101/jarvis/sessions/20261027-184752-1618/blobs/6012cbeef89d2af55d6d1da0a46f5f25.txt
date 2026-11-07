@@ -1,1 +1,0 @@
-{"content": "{\"error\": \"IsADirectoryError: [Errno 21] Is a directory: '/home/kry/Projects/devpilot/rame-studio/src/Infrastructure/Persistence/Migrations'\"}", "role": "tool", "tool_call_id": "call-1bb652f4-0897-4f01-9061-4e05d64f12f1"}

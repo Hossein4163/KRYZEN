@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "FRONTEND STARTED PID 3\n200---\n\n  VITE v6.4.5  ready in 304 ms\n\n  ➜  Local:   http://localhost:5174/\n  ➜  Network: use --host to expose\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

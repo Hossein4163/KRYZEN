@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/src/tests\", \"exists\": false, \"entries\": []}", "role": "tool", "tool_call_id": "call-8a5e0ea7-1e10-44ce-8264-53a19639ac96"}

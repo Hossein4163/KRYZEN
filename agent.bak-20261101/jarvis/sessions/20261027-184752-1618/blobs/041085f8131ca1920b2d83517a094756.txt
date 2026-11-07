@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 1, \"stdout\": \"\", \"stderr\": \"✗ CDP command timed out: Page.captureScreenshot\\n\", \"cwd\": \"/home/kry/Projects/devpilot\"}\n[playbook] Timed out: run long commands in the background and poll with pc_job_status instead of retrying blindly.", "role": "tool", "tool_call_id": "call-d961bff8-5b77-48c0-a1f9-7a533b3d4a1b"}

@@ -11,7 +11,24 @@ from projectdata import atomic_write
 
 FILE = mesh.SYS / "kryzen-runtime.json"
 DEFAULTS = {
-    "small_model": "agy/gemini-3.8-flash",   # Antigravity CLI model
+    # Model Provider & API
+    "active_provider": "auto",                        # auto | openai | ollama | agy
+    "openai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "openai_api_key": "",                             # API key (masked in UI responses)
+    "ollama_base_url": "http://127.0.0.1:11434",
+    # Role-Based Model Tiers
+    "tier_reasoning": "gemini-3.8-flash",             # Orchestrator, Architect, QA
+    "tier_fast": "gemini-3-flash",                    # Build, Design, Content, SEO, Marketing
+    "tier_compact": "gemini-3-flash",                 # diet.py, brain.py memory extraction
+    "small_model": "agy/gemini-3.8-flash",            # Antigravity CLI model
+    # Security & Execution Boundaries
+    "agy_skip_permissions": False,                    # strict permissions by default
+    # Network & Tailscale
+    "allow_tailscale": True,                          # allow access from *.ts.net and 100.64.0.0/10
+    "allow_lan": True,                                # allow access from 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
+    "tailscale_serve": False,                         # enable tailscale serve background proxy
+    "custom_allowed_hosts": "",                       # comma-separated extra hostnames/IPs
+    # Budgets & Execution
     "budget_tokens": 2000000,                         # per run (turn); 0 = unlimited. Parallel teams use ~10K/call
     "budget_minutes": 0,                              # per run; 0 = unlimited (long project runs are normal)
     "budget_hard_tokens": 10000000,                   # never auto-resume past this many tokens in one run (0 = no cap)
@@ -35,21 +52,24 @@ LIMITS = {"budget_hard_tokens": (0, 100_000_000), "auto_resume_seconds": (5, 360
 _lock = threading.Lock()
 
 
-def get():
+def get(mask_secrets=False):
     try:
         data = json.loads(FILE.read_text())
         if not isinstance(data, dict):
             data = {}
     except (OSError, ValueError):
         data = {}
-    return {**DEFAULTS, **{k: v for k, v in data.items() if k in DEFAULTS}}
+    out = {**DEFAULTS, **{k: v for k, v in data.items() if k in DEFAULTS}}
+    if mask_secrets and out.get("openai_api_key"):
+        out["openai_api_key"] = "••••••••"
+    return out
 
 
 def save(changes):
     if not isinstance(changes, dict):
         raise ValueError("settings must be an object")
     with _lock:
-        cur = get()
+        cur = get(mask_secrets=False)
         errors = []
         for key, value in changes.items():
             if key not in DEFAULTS:
@@ -70,11 +90,27 @@ def save(changes):
                     errors.append(f"{key} must be between {lo} and {hi}")
                     continue
             elif isinstance(default, str):
-                if not isinstance(value, str) or not 3 <= len(value) <= 120 or "/" not in value:
-                    errors.append(f"{key} must be a model id like vendor/model")
+                if not isinstance(value, str):
+                    errors.append(f"{key} must be a string")
                     continue
+                value = value.strip()
+                if key == "active_provider" and value not in ("auto", "openai", "ollama", "agy"):
+                    errors.append("active_provider must be auto, openai, ollama, or agy")
+                    continue
+                if key == "openai_api_key":
+                    # If masked or blank, preserve existing key
+                    if value == "••••••••" or (not value and cur.get("openai_api_key")):
+                        continue
+                if key in ("openai_base_url", "ollama_base_url") and value:
+                    if not value.startswith(("http://", "https://")):
+                        errors.append(f"{key} must start with http:// or https://")
+                        continue
+                if key in ("tier_reasoning", "tier_fast", "tier_compact", "small_model"):
+                    if not (2 <= len(value) <= 120):
+                        errors.append(f"{key} must be a valid model name")
+                        continue
             cur[key] = value
         if errors:
             return {"ok": False, "errors": errors}
         atomic_write(FILE, json.dumps(cur, indent=2))
-        return {"ok": True, "settings": cur}
+        return {"ok": True, "settings": get(mask_secrets=True)}

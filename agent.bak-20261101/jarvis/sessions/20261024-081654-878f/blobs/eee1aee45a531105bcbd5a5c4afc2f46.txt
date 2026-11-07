@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "=== curl 5278 ===\n000\n", "stderr": "tail: cannot open '/tmp/backend.log' for reading: No such file or directory\n", "cwd": "/home/kry/Projects/devpilot"}

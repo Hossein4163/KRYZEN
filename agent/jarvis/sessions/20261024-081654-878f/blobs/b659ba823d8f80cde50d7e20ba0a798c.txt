@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/frontend/Dockerfile\", \"bytes\": 463, \"revision\": \"0f32169eccc48279c0a96cd5d7f07acb04775d2ebdee10ae03d3370269e7daca\"}", "role": "tool", "tool_call_id": "call-d4b3e81d-6b71-4817-9691-48482dbd3568"}

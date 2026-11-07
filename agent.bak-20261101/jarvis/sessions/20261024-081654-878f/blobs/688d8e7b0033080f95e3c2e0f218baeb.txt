@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"tail -30 /tmp/dockerd.log 2>&1; echo \\\"---\\\"; ps aux | grep -i dock | grep -v grep\"}", "name": "pc_shell"}, "id": "call-5210ff91-761a-44d9-9c24-1fa6860154ed", "type": "function"}]}

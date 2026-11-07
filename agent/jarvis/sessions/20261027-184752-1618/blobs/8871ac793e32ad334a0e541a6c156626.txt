@@ -1,1 +1,0 @@
-{"content": "{\"path\": \"/home/kry/Projects/devpilot/rame-studio/docs/design/DESIGN.md\", \"bytes\": 10793, \"revision\": \"4a250988ebdf846c386d4c195ab5561285e81e1ca5142fb787fc8dbaef2a9897\"}", "role": "tool", "tool_call_id": "call-42d00e5a-3bff-4c0e-a4ce-15fa2c4ad380"}

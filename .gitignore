@@ -1,0 +1,26 @@
+# Secrets and machine-specific settings
+.env
+.env.*
+!.env.example
+agent/runtime.env
+agent/bridge/.token
+agent/.keys.env
+
+# Runtime data & logs
+agent/jarvis/sessions/
+agent/bridge/jobs/
+agent/skills
+agent/templates
+*.log
+
+# Generated & Cache
+__pycache__/
+*.pyc
+*.bak*
+*.copy/
+agent.bak*
+agent.copy/
+
+# Local screenshots & test dumps
+mesh_verified.png
+*.png.bak

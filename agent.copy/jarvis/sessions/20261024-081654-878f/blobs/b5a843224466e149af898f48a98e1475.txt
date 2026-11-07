@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/src/Api/wwwroot/robots.txt", "bytes": 68, "revision": "9b78a30205094958070b5b76d6b87ecb43c48285d31c1f231097e564b2d88ecc"}

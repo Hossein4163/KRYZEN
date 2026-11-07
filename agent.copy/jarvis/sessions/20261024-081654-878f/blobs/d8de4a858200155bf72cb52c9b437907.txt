@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"  \\\"scripts\\\": {\\n    \\\"dev\\\": \\\"vite\\\",\\n    \\\"build\\\": \\\"tsc -b && vite build\\\",\\n    \\\"preview\\\": \\\"vite preview\\\"\\n  },\\n  \\\"dependencies\\\": {\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-a0f23ec3-171e-43bf-a8b1-ee5e1a9f6535"}

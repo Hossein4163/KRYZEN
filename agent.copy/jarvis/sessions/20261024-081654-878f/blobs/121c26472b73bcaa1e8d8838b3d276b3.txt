@@ -1,1 +1,0 @@
-{"content": "Let me read the first 100 lines of PLAN.md for packages/pricing details.\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"path\":\"~/Projects/devpilot/rame-studio/docs/plan/PLAN.md\",\"offset\":1,\"limit\":100}", "name": "pc_read_file"}, "id": "call-98e0fbd3-efdb-449d-81b4-7108bdbec489", "type": "function"}]}

@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"---pg_ctl---\\n---initdb---\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-7c610997-2caf-41cd-9b97-2cd616c955dc"}

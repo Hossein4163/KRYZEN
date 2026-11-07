@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"en.json\\nfa.json\\ni18n.ts\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-83aaad96-c5e3-40d8-9eb0-1c1f2e86359a"}

@@ -1,1 +1,0 @@
-{"content": "All specialists returned. Let me confirm the Marketing Agent result (it was shortened).\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"id\":\"553acbfee1bc0784cf8d03e7daa704a5\"}", "name": "read_blob"}, "id": "call-184c6777-15ac-4a69-898f-2dc986526e8c", "type": "function"}]}

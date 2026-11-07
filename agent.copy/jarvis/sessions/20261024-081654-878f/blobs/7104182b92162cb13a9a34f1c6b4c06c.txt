@@ -1,1 +1,0 @@
-{"id": "d62a9a3685", "status": "finished", "exit_code": -9, "elapsed_s": 2, "output": "", "cwd": "/home/kry/Projects/devpilot/rame-studio"}

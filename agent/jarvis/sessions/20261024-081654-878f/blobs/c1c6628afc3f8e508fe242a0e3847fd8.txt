@@ -1,1 +1,0 @@
-{"content": null, "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"cat /tmp/api.log 2>&1 | head -60\"}", "name": "pc_shell"}, "id": "call-08d8199f-a23c-4b9d-aadc-bf557e99e00d", "type": "function"}]}

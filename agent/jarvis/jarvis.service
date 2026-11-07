@@ -5,9 +5,9 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-EnvironmentFile=/home/kryazzy/Space/n8n/agent/runtime.env
-WorkingDirectory=/home/kryazzy/Space/n8n/agent/jarvis
-ExecStart=/usr/bin/python3 /home/kryazzy/Space/n8n/agent/jarvis/server.py
+EnvironmentFile=/home/kryazzy/Space/K.R.Y.Z.E.N/agent/runtime.env
+WorkingDirectory=/home/kryazzy/Space/K.R.Y.Z.E.N/agent/jarvis
+ExecStart=/usr/bin/python3 /home/kryazzy/Space/K.R.Y.Z.E.N/agent/jarvis/server.py
 Restart=always
 RestartSec=3
 

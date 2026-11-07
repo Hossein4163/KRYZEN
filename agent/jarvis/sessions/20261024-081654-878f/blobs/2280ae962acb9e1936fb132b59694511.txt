@@ -1,1 +1,0 @@
-{"exit_code": 1, "stdout": "", "stderr": "✗ Failed to save screenshot to ~/Projects/devpilot/rame-studio/docs/qa/screenshots/r1/home-1920.png: No such file or directory (os error 2)\n", "cwd": "/home/kry/Projects/devpilot"}

@@ -1,1 +1,0 @@
-{"content": "Describe what you see in this image - is it a glassmorphism dashboard UI? [image]", "role": "user"}

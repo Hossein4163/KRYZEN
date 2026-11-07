@@ -1,1 +1,0 @@
-{"exit_code": 0, "stdout": "=== curl health ===\n\nHTTP 000\n", "stderr": "", "cwd": "/home/kry/Projects/devpilot"}

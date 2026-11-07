@@ -1,1 +1,0 @@
-{"content": "Now let me try to start Docker Compose:\n", "role": "assistant", "tool_calls": [{"function": {"arguments": "{\"cmd\":\"docker compose up -d 2>&1 || echo \\\"DOCKER_FAILED\\\"\",\"cwd\":\"/home/kry/Projects/devpilot/rame-studio\",\"timeout\":120}", "name": "pc_shell"}, "id": "call-dd07e5a3-f8b9-4bbf-80b3-0065e6a3c5dd", "type": "function"}]}

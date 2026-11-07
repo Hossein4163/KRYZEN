@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/docker-compose.yml", "bytes": 1477, "revision": "03fe528b5739dc3b88018f11d7b0ee3915e74ac980a172963777e25e7d7100a5"}

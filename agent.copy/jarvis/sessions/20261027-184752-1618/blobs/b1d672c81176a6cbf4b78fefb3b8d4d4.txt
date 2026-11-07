@@ -1,1 +1,0 @@
-{"path": "/home/kry/Projects/devpilot/rame-studio/src/Application/Common", "exists": true, "entries": ["Interfaces/", "Interfaces/IAppDbContext.cs", "Interfaces/IJwtTokenService.cs"]}

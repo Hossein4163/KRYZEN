@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 2, \"stdout\": \"sh: line 1: service: command not found\\n/run/postgresql:5432 - no response\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}\n[playbook] The tool is not on PATH in the sandbox: check the toolchain exists or use the project's local binary.", "role": "tool", "tool_call_id": "call-970082bc-abcc-4cc0-94eb-edfb14ad09be"}

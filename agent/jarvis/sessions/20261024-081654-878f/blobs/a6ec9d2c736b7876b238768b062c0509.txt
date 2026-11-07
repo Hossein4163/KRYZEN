@@ -1,1 +1,0 @@
-{"content": "{\"exit_code\": 0, \"stdout\": \"---postgres dirs---\\n---pg_isready---\\n127.0.0.1:5433 - accepting connections\\n\", \"stderr\": \"\", \"cwd\": \"/home/kry/Projects/devpilot\"}", "role": "tool", "tool_call_id": "call-1b0faa32-eeca-4c85-baa5-6ab91b619bbc"}
