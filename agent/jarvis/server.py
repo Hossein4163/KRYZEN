@@ -884,6 +884,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, bridge("/fs/list", {"path": q.get("path", ""), "depth": int(q.get("depth", 3))}))
             if u.path == "/api/file":
                 return self.send(200, bridge("/fs/read", {"path": q["path"], "limit": 2000}))
+            if u.path == "/api/isolated/list":
+                return self.send(200, codetools.list_isolated_box(q.get("slug", ""), q.get("box_id", "default")))
+            if u.path == "/api/git/branch/status":
+                return self.send(200, codetools.get_branch_change_status(q.get("slug", "")))
             self.send(404, {"error": "not found"})
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -1274,6 +1278,19 @@ class Handler(BaseHTTPRequestHandler):
                 before = len(QUEUE)
                 QUEUE[:] = [i for i in QUEUE if i["qid"] != body.get("qid")]
                 return self.send(200, {"ok": len(QUEUE) < before})
+        if u == "/api/isolated/create":
+            return self.send(200, codetools.create_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default"))))
+        if u == "/api/isolated/merge":
+            return self.send(200, codetools.merge_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default")),
+                                                               discard_on_success=body.get("discard_on_success", True)))
+        if u == "/api/isolated/discard":
+            return self.send(200, codetools.discard_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default"))))
+        if u == "/api/git/branch/create":
+            return self.send(200, codetools.create_change_branch(str(body.get("slug", "")), body.get("branch")))
+        if u == "/api/git/branch/commit":
+            return self.send(200, codetools.commit_change_branch(str(body.get("slug", "")), str(body.get("message", "agent change"))))
+        if u == "/api/git/branch/merge":
+            return self.send(200, codetools.merge_change_branch(str(body.get("slug", "")), body.get("branch"), approve=bool(body.get("approve", True))))
         if u == "/api/lane":
             s = get_session(body.get("id"))
             if not s or not s.running or not s.engine:

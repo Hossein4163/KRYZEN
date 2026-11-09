@@ -915,11 +915,22 @@ async function loadProjects() {
 async function showProject(slug) {
   const request = ++projectRequest;
   localStorage.setItem("jarvis.project", slug);
-  const p = await api("/api/project?slug=" + encodeURIComponent(slug)); const box = $("#pProject");
+  const [p, gitStatus] = await Promise.all([
+    api("/api/project?slug=" + encodeURIComponent(slug)),
+    api("/api/git/branch/status?slug=" + encodeURIComponent(slug)).catch(() => ({}))
+  ]);
+  const box = $("#pProject");
   if (request !== projectRequest || $("#proj").value !== slug) return;
   if (p.error) { box.innerHTML = `<div class="empty">${esc(p.error)}</div>`; return; }
   const st = p.state || {}; const [done, total] = (p.plan_progress || "0/0").split(" ")[0].split("/").map(Number);
+  const branchBanner = (gitStatus && gitStatus.pending_approval) ? `
+    <div class="next" style="border-color:#e60000;background:rgba(230,0,0,0.06);margin-bottom:12px">
+      <b>BRANCH READY FOR MERGE</b>
+      <p style="margin:4px 0">Branch <code>${esc(gitStatus.current_branch)}</code> (${gitStatus.commit_count} commit(s)) ready to merge into <code>${esc(gitStatus.default_branch)}</code>.</p>
+      <button class="btn primary" id="btnApproveBranchMerge" style="background:#e60000;border:none;margin-top:6px">Approve &amp; Merge to ${esc(gitStatus.default_branch)}</button>
+    </div>` : '';
   box.innerHTML = `
+    ${branchBanner}
     <div class="next"><b>NEXT ACTION</b>${esc(p.continuation?.reason || st.next_action || "—")}${p.continuation?.next_task ? `<p>${esc(p.continuation.next_task.id)} · ${esc(p.continuation.next_task.title)}</p>` : ""}<button class="btn" id="projectContinue">Continue project ↗</button></div>
     <dl class="kv"><dt>Status</dt><dd>${esc(String(st.status || "—").replace(/^[^\p{L}\p{N}]+/u, ""))}</dd><dt>Phase</dt><dd>${esc(st.phase || "—")}</dd>
       <dt>Milestone</dt><dd>${esc(st.milestone || "—")}</dd><dt>Last task</dt><dd>${esc(st.task || "—")}</dd>
@@ -935,6 +946,22 @@ async function showProject(slug) {
   box.querySelectorAll("[data-path]").forEach(li => li.onclick = () => openFile(li.dataset.path));
   $("#projectContinue").onclick = () => continueProject(slug);
   $("#projectContinue").disabled = runBusy || sending;
+  const btnMerge = $("#btnApproveBranchMerge");
+  if (btnMerge) {
+    btnMerge.onclick = async () => {
+      btnMerge.disabled = true;
+      btnMerge.textContent = "Merging…";
+      const res = await api("/api/git/branch/merge", { slug, approve: true });
+      if (res.ok) {
+        toast(`Merged branch ${res.branch} into ${res.default_branch}`, "ok");
+        showProject(slug);
+      } else {
+        toast(res.error || "Merge failed", "err");
+        btnMerge.disabled = false;
+        btnMerge.textContent = "Approve & Merge";
+      }
+    };
+  }
   loadTree(p.path);
 }
 async function loadTree(root) {
@@ -1269,8 +1296,30 @@ async function secModels() {
         <span id="mTestStatus" style="font-size:11px;font-family:var(--mono);color:var(--muted)">Click to test active endpoint latency &amp; credentials</span>
       </div>
 
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0">
+
+      <h2>Autonomous Agent Sandboxing &amp; Git Strategy</h2>
+      <p class="lead">Protect production files: stage edits in isolated boxes and merge changes via dedicated git branches upon test pass and user approval.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin:16px 0;padding:16px;background:#111;border:1px solid #282828;border-radius:4px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="mIsolatedBox" ${cfg.isolated_agent_box ? "checked" : ""} style="margin-top:3px">
+          <div>
+            <strong>Isolated Agent Box (Safe Staging)</strong>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">When enabled, every agent executes edits inside an isolated sandbox box (.devpilot/isolated/). After verification and full completion, changes are merged into the main project without conflicts or bugs.</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="mBranchPerChange" ${cfg.branch_per_change ? "checked" : ""} style="margin-top:3px">
+          <div>
+            <strong>Branch Per Change &amp; Approval Merge</strong>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Commit every change to its own dedicated branch (agent/&lt;slug&gt;-&lt;timestamp&gt;). Automatically detects main/master primary branch, runs automated test suites, and merges into main/master only after user approval.</div>
+          </div>
+        </label>
+      </div>
+
       <div class="formbar">
-        <button class="btn primary" id="mSaveRuntime">Save Model Settings</button>
+        <button class="btn primary" id="mSaveRuntime">Save Model &amp; Workflow Settings</button>
       </div>
 
       <hr style="border:none;border-top:1px solid #222;margin:24px 0">
@@ -1327,6 +1376,8 @@ async function secModels() {
       tier_fast: val("mTierFast"),
       tier_compact: val("mTierCompact"),
       ollama_base_url: val("mOllamaUrl"),
+      isolated_agent_box: Boolean($("#mIsolatedBox")?.checked),
+      branch_per_change: Boolean($("#mBranchPerChange")?.checked),
     };
     const key = val("mApiKey");
     if (key && key !== "••••••••") {

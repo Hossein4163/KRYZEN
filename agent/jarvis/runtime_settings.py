@@ -23,6 +23,8 @@ DEFAULTS = {
     "small_model": "agy/gemini-3.8-flash",            # Antigravity CLI model
     # Security & Execution Boundaries
     "agy_skip_permissions": False,                    # strict permissions by default
+    "isolated_agent_box": False,                      # run agent edits in isolated box
+    "branch_per_change": False,                       # commit changes to own branch & merge upon user approval
     # Network & Tailscale
     "allow_tailscale": True,                          # allow access from *.ts.net and 100.64.0.0/10
     "allow_lan": True,                                # allow access from 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12

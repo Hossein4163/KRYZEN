@@ -29,8 +29,10 @@ from vaultnotes import AGENT_NOTES, load_custom_tools, read_note  # noqa: E402
 from modelpolicy import RESPONSE_STYLE, model_options  # noqa: E402
 from orchestration import REQUESTS, TaskLedger, task_schema, source_path  # noqa: E402
 import brain  # noqa: E402
+import codetools  # noqa: E402
 import diet  # noqa: E402
 import media  # noqa: E402
+import project_logic  # noqa: E402
 import runtime_settings  # noqa: E402
 import telemetry  # noqa: E402
 TOOL_RESULT_LIMIT = 12000
@@ -1193,6 +1195,36 @@ class Engine:
 
         if tool.path == "/fs/write" and self.settings.get("review_mode") and self.approvals:
             self.review_write(agent, args)
+        if self.settings.get("isolated_agent_box") and self.project:
+            box_id = getattr(self, "_active_box_id", None) or f"box_{self.project}"
+            self._active_box_id = box_id
+            if tool.path == "/fs/write":
+                target = Path(args.get("path", "")).expanduser()
+                if not target.is_absolute():
+                    target = Path(self.project_root) / target
+                try:
+                    rel = str(target.resolve().relative_to(Path(self.project_root).resolve()))
+                except ValueError:
+                    rel = target.name
+                w_res = codetools.write_isolated_box(self.project, box_id, rel, args.get("content", ""))
+                return json.dumps({"ok": True, "path": str(target), "isolated": True, "box_id": box_id, "bytes": w_res.get("size", 0)})
+            if tool.path == "/fs/read":
+                target = Path(args.get("path", "")).expanduser()
+                if not target.is_absolute():
+                    target = Path(self.project_root) / target
+                try:
+                    rel = str(target.resolve().relative_to(Path(self.project_root).resolve()))
+                except ValueError:
+                    rel = target.name
+                r_box = codetools.read_isolated_box(self.project, box_id, rel)
+                if r_box.get("ok") and r_box.get("source") == "isolated":
+                    content = r_box.get("content", "")
+                    if args.get("raw"):
+                        return json.dumps({"path": str(target), "content": content, "size": len(content), "isolated": True})
+                    lines = content.splitlines()
+                    off, lim = int(args.get("offset") or 0), int(args.get("limit") or 400)
+                    body = "\n".join(f"{i + 1}\t{l}" for i, l in enumerate(lines[off:off + lim], start=off))
+                    return json.dumps({"path": str(target), "total_lines": len(lines), "content": body, "isolated": True})
         if tool.path == "/skills/read" and self.project_root and re.fullmatch(r"[a-z0-9][a-z0-9-]{1,63}", str(args.get("name", ""))):
             # Per-project override: <project>/.devpilot/skills/<name>.md replaces the shared vault text.
             override = json.loads(self.bridge("/fs/read", {"path": f"{self.project_root}/.devpilot/skills/{args['name']}.md",
@@ -1430,6 +1462,14 @@ class Engine:
     def respond(self, user_text, history, images=None):
         """One user turn through the orchestrator. history: prior [{'role','content'}] messages."""
         if self.project and self.project_root:
+            if self.settings.get("branch_per_change"):
+                b_res = codetools.create_change_branch(self.project)
+                if b_res.get("ok"):
+                    self._active_branch_id = b_res.get("branch")
+                    self.emit({"type": "branch_change", "branch": self._active_branch_id, "default_branch": b_res.get("default_branch")})
+            if self.settings.get("isolated_agent_box"):
+                self._active_box_id = f"box_{self.project}_{int(time.time())}"
+                codetools.create_isolated_box(self.project, self._active_box_id)
             ledger = self.execution_ledger()
             self._coordinator_record={'id':'coordinator-'+uuid.uuid4().hex[:12],'state':'running','task':user_text[:1500],'started':time.time()}
             previous=[{k:r[k] for k in ('id','state','task','result','checkpoint') if k in r} for r in ledger.data.get('coordinators',[])[-5:]]
@@ -1474,3 +1514,17 @@ class Engine:
         finally:
             if getattr(self, '_coordinator_record', None):
                 self._coordinator_record['finished']=time.time();self.ledger.save()
+            if getattr(self, '_active_box_id', None) and self.project:
+                merge_res = codetools.merge_isolated_box(self.project, self._active_box_id)
+                self.emit({"type": "isolated_merge", "ok": merge_res.get("ok"), "result": merge_res})
+                self._active_box_id = None
+            if getattr(self, '_active_branch_id', None) and self.project:
+                commit_res = codetools.commit_change_branch(self.project, f"agent: {user_text[:60]}")
+                test_res = project_logic.run_project_tests(self.project)
+                self.emit({
+                    "type": "branch_pending_approval",
+                    "branch": self._active_branch_id,
+                    "commit": commit_res,
+                    "tests": test_res
+                })
+                self._active_branch_id = None

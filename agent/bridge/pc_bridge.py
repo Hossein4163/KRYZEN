@@ -497,7 +497,14 @@ def _project_init(b):
 
 def h_project_list(_b):
     index = WORKSPACE / INDEX_FILE
-    dirs = sorted(p.name for p in WORKSPACE.iterdir() if p.is_dir() and not p.name.startswith((".", "_")) and (p / "PROJECT.md").exists())
+    dirs = []
+    if WORKSPACE.exists():
+        for p in WORKSPACE.iterdir():
+            if not p.is_dir() or p.name.startswith((".", "_")):
+                continue
+            if (p / "PROJECT.md").exists() or p.is_symlink():
+                dirs.append(p.name)
+    dirs = sorted(set(dirs))
     hidden = _hidden_projects()
     dirs = [d for d in dirs if d not in hidden]
     return {"workspace": str(WORKSPACE), "index": index.read_text() if index.exists() else "", "folders": dirs}
@@ -783,6 +790,33 @@ def h_project_folders(b):
             "dirs": [{"name": c.name, "path": str(c)} for c in dirs[:500]]}
 
 
+def _init_project_spec(target, slug):
+    spec_file = target / "PROJECT.md"
+    if not spec_file.exists():
+        today = time.strftime("%Y-%m-%d")
+        title = target.name.replace("-", " ").replace("_", " ").title()
+        content = f"""# {title}
+
+**Slug**: `{slug}`
+**Created**: {today}
+**Status**: 🟢 active
+**Goal**: Project linked from {target.name}
+
+## Architecture & Standards
+- Simplicity first, surgical changes, goal-driven verification.
+- Automated tests for all features and bug fixes.
+"""
+        try:
+            spec_file.write_text(content, encoding="utf-8")
+        except OSError:
+            pass
+    devpilot_dir = target / STATE_DIR
+    try:
+        devpilot_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+
 def h_project_link(b):
     """Add a folder as a project. Folders outside the workspace become agent-writable, so only the user's own click reaches this."""
     home = HOME.resolve()
@@ -800,9 +834,11 @@ def h_project_link(b):
         if target.name in hidden:
             hidden.discard(target.name)
             _write_workspace_json(HIDDEN_FILE, sorted(hidden))
+        _init_project_spec(target, target.name)
         return {"ok": True, "slug": target.name, "linked": False}
     for child in WORKSPACE.iterdir():
         if child.is_symlink() and child.resolve() == target:
+            _init_project_spec(target, child.name)
             return {"ok": True, "slug": child.name, "linked": True}
     base = re.sub(r"[^a-z0-9-]+", "-", target.name.lower()).strip("-")[:40]
     base = base if len(base) >= 2 else "project"
@@ -814,6 +850,7 @@ def h_project_link(b):
         if target not in roots:
             _write_workspace_json(LINKS_FILE, [str(r) for r in roots] + [str(target)])
     (WORKSPACE / slug).symlink_to(target, target_is_directory=True)
+    _init_project_spec(target, slug)
     return {"ok": True, "slug": slug, "linked": True}
 
 

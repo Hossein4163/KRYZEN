@@ -168,6 +168,7 @@ function openPicker() {
     const r = await api("/api/project/link", {path: cur.path});
     q("#pkUse").disabled = false;
     if (!r.ok) { q("#pkErr").textContent = r.error || (r.errors || []).join(" · ") || "That folder cannot be added."; return; }
+    localStorage.setItem("jarvis.project", r.slug);
     await window.loadProjects?.();
     collapsed = false;
     window.switchProject?.(r.slug);
