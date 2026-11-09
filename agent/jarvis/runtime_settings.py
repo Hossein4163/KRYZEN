@@ -25,6 +25,10 @@ DEFAULTS = {
     "agy_skip_permissions": False,                    # strict permissions by default
     "isolated_agent_box": False,                      # run agent edits in isolated box
     "branch_per_change": False,                       # commit changes to own branch & merge upon user approval
+    # Browser Automation Engine (Obscura V8 / Agent-Browser)
+    "browser_engine": "auto",                         # auto | obscura | agent-browser
+    "obscura_path": "/usr/local/bin/obscura",         # path to obscura binary
+    "obscura_stealth": True,                          # enable stealth mode (TLS impersonation, tracker blocking)
     # Network & Tailscale
     "allow_tailscale": True,                          # allow access from *.ts.net and 100.64.0.0/10
     "allow_lan": True,                                # allow access from 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
@@ -98,6 +102,12 @@ def save(changes):
                 value = value.strip()
                 if key == "active_provider" and value not in ("auto", "openai", "ollama", "agy"):
                     errors.append("active_provider must be auto, openai, ollama, or agy")
+                    continue
+                if key == "browser_engine" and value not in ("auto", "obscura", "agent-browser"):
+                    errors.append("browser_engine must be auto, obscura, or agent-browser")
+                    continue
+                if key == "obscura_path" and not value:
+                    errors.append("obscura_path cannot be empty")
                     continue
                 if key == "openai_api_key":
                     # If masked or blank, preserve existing key

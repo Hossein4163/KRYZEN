@@ -1318,6 +1318,35 @@ async function secModels() {
         </label>
       </div>
 
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0">
+
+      <h2>Headless Browser &amp; Automation Engine (Obscura V8)</h2>
+      <p class="lead">Ultralight Rust-native headless browser (30MB memory footprint, native V8 DOM, stealth TLS &amp; anti-tracker) for automated QA, scraping, screenshots, and visual testing.</p>
+
+      <div class="row">
+        ${field("Browser Engine", `<select id="mBrowserEngine">
+          <option value="auto" ${cfg.browser_engine === "auto" ? "selected" : ""}>Auto (Obscura Rust V8 if available, fallback to Agent-Browser)</option>
+          <option value="obscura" ${cfg.browser_engine === "obscura" ? "selected" : ""}>Obscura (Rust V8 Engine · ~30MB RAM · Stealth)</option>
+          <option value="agent-browser" ${cfg.browser_engine === "agent-browser" ? "selected" : ""}>Agent-Browser (Chromium CDP Runner · ~250MB RAM)</option>
+        </select>`, "Engine used for agent web interactions, page screenshots, and E2E verification.")}
+        ${field("Obscura Binary Path", `<input type="text" id="mObscuraPath" value="${esc(cfg.obscura_path || "/usr/local/bin/obscura")}">`, "Absolute path to the compiled obscura binary.")}
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin:16px 0;padding:16px;background:#111;border:1px solid #282828;border-radius:4px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="mObscuraStealth" ${cfg.obscura_stealth !== false ? "checked" : ""} style="margin-top:3px">
+          <div>
+            <strong>Obscura Stealth Mode &amp; TLS Impersonation</strong>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Emulates real Chrome browser fingerprint, TLS handshake characteristics, and blocks trackers/anti-bot traps without running full Chromium.</div>
+          </div>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin:12px 0 20px 0;padding:12px;background:#101010;border:1px solid #222">
+        <button type="button" class="btn primary" id="mTestBrowserBtn" style="background:#0066FF;border:none">⚡ Test Browser Engine</button>
+        <span id="mTestBrowserStatus" style="font-size:11px;font-family:var(--mono);color:var(--muted)">Probes active browser engine &amp; latency</span>
+      </div>
+
       <div class="formbar">
         <button class="btn primary" id="mSaveRuntime">Save Model &amp; Workflow Settings</button>
       </div>
@@ -1367,6 +1396,25 @@ async function secModels() {
     }
   };
 
+  // Test browser engine
+  $("#mTestBrowserBtn").onclick = async () => {
+    const status = $("#mTestBrowserStatus");
+    status.textContent = "Probing browser engine…";
+    status.style.color = "var(--color-accent)";
+    const res = await api("/api/browser/test", {});
+    if (res.ok) {
+      const eng = res.status?.active_engine || "obscura";
+      const ver = res.status?.obscura?.version || "0.2.6";
+      status.textContent = `✓ ${res.message || "Active"} (${ver}, ${res.latency_ms}ms)`;
+      status.style.color = "#44ff88";
+      toast(`Browser engine verified: ${eng} (${ver})`, "ok");
+    } else {
+      status.textContent = `⚠ ${res.error || "Probe failed"} (${res.latency_ms || 0}ms)`;
+      status.style.color = "#ff4444";
+      toast(res.error || "Browser test failed", "err");
+    }
+  };
+
   // Save runtime settings
   $("#mSaveRuntime").onclick = async () => {
     const newSettings = {
@@ -1378,6 +1426,9 @@ async function secModels() {
       ollama_base_url: val("mOllamaUrl"),
       isolated_agent_box: Boolean($("#mIsolatedBox")?.checked),
       branch_per_change: Boolean($("#mBranchPerChange")?.checked),
+      browser_engine: val("mBrowserEngine"),
+      obscura_path: val("mObscuraPath"),
+      obscura_stealth: Boolean($("#mObscuraStealth")?.checked),
     };
     const key = val("mApiKey");
     if (key && key !== "••••••••") {

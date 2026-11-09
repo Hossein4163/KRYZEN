@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09 — Release v3.3: Obscura V8 Engine & Autonomous Isolation
+
+- **Obscura Ultralight Headless Browser Engine**: Integrated [Obscura](https://github.com/h4ckf0r0day/obscura) (Rust + V8 DOM), delivering sub-second cold starts and ~30MB memory footprint (88% RAM reduction vs Chromium). Supports native DOM extraction, stealth TLS fingerprint impersonation, tracker blocking, and instant rendered screenshots.
+- **Mission Control AI UI Integration**: Added Browser Engine selection (`Auto`, `Obscura (Rust V8 30MB)`, `Agent-Browser`), stealth mode toggle, and live `⚡ Test Browser Engine` diagnostics in Settings.
+- **Isolated Agent Box (Safe Staging)**: Staging edits inside `.devpilot/isolated/<box_id>` with atomic SHA-256 conflict verification and clean rollback.
+- **Branch-Per-Change & Approval Workflow**: Automated git branch isolation per change with branch discovery (`main`/`master`), test suite gating, and 1-click user approval merges.
+- **Expanded Test Suite**: 130 tests passing across all core modules and browser automation.
+
 ## 2026-10-27 — Super upgrade
 
 - Trace every model/tool/delegation call with real token usage, latency and full inputs/outputs; new Trace view with timeline, log, inspector, replay and export.

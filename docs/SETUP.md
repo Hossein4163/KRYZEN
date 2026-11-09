@@ -34,7 +34,8 @@ You need these on your machine:
 | Git | Project history and checkpoints | `git --version` |
 | Antigravity CLI (`agy`) | The model every agent runs on | `agy --version` |
 | Bubblewrap (`bwrap`) | Sandboxes agent shell commands | `bwrap --version` |
-| Chromium | Browser QA and screenshots (optional) | `chromium --version` |
+| Obscura | Ultralight headless browser & V8 DOM automation (30MB RAM, stealth) | `obscura -V` |
+| Chromium | Browser QA and screenshots (optional fallback) | `chromium --version` |
 
 Arch and Omarchy:
 
@@ -46,6 +47,22 @@ Debian and Ubuntu:
 
 ```bash
 sudo apt install git python3 python3-pil bubblewrap chromium
+```
+
+### Installing Obscura (Ultralight Headless Browser Engine)
+
+Obscura is a Rust-native headless browser powered by the V8 JavaScript engine. It drops agent memory usage from ~250MB+ (Chromium) to ~30MB with sub-second startup, native DOM rendering, stealth TLS impersonation, and built-in anti-tracker protection.
+
+**Option A: Prebuilt binary (Recommended):**
+```bash
+curl -fsSL https://github.com/h4ckf0r0day/obscura/releases/latest/download/obscura-x86_64-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+sudo chmod +x /usr/local/bin/obscura /usr/local/bin/obscura-worker
+obscura -V
+```
+
+**Option B: Compile from source via Cargo:**
+```bash
+cargo install --git https://github.com/h4ckf0r0day/obscura --bin obscura
 ```
 
 Install `agy` and sign in by following Antigravity's own instructions. Agents can't run until this works, so test it now:

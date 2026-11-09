@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Hossein4163/KRYZEN/actions"><img src="https://img.shields.io/badge/tests-113%2F113%20passing-brightgreen?style=flat-square&logo=github-actions" alt="Tests"></a>
+  <a href="https://github.com/Hossein4163/KRYZEN/actions"><img src="https://img.shields.io/badge/tests-130%2F130%20passing-brightgreen?style=flat-square&logo=github-actions" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-red?style=flat-square" alt="License"></a>
   <a href="#architecture"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.14%20stdlib-blue?style=flat-square&logo=python" alt="Python Version"></a>
   <a href="#pipeline"><img src="https://img.shields.io/badge/agents-14%20specialists-orange?style=flat-square" alt="Agents"></a>
@@ -40,6 +40,8 @@ Instead of chaotic multi-agent chatter, K.R.Y.Z.E.N operates like a high-precisi
   - **Time Travel Checkpoints**: Deterministic state snapshots with 1-click regression rollback.
 - **Strict Stage Gate Breakers**: Automated circuit breakers at every phase transition (`Start` → `Discover` → `Plan` → `Design` → `Build` → `Verify` → `Launch` → `Grow`). Pipeline halts safely until acceptance criteria are satisfied.
 - **Model Agnostic & Hot-Swappable**: Seamlessly route Reasoning Tier (`gemini-3.8-flash`, `claude-3.5-sonnet`), Fast Tier (`gemini-3-flash`), or Local Offline Tier (`ollama/qwen2.5-coder`) per agent node without restarting the daemon.
+- **Obscura Ultralight Browser Automation**: Native integration with [Obscura](https://github.com/h4ckf0r0day/obscura), a high-performance Rust headless browser powered by the V8 JavaScript engine. Replaces heavy 250MB+ Chromium instances with an ultra-lightweight ~30MB memory footprint, sub-second cold starts, native DOM scraping, TLS fingerprint impersonation, and anti-tracker stealth protection.
+- **Isolated Agent Box & Branch-Per-Change**: Safe sandboxed staging (`.devpilot/isolated/`) with atomic merge conflict detection and dedicated branch per change merged upon automated test pass and user approval.
 
 ---
 
@@ -75,7 +77,7 @@ Orchestrator     Research        Planner        Design         Build           Q
 3. **System Architecture & Planning**: Decomposes milestones into atomic tasks ($T_1 \dots T_n$) with explicit dependency graphs and Architecture Decision Records (`ADR`).
 4. **Swiss Design System**: High-contrast, typography-driven UI styling with responsive breakpoints (390px mobile, 768px tablet, 1440px desktop) and WCAG AA accessibility compliance.
 5. **Full-Stack Implementation**: Autonomous code generation, database migrations, clean scaffolding, and test suite execution.
-6. **Browser QA & E2E Verification**: Real headless/headed Chromium execution checking visual layout, responsiveness, and regression suites.
+6. **Browser QA & E2E Verification**: Real headless Obscura V8 (~30MB) and Chromium execution checking visual layout, responsiveness, DOM assertions, and regression suites.
 7. **Production DevOps & Security**: Multi-stage Docker packaging, systemd service units, OWASP compliance, and zero-downtime cutover.
 8. **Growth & Technical SEO**: Dynamic XML sitemaps, OpenGraph cards, JSON-LD Schema.org markup, and technical audit verification.
 

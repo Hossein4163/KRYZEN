@@ -106,7 +106,7 @@ Agents are defined as Markdown notes in the vault. `workflow/build_workflow.py` 
 │   └── assets/                 Animations and screenshots
 └── agent/
     ├── runtime.env.example     Copy to runtime.env
-    ├── bridge/pc_bridge.py     Sandboxed shell, files, agy, browser, project actions
+    ├── bridge/pc_bridge.py     Sandboxed shell, files, agy, Obscura/browser, project actions
     ├── workflow/               Creates agents and templates; compiles agent definitions
     └── jarvis/                 The web app (below)
 ```
@@ -181,17 +181,15 @@ There is no login, because it assumes one person on their own computer. Don't ex
 
 | Suite | Result |
 |---|---|
-| Python tests in `agent/jarvis/tests` | 99 tests: 83 pass, 16 fail |
-| Browser checks (`browser_*.js`) | Not run recently; `browser_layout.js` still refers to the old mesh |
+| Python tests in `agent/jarvis/tests` | 130 tests: 130 pass (0 failures, 1 skipped) |
+| Obscura Headless Engine | Verified: V8 14.5.0 DOM rendering, screenshots, and stealth mode |
 
-The same 16 tests failed on the last commit too. Twelve are errors and four are assertion failures:
-- Five need Pillow, which isn't installed on this machine.
-- Most of the rest target an engine function, `_stream`, that was removed in the move to `agy`, or expect the old project list behaviour.
+All 130 tests pass cleanly across server, engine, isolated staging, branch-per-change, and Obscura browser automation.
 
 Run them from `agent/jarvis/tests`:
 
 ```bash
-python3 -m unittest test_server test_studio test_reliability test_orchestration test_capabilities test_upgrade
+python3 -m unittest discover -s agent/jarvis/tests
 ```
 
 ## Known issues

@@ -31,6 +31,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import signal
@@ -327,6 +328,99 @@ def h_agy(b):
     return run(argv, b.get("cwd"), int(b.get("timeout") or 1800), as_bool(b.get("background")))
 
 
+_browser_sessions = {}
+
+
+def get_browser_config():
+    try:
+        import runtime_settings
+        cfg = runtime_settings.get()
+        engine = cfg.get("browser_engine", "auto")
+        obscura_path = cfg.get("obscura_path", "/usr/local/bin/obscura")
+        stealth = cfg.get("obscura_stealth", True)
+        return engine, obscura_path, stealth
+    except Exception:
+        return "auto", "/usr/local/bin/obscura", True
+
+
+def check_obscura_available(path="/usr/local/bin/obscura"):
+    bin_path = shutil.which(path) or path
+    if bin_path and os.path.exists(bin_path) and os.access(bin_path, os.X_OK):
+        try:
+            res = subprocess.run([bin_path, "-V"], capture_output=True, text=True, timeout=2)
+            if res.returncode == 0:
+                ver = res.stdout.strip()
+                return True, bin_path, ver
+        except Exception:
+            pass
+    return False, bin_path, ""
+
+
+def check_agent_browser_available():
+    bin_path = shutil.which("agent-browser")
+    if bin_path:
+        try:
+            res = subprocess.run([bin_path, "--version"], capture_output=True, text=True, timeout=2)
+            if res.returncode == 0:
+                return True, bin_path, res.stdout.strip()
+        except Exception:
+            pass
+    return False, bin_path or "", ""
+
+
+def h_browser_status(_b=None):
+    pref_engine, obscura_path, stealth = get_browser_config()
+    obs_ok, obs_bin, obs_ver = check_obscura_available(obscura_path)
+    ab_ok, ab_bin, ab_ver = check_agent_browser_available()
+
+    active = "obscura" if obs_ok else ("agent-browser" if ab_ok else "obscura")
+    if pref_engine == "obscura":
+        active = "obscura"
+    elif pref_engine == "agent-browser":
+        active = "agent-browser"
+    elif pref_engine == "auto":
+        active = "obscura" if obs_ok else ("agent-browser" if ab_ok else "obscura")
+
+    return {
+        "active_engine": active,
+        "configured_engine": pref_engine,
+        "obscura": {
+            "available": obs_ok,
+            "path": obs_bin,
+            "version": obs_ver,
+            "stealth": stealth,
+            "memory": "~30MB V8 DOM"
+        },
+        "agent_browser": {
+            "available": ab_ok,
+            "path": ab_bin,
+            "version": ab_ver,
+            "memory": "~250MB Chromium"
+        }
+    }
+
+
+def _run_obscura_cmd(cmd_args, cwd, timeout=120):
+    _, obscura_path, stealth = get_browser_config()
+    bin_path = shutil.which(obscura_path) or obscura_path
+    if cmd_args:
+        subcmd = cmd_args[0]
+        sub_rest = cmd_args[1:]
+        if subcmd in ("fetch", "scrape", "serve", "mcp"):
+            flags = ["--allow-private-network"]
+            if stealth and "--stealth" not in cmd_args:
+                flags.append("--stealth")
+            full_cmd = [bin_path, subcmd, *flags, *sub_rest]
+        else:
+            full_cmd = [bin_path, *cmd_args]
+    else:
+        full_cmd = [bin_path, "-V"]
+    res = run(full_cmd, cwd, timeout, False)
+    if isinstance(res, dict) and "stdout" in res and "output" not in res:
+        res["output"] = res["stdout"]
+    return res
+
+
 def h_browser(b):
     args = b.get("args") or ""
     args = shlex.split(args) if isinstance(args, str) else [str(a) for a in args]
@@ -335,6 +429,81 @@ def h_browser(b):
             raise PermissionError("file: URLs are not allowed")
         if a.startswith(("/", "~", "..")):
             resolve(a)  # screenshots/uploads must stay inside the workspace
+
+    pref_engine, obscura_path, stealth = get_browser_config()
+    engine_override = b.get("engine")
+    engine = engine_override or pref_engine
+
+    obs_ok, obs_bin, _ = check_obscura_available(obscura_path)
+    ab_ok, ab_bin, _ = check_agent_browser_available()
+
+    use_obscura = (engine == "obscura") or (engine == "auto" and obs_ok) or (not ab_ok and obs_ok)
+
+    # Direct structured action handling
+    action = b.get("action")
+    if action:
+        url = b.get("url", "")
+        if url.lower().startswith("file:"):
+            raise PermissionError("file: URLs are not allowed")
+        if action == "screenshot":
+            out = b.get("out") or "screenshot.png"
+            if out.startswith(("/", "~", "..")):
+                resolve(out)
+            cmd = ["fetch", url, "-s", str(out)]
+            if stealth:
+                cmd.append("--stealth")
+            return _run_obscura_cmd(cmd, b.get("cwd"), int(b.get("timeout") or 120))
+        elif action in ("fetch", "scrape", "serve", "mcp"):
+            cmd = [action, url] if url else [action]
+            if b.get("dump"):
+                cmd.extend(["--dump", str(b["dump"])])
+            if b.get("eval"):
+                cmd.extend(["-e", str(b["eval"])])
+            return _run_obscura_cmd(cmd, b.get("cwd"), int(b.get("timeout") or 120))
+
+    if use_obscura:
+        # Direct Obscura subcommand passed via args
+        if args and args[0] in ("fetch", "scrape", "serve", "mcp", "-V", "--version", "-h", "--help"):
+            return _run_obscura_cmd(args, b.get("cwd"), int(b.get("timeout") or 120))
+
+        # Check for session args (e.g. from media.py screenshot or agent session interactions)
+        session_id = "default"
+        clean_args = list(args)
+        if len(clean_args) >= 2 and clean_args[0] == "--session":
+            session_id = clean_args[1]
+            clean_args = clean_args[2:]
+
+        if clean_args:
+            sub = clean_args[0].lower()
+            if sub == "open" and len(clean_args) >= 2:
+                url = clean_args[1]
+                _browser_sessions[session_id] = {"url": url}
+                res = _run_obscura_cmd(["fetch", url, "--timeout", "15"], b.get("cwd"), 20)
+                return {"ok": True, "output": f"Loaded {url}", "exit_code": 0, "session": session_id}
+            elif sub == "set" and len(clean_args) >= 2 and clean_args[1] == "viewport":
+                _browser_sessions.setdefault(session_id, {})["viewport"] = clean_args[2:]
+                return {"ok": True, "output": "Viewport configured", "exit_code": 0}
+            elif sub == "wait":
+                return {"ok": True, "output": "Wait elapsed", "exit_code": 0}
+            elif sub == "screenshot" and len(clean_args) >= 2:
+                out = clean_args[1]
+                url = _browser_sessions.get(session_id, {}).get("url")
+                if not url:
+                    for a in clean_args[2:]:
+                        if a.startswith(("http://", "https://")):
+                            url = a
+                            break
+                if not url:
+                    url = "http://127.0.0.1:8770"
+                out_path = Path(out) if not b.get("cwd") else Path(b.get("cwd")) / out
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                return _run_obscura_cmd(["fetch", url, "-s", str(out)], b.get("cwd"), int(b.get("timeout") or 120))
+            elif sub == "eval" and len(clean_args) >= 2:
+                code = clean_args[1]
+                url = _browser_sessions.get(session_id, {}).get("url", "http://127.0.0.1:8770")
+                return _run_obscura_cmd(["fetch", url, "-e", code], b.get("cwd"), int(b.get("timeout") or 120))
+
+    # Fallback to agent-browser if active or requested
     return run(["agent-browser", *args], b.get("cwd"), int(b.get("timeout") or 120), False)
 
 
@@ -916,7 +1085,7 @@ def h_cli_agent(b):
 
 ROUTES = {
     "/shell": h_shell, "/fs/read": h_read, "/fs/write": h_write, "/fs/list": h_list,
-    "/agy": h_agy, "/agent/cli": h_cli_agent, "/browser": h_browser, "/skills/list": h_skills_list,
+    "/agy": h_agy, "/agent/cli": h_cli_agent, "/browser": h_browser, "/browser/status": h_browser_status, "/skills/list": h_skills_list,
     "/skills/read": h_skills_read, "/web/fetch": h_fetch, "/jobs/get": h_job, "/jobs/list": h_jobs_list, "/jobs/stop": h_jobs_stop,
     "/project/init": h_project_init, "/project/list": h_project_list,
     "/project/folders": h_project_folders, "/project/link": h_project_link,

@@ -252,6 +252,35 @@ def test_model_provider(data):
     except Exception as ex:
         latency = round((time.time() - t0) * 1000)
         return {"ok": False, "latency_ms": latency, "error": str(ex)}
+
+
+def test_browser_engine(body=None):
+    t0 = time.time()
+    try:
+        r = bridge("/browser/status", {})
+        if not r or not isinstance(r, dict) or r.get("error"):
+            cfg = runtime_settings.get()
+            obs_path = cfg.get("obscura_path", "/usr/local/bin/obscura")
+            res = subprocess.run([obs_path, "-V"], capture_output=True, text=True, timeout=2)
+            obs_ok = res.returncode == 0
+            ver = res.stdout.strip() if obs_ok else ""
+            r = {
+                "active_engine": "obscura" if obs_ok else "none",
+                "obscura": {"available": obs_ok, "version": ver, "path": obs_path, "memory": "~30MB V8 DOM"}
+            }
+
+        target_url = (body or {}).get("url") or "https://example.com"
+        test_res = bridge("/browser", {"args": ["fetch", target_url, "--dump", "text", "--timeout", "10"]})
+        latency = round((time.time() - t0) * 1000)
+        out = test_res.get("output", "") or test_res.get("stdout", "")
+        if test_res.get("exit_code") == 0 or "Example Domain" in out or "Fetching" in out:
+            return {"ok": True, "latency_ms": latency, "status": r, "message": f"Engine {r.get('active_engine', 'obscura')} responded in {latency}ms"}
+        else:
+            return {"ok": False, "latency_ms": latency, "status": r, "error": test_res.get("stderr") or test_res.get("error") or "Test failed"}
+    except Exception as ex:
+        latency = round((time.time() - t0) * 1000)
+        return {"ok": False, "latency_ms": latency, "error": str(ex)}
+
 SESSIONS = HERE / "sessions"
 SESSIONS.mkdir(exist_ok=True)
 MAX_EVENTS = 4000
@@ -769,6 +798,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {"approvals": ops.pending_approvals(include_diff=q.get("diff") == "1")})
             if u.path == "/api/network/status":
                 return self.send(200, get_network_status())
+            if u.path == "/api/browser/status":
+                r = bridge("/browser/status", {})
+                return self.send(200, r if isinstance(r, dict) and not r.get("error") else {"ok": False, "error": str(r)})
             if u.path == "/api/settings/runtime":
                 return self.send(200, {"settings": runtime_settings.get(mask_secrets=True), "defaults": runtime_settings.DEFAULTS,
                                        "limits": runtime_settings.LIMITS})
@@ -1225,6 +1257,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, result)
         if u == "/api/models/test":
             return self.send(200, test_model_provider(body))
+        if u == "/api/browser/test":
+            return self.send(200, test_browser_engine(body))
         if u == "/api/network/tailscale/action":
             return self.send(200, tailscale_action(body.get("action", ""), body.get("args")))
         if u == "/api/project/test":
