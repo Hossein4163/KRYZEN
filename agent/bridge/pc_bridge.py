@@ -495,6 +495,33 @@ def _project_init(b):
             "next": "fill PROJECT.md, then run research into docs/research/BRIEF.md"}
 
 
+def _init_project_spec(target, slug):
+    spec_file = target / "PROJECT.md"
+    if not spec_file.exists():
+        today = time.strftime("%Y-%m-%d")
+        title = target.name.replace("-", " ").replace("_", " ").title()
+        content = f"""# {title}
+
+**Slug**: `{slug}`
+**Created**: {today}
+**Status**: 🟢 active
+**Goal**: Project linked from {target.name}
+
+## Architecture & Standards
+- Simplicity first, surgical changes, goal-driven verification.
+- Automated tests for all features and bug fixes.
+"""
+        try:
+            spec_file.write_text(content, encoding="utf-8")
+        except OSError:
+            pass
+    devpilot_dir = target / STATE_DIR
+    try:
+        devpilot_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+
 def h_project_list(_b):
     index = WORKSPACE / INDEX_FILE
     dirs = []
@@ -504,6 +531,11 @@ def h_project_list(_b):
                 continue
             if (p / "PROJECT.md").exists() or p.is_symlink():
                 dirs.append(p.name)
+                if not (p / "PROJECT.md").exists():
+                    try:
+                        _init_project_spec(p.resolve(), p.name)
+                    except Exception:
+                        pass
     dirs = sorted(set(dirs))
     hidden = _hidden_projects()
     dirs = [d for d in dirs if d not in hidden]
@@ -644,6 +676,8 @@ def h_project_resume(b):
     if not slug or not (WORKSPACE / slug).is_dir():
         return {"error": "no project to resume; call List Projects"}
     root = writable(resolve(slug))
+    if not (root / "PROJECT.md").exists():
+        _init_project_spec(root, slug)
     state = read_state(slug)
     project_path = resolve(root / "PROJECT.md")
     plan_path = resolve(root / "docs/plan/PLAN.md")
@@ -788,33 +822,6 @@ def h_project_folders(b):
     dirs = sorted((c for c in p.iterdir() if c.is_dir() and not c.name.startswith(".")), key=lambda c: c.name.lower())
     return {"path": str(p), "parent": str(p.parent) if p != home else "", "workspace": str(WORKSPACE),
             "dirs": [{"name": c.name, "path": str(c)} for c in dirs[:500]]}
-
-
-def _init_project_spec(target, slug):
-    spec_file = target / "PROJECT.md"
-    if not spec_file.exists():
-        today = time.strftime("%Y-%m-%d")
-        title = target.name.replace("-", " ").replace("_", " ").title()
-        content = f"""# {title}
-
-**Slug**: `{slug}`
-**Created**: {today}
-**Status**: 🟢 active
-**Goal**: Project linked from {target.name}
-
-## Architecture & Standards
-- Simplicity first, surgical changes, goal-driven verification.
-- Automated tests for all features and bug fixes.
-"""
-        try:
-            spec_file.write_text(content, encoding="utf-8")
-        except OSError:
-            pass
-    devpilot_dir = target / STATE_DIR
-    try:
-        devpilot_dir.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        pass
 
 
 def h_project_link(b):
