@@ -10,7 +10,6 @@ AGENT_DIR = Path(__file__).resolve().parent.parent
 WORKFLOW_DIR = AGENT_DIR / "workflow"
 sys.path.insert(0, str(WORKFLOW_DIR))
 from vaultnotes import AGENT_NOTES, write_note, note_intro
-import build_workflow
 
 SUPER = "agy/gemini-3.8-flash"
 SUDO_RULES = (
@@ -305,7 +304,6 @@ def main():
 
     # 4. Rebuild workflow
     print("\nRebuilding agents and vault views...")
-    res = build_workflow
     import subprocess
     cmd = [sys.executable, "-I", str(WORKFLOW_DIR / "build_workflow.py")]
     r = subprocess.run(cmd, capture_output=True, text=True)

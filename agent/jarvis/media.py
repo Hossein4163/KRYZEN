@@ -193,9 +193,9 @@ def preview_urls(text):
 ANALYZE_SCRIPT = r'''
 import json, sys
 try:
-    from PIL import Image
+    from PIL import Image, ImageChops
 except ImportError:
-    Image = None, ImageChops
+    raise SystemExit("Pillow is required for image analysis") from None
 mode, path = sys.argv[1], sys.argv[2]
 def lum(c):
     def ch(v):

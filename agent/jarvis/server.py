@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Jarvis: local web UI + standalone engine for the DevPilot agents.
 
-  http://127.0.0.1:8770        HUD (chat, live agent graph, project / files / activity panels)
+  http://127.0.0.1:8780        HUD (chat, live agent graph, project / files / activity panels)
   GET  /api/config             agents, models, tools (for the graph)
   GET  /api/sessions           saved conversations
   GET  /api/session?id=        one conversation (messages + recent events)
@@ -12,6 +12,9 @@
 
 Listens on localhost only. POSTs need the `X-Jarvis: 1` header and a same-origin Origin (blocks other sites).
 """
+import base64
+import binascii
+import hmac
 import ipaddress
 import json
 import os
@@ -30,6 +33,7 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import engine  # noqa: E402
+import brain  # noqa: E402
 import mesh  # noqa: E402
 import control  # noqa: E402
 import forms  # noqa: E402
@@ -41,6 +45,7 @@ import runtime_settings  # noqa: E402
 import skills2  # noqa: E402
 import telemetry  # noqa: E402
 import project_logic  # noqa: E402
+import bots  # noqa: E402
 from orchestration import REQUESTS  # noqa: E402
 from projectdata import atomic_write
 
@@ -48,72 +53,65 @@ HERE = Path(__file__).resolve().parent
 
 
 def get_bind_host():
-    if "JARVIS_HOST" in os.environ:
-        return os.environ["JARVIS_HOST"]
-    try:
-        cfg = runtime_settings.get(mask_secrets=False)
-        if cfg.get("allow_tailscale", True) or cfg.get("allow_lan", True):
-            return "0.0.0.0"
-    except Exception:
-        pass
-    return "127.0.0.1"
+    return os.environ.get("JARVIS_HOST", "127.0.0.1")
 
 
-HOST, PORT = get_bind_host(), int(os.environ.get("JARVIS_PORT", "8770"))
+HOST, PORT = get_bind_host(), int(os.environ.get("JARVIS_PORT", "8780"))
 LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "jarvis.local", "agy.local", "studio.local", "devpilot.local"}
 
 
 def is_allowed_ip(ip_str):
     try:
         ip = ipaddress.ip_address(ip_str)
-        if ip.is_loopback:
-            return True
-        cfg = runtime_settings.get(mask_secrets=False)
-        # Tailscale CGNAT range 100.64.0.0/10
-        if cfg.get("allow_tailscale", True) and ip in ipaddress.ip_network("100.64.0.0/10"):
-            return True
-        # Private LAN RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
-        if cfg.get("allow_lan", True) and ip.is_private:
-            return True
-    except Exception:
-        pass
-    return False
-
-
-def is_local_host(host_header):
-    if not host_header:
+    except ValueError:
         return False
-    h = host_header.strip().lower()
-    hostname = h.split(":", 1)[0]
-    if hostname in LOCAL_HOSTNAMES or hostname.endswith(".local"):
+    if ip.is_loopback:
         return True
-    cfg = runtime_settings.get(mask_secrets=False)
-    # Tailscale MagicDNS (*.ts.net)
-    if cfg.get("allow_tailscale", True) and hostname.endswith(".ts.net"):
+    cfg = runtime_settings.get()
+    if cfg["allow_tailscale"] and ip in ipaddress.ip_network("100.64.0.0/10"):
         return True
-    # Custom allowed hosts
-    custom = [c.strip().lower() for c in cfg.get("custom_allowed_hosts", "").split(",") if c.strip()]
-    if hostname in custom:
-        return True
-    return is_allowed_ip(hostname)
+    lan = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+    return cfg["allow_lan"] and any(ip in ipaddress.ip_network(net) for net in lan)
 
 
-def is_local_origin(origin_header):
-    if not origin_header:
+def host_parts(value, scheme="http"):
+    try:
+        parsed = urlparse(f"{scheme}://{value}")
+        if parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
+            return "", None
+        return (parsed.hostname or "").lower(), parsed.port or (443 if scheme == "https" else 80)
+    except ValueError:
+        return "", None
+
+
+def is_loopback_host(header):
+    hostname, _ = host_parts(header)
+    if hostname in LOCAL_HOSTNAMES:
         return True
     try:
-        parsed = urlparse(origin_header)
-        hostname = (parsed.hostname or "").lower()
-        if hostname in LOCAL_HOSTNAMES or hostname.endswith(".local"):
-            return True
-        cfg = runtime_settings.get(mask_secrets=False)
-        if cfg.get("allow_tailscale", True) and hostname.endswith(".ts.net"):
-            return True
-        custom = [c.strip().lower() for c in cfg.get("custom_allowed_hosts", "").split(",") if c.strip()]
-        if hostname in custom:
-            return True
-        return is_allowed_ip(hostname)
-    except Exception:
+        return ipaddress.ip_address(hostname).is_loopback
+    except ValueError:
+        return False
+
+
+def is_local_host(header):
+    hostname, _ = host_parts(header)
+    if not hostname:
+        return False
+    cfg = runtime_settings.get()
+    custom = {item.strip().lower() for item in cfg["custom_allowed_hosts"].split(",")}
+    return (is_loopback_host(header) or hostname in custom or is_allowed_ip(hostname)
+            or (cfg["allow_tailscale"] and hostname.endswith(".ts.net")))
+
+
+def is_local_origin(origin, host):
+    if not origin:
+        return True  # Non-browser clients use Authorization (or trusted loopback).
+    try:
+        parsed = urlparse(origin)
+        return (parsed.scheme in ("http", "https") and not (parsed.path or parsed.query or parsed.fragment)
+                and host_parts(parsed.netloc, parsed.scheme) == host_parts(host, parsed.scheme))
+    except ValueError:
         return False
 
 
@@ -163,44 +161,24 @@ def get_network_status():
         "tailscale_status": ts_status_text,
         "lan_ips": lan_ips,
         "port": PORT,
-        "allow_tailscale": cfg.get("allow_tailscale", True),
-        "allow_lan": cfg.get("allow_lan", True),
+        "allow_tailscale": cfg["allow_tailscale"],
+        "allow_lan": cfg["allow_lan"],
         "tailscale_serve": cfg.get("tailscale_serve", False),
         "bound_host": HOST,
     }
 
 
 def tailscale_action(action, args=None):
-    import shutil
-    tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale"
-    if not Path(tailscale_bin).exists():
-        return {"ok": False, "error": "Tailscale is not installed on this machine."}
-    try:
-        if action == "start_service":
-            res = subprocess.run(["sudo", "-n", "systemctl", "start", "tailscaled"], capture_output=True, text=True, timeout=5)
-            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
-        elif action == "up":
-            res = subprocess.run(["sudo", "-n", "tailscale", "up", "--reset"], capture_output=True, text=True, timeout=5)
-            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
-        elif action == "down":
-            res = subprocess.run(["sudo", "-n", "tailscale", "down"], capture_output=True, text=True, timeout=5)
-            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
-        elif action == "serve":
-            port = str(PORT)
-            res = subprocess.run(["sudo", "-n", "tailscale", "serve", "--bg", port], capture_output=True, text=True, timeout=5)
-            return {"ok": res.returncode == 0, "output": res.stdout or res.stderr}
-        return {"ok": False, "error": "Unknown tailscale action"}
-    except Exception as ex:
-        return {"ok": False, "error": str(ex)}
+    if action in ("start_service", "up", "down", "serve"):
+        return {"ok": False, "error": "Configure Tailscale through your system administrator or approved service tooling."}
+    return {"ok": False, "error": "Unknown Tailscale action"}
 
 
 def test_model_provider(data):
     provider = data.get("provider", "openai")
     cfg = runtime_settings.get(mask_secrets=False)
     base_url = data.get("base_url") or cfg.get("openai_base_url") or "https://generativelanguage.googleapis.com/v1beta/openai/"
-    api_key = data.get("api_key") or ""
-    if not api_key or api_key == "••••••••":
-        api_key = cfg.get("openai_api_key", "")
+    api_key = runtime_settings.provider_key()
     model = data.get("model") or cfg.get("tier_reasoning", "gemini-3.8-flash")
 
     t0 = time.time()
@@ -219,9 +197,11 @@ def test_model_provider(data):
             agy_bin = shutil.which("agy") or str(Path.home() / ".local/bin/agy")
             if not Path(agy_bin).exists():
                 return {"ok": False, "error": "agy CLI executable not found"}
-            res = subprocess.run([agy_bin, "--version"], capture_output=True, text=True, timeout=2)
+            res = engine.pc_bridge.run([agy_bin, "--version"], None, 3, False)
             latency = round((time.time() - t0) * 1000)
-            return {"ok": True, "provider": "agy", "latency_ms": latency, "message": f"Antigravity CLI available: {res.stdout.strip()}"}
+            if res.get("exit_code") != 0:
+                return {"ok": False, "error": res.get("error") or res.get("stderr") or "Antigravity CLI probe failed"}
+            return {"ok": True, "provider": "agy", "latency_ms": latency, "message": f"Antigravity CLI available: {res['stdout'].strip()}"}
         else:
             url = str(base_url).rstrip("/")
             if not url.endswith("/chat/completions"):
@@ -255,31 +235,31 @@ def test_model_provider(data):
 
 
 def test_browser_engine(body=None):
-    t0 = time.time()
+    started = time.monotonic()
+    status = bridge("/browser/status", {})
+    active = status.get("active_engine", "")
+    details = status.get(active.replace("-", "_"), {})
+    if not details.get("available"):
+        return {"ok": False, "status": status, "error": status.get("error") or "The selected browser engine is unavailable"}
+    result = {"ok": True, "status": status, "latency_ms": round((time.monotonic() - started) * 1000),
+              "message": f"{active} responded to its version check"}
+    target = (body or {}).get("url")
+    if not target:
+        return result
+    if not isinstance(target, str) or urlparse(target).scheme not in ("http", "https"):
+        return {**result, "ok": False, "error": "Enter an HTTP or HTTPS URL"}
+    session = "browser-test-" + uuid.uuid4().hex[:8]
+    args = ["--session", session, "open", target]
     try:
-        r = bridge("/browser/status", {})
-        if not r or not isinstance(r, dict) or r.get("error"):
-            cfg = runtime_settings.get()
-            obs_path = cfg.get("obscura_path", "/usr/local/bin/obscura")
-            res = subprocess.run([obs_path, "-V"], capture_output=True, text=True, timeout=2)
-            obs_ok = res.returncode == 0
-            ver = res.stdout.strip() if obs_ok else ""
-            r = {
-                "active_engine": "obscura" if obs_ok else "none",
-                "obscura": {"available": obs_ok, "version": ver, "path": obs_path, "memory": "~30MB V8 DOM"}
-            }
+        response = bridge("/browser", {"args": args, "timeout": 10})
+        if response.get("exit_code") != 0:
+            return {**result, "ok": False, "error": response.get("error") or response.get("stderr") or "Could not open the page"}
+        return {**result, "message": f"{active} opened the test page",
+                "latency_ms": round((time.monotonic() - started) * 1000)}
+    finally:
+        if active == "agent-browser":
+            bridge("/browser", {"args": ["--session", session, "close"], "timeout": 3})
 
-        target_url = (body or {}).get("url") or "https://example.com"
-        test_res = bridge("/browser", {"args": ["fetch", target_url, "--dump", "text", "--timeout", "10"]})
-        latency = round((time.time() - t0) * 1000)
-        out = test_res.get("output", "") or test_res.get("stdout", "")
-        if test_res.get("exit_code") == 0 or "Example Domain" in out or "Fetching" in out:
-            return {"ok": True, "latency_ms": latency, "status": r, "message": f"Engine {r.get('active_engine', 'obscura')} responded in {latency}ms"}
-        else:
-            return {"ok": False, "latency_ms": latency, "status": r, "error": test_res.get("stderr") or test_res.get("error") or "Test failed"}
-    except Exception as ex:
-        latency = round((time.time() - t0) * 1000)
-        return {"ok": False, "latency_ms": latency, "error": str(ex)}
 
 SESSIONS = HERE / "sessions"
 SESSIONS.mkdir(exist_ok=True)
@@ -288,7 +268,8 @@ MAX_HISTORY = 3000
 # Agent/tool events kept for the whole conversation so a page reload can rebuild the work cards and Activity log
 # (raw token/thinking events are only kept for the most recent part of the stream).
 HISTORY_TYPES = {"screenshot", "auto_continue", "fanout", "model_call", "budget", "memory", "approval_request", "approval_done", "rate_limit", "context",
-                 "turn_start", "turn_end", "agent_start", "agent_end", "tool_start", "tool_end", "retry", "parallel_run", "task_state", "request_state"}
+                 "turn_start", "turn_end", "agent_start", "agent_end", "tool_start", "tool_end", "retry", "parallel_run",
+                 "task_state", "request_state", "gate_wait", "isolated_pending", "branch_pending_approval"}
 SESSION_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
 
 
@@ -298,6 +279,7 @@ class Session:
         self.title, self.messages, self.events = title, [], []
         self.cond = threading.Condition()
         self.running, self.engine = False, None
+        self.turn_seq = None
         self.stop_requested = threading.Event()
         self.pause_requested = threading.Event()
         self.next_seq, self.project, self._saved_at = 0, "", 0
@@ -362,6 +344,7 @@ class Session:
 
     def run(self, text, project="", images=None):
         self.running = True
+        generation = self.turn_seq
         self.project = project
         if self.title == "New session":
             self.title = text.strip().splitlines()[0][:60]
@@ -376,7 +359,7 @@ class Session:
                                             approvals=lambda data, stop: ops.request_approval(self, data, stop),
                                             history_cache=self.summaries)
             if self.stop_requested.is_set():
-                self.engine.stop.set()
+                raise engine.Stopped()
             if self.pause_requested.is_set():
                 self.engine.pause_requested.set()
             history = [{"role": m["role"], "content": m["content"] + (f"\n[{len(m['images'])} image(s) were attached]"
@@ -384,30 +367,39 @@ class Session:
             outcome = "ok"
             paths = [str(media.upload_path(SESSIONS, i)) for i in (images or [])]
             reply = self.engine.respond(text, history, images=paths) if paths else self.engine.respond(text, history)
+            if self.stop_requested.is_set():
+                raise engine.Stopped()
             if reply.startswith("Reached the limit of"):
                 outcome = "limit"
-            self.messages.append({"role": "assistant", "content": reply, "t": time.time()})
-            self.emit({"type": "turn_end", "text": reply, "usage": trace.snapshot()})
-            if project and outcome == "ok" and runtime_settings.get().get("auto_screenshot", True):
-                threading.Thread(target=self._finished_screenshot, args=(project, len(self.messages) - 1), daemon=True).start()
+            event = {"text": reply, "usage": trace.snapshot()}
         except engine.Stopped:
             outcome = "stopped"
-            self.messages.append({"role": "assistant", "content": "⏹ Stopped. Say *continue* to resume.", "t": time.time()})
-            self.emit({"type": "turn_end", "text": "⏹ Stopped. Say continue to resume.", "stopped": True})
-        except Exception as e:
-            outcome = "transient" if _transient(e) else "error"
-            msg = f"⚠️ {type(e).__name__}: {e}\n\nSay *continue* to resume from the last checkpoint."
-            self.messages.append({"role": "assistant", "content": msg, "t": time.time()})
-            self.emit({"type": "turn_end", "text": msg, "error": True})
-        finally:
-            with self.cond:
-                self.running = False
-                self.save()
-                self.cond.notify_all()
-            try:
-                self._maybe_auto_continue(locals().get("outcome", "error"))
-            except Exception as e:  # noqa: BLE001 - scheduling must never break the run thread
-                print(f"[kryzen] auto-continue: {type(e).__name__}: {e}", flush=True)
+            event = {"text": "Stopped. Completed changes and checkpoints are kept. Say continue to start a new run.",
+                     "stopped": True}
+        except Exception as error:
+            if self.stop_requested.is_set():
+                outcome = "stopped"
+                event = {"text": "Stopped. Completed changes and checkpoints are kept.", "stopped": True}
+            else:
+                outcome = "transient" if _transient(error) else "error"
+                event = {"text": f"⚠️ {type(error).__name__}: {error}\n\nSay continue to resume from the last checkpoint.",
+                         "error": True}
+        with self.cond:
+            if self.stop_requested.is_set() and outcome != "stopped":
+                outcome = "stopped"
+                event = {"text": "Stopped. Completed changes and checkpoints are kept.", "stopped": True}
+            self.messages.append({"role": "assistant", "content": event["text"], "t": time.time()})
+            self.running = False
+            self.emit({"type": "turn_end", **event})
+            message_index = len(self.messages) - 1
+        if project and outcome == "ok" and runtime_settings.get().get("auto_screenshot", True):
+            threading.Thread(target=self._finished_screenshot, args=(project, message_index), daemon=True).start()
+        try:
+            with START_LOCK:
+                if self.turn_seq == generation and not self.running and not self.stop_requested.is_set():
+                    self._maybe_auto_continue(outcome)
+        except Exception as error:
+            print(f"[kryzen] auto-continue: {type(error).__name__}: {error}", flush=True)
 
     def _maybe_auto_continue(self, outcome):
         """After a step limit or a temporary failure, continue the project by itself (bounded, cancellable)."""
@@ -428,12 +420,10 @@ class Session:
                    "reason": "step limit reached" if outcome == "limit" else "temporary failure"})
 
         def fire():
-            if self._auto_token is not token:
-                return
-            self._auto_token = None
             with START_LOCK:
-                if self.running:
+                if self._auto_token is not token or self.running or self.stop_requested.is_set():
                     return
+                self._auto_token = None
                 code, body = start_turn(self, f"Continue project {self.project} from its saved checkpoint.",
                                         self.project, auto=True)
             if code != 200:
@@ -562,7 +552,7 @@ def start_turn(s, text, project, auto=False, images=None):
         s.engine = None
         s.running = True
         s.project = project
-        start = s.next_seq
+        start = s.turn_seq = s.next_seq
     threading.Thread(target=s.run, args=(text, project, images), daemon=True).start()
     return 200, {"id": s.id, "from_seq": start, "project": project}
 
@@ -583,6 +573,9 @@ def dispatch_queue():
         items = list(QUEUE)
     for item in items:
         with START_LOCK:
+            with QUEUE_LOCK:
+                if item not in QUEUE:
+                    continue
             try:
                 s = get_session(item["session"], create=not item["session"])
             except ValueError:
@@ -622,6 +615,8 @@ def dashboard():
             e = s.engine
             sessions.append({"id": s.id, "title": s.title, "project": s.project,
                              "paused": bool(e and e.paused.is_set()),
+                             "pause_requested": bool(s.pause_requested.is_set() or (e and e.pause_requested.is_set())),
+                             "stopping": s.stop_requested.is_set(), "turn_seq": s.turn_seq,
                              "usage": e.trace.snapshot() if e and e.trace else None,
                              "budget": e.budget.state(e.tokens_used()) if e else None,
                              "lanes": _lanes(s)})
@@ -639,7 +634,7 @@ def dashboard():
             pass
     return {"running": sessions, "queue": queue, "recent": recent, "approvals": ops.pending_approvals(),
             "gate": REQUESTS.snapshot(), "usage": telemetry.usage_summary(SESSIONS / "_usage.jsonl"),
-            "projects": ops.projects_overview(bridge, studio.plan_get), "settings": runtime_settings.get()}
+            "projects": ops.projects_overview(bridge, studio.plan_get), "settings": runtime_settings.get(mask_secrets=True)}
 
 
 def _lanes(s):
@@ -653,7 +648,6 @@ def _lanes(s):
 
 def bridge(path, body):
     e = engine.Engine.__new__(engine.Engine)
-    e.bridge_token = engine.secret(engine.AGENT_DIR / "bridge" / ".token")
     return json.loads(engine.Engine.bridge(e, path, body))
 
 
@@ -666,6 +660,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
         if code >= 400:
             self.send_header("Connection", "close")
             self.close_connection = True
@@ -676,24 +673,57 @@ class Handler(BaseHTTPRequestHandler):
         if "/api/events" not in str(args[0] if args else ""):
             print(f"[jarvis] {fmt % args}", flush=True)
 
+    def authorize(self):
+        if not is_local_host(self.headers.get("Host", "")):
+            self.send(403, {"error": "unrecognized host"})
+            return False
+        token = os.environ.get("JARVIS_ACCESS_TOKEN", "")
+        peer = ipaddress.ip_address(self.client_address[0])
+        if not peer.is_loopback and not is_allowed_ip(str(peer)):
+            self.send(403, {"error": "network access is disabled for this client"})
+            return False
+        if not token and peer.is_loopback and is_loopback_host(self.headers["Host"]):
+            return True
+        auth = self.headers.get("Authorization", "")
+        scheme, _, provided = auth.partition(" ")
+        if scheme.lower() == "basic":
+            try:
+                _, _, provided = base64.b64decode(provided, validate=True).decode().partition(":")
+            except (ValueError, binascii.Error):
+                provided = ""
+        elif scheme.lower() != "bearer":
+            provided = ""
+        if token and hmac.compare_digest(provided.encode(), token.encode()):
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="K.R.Y.Z.E.N", charset="UTF-8"')
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        return False
+
     def do_GET(self):
+        if not self.authorize():
+            return
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
         try:
             if u.path in ("/", "/index.html"):
-                # Opened as an unknown alias: move to the real address.
-                if not is_local_host(self.headers.get("Host", "")):
-                    self.send_response(302)
-                    self.send_header("Location", f"http://{HOST}:{PORT}{self.path}")
-                    self.send_header("Content-Length", "0")
-                    self.end_headers()
-                    return
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+            app_files = {
+                "/manifest.webmanifest": "application/manifest+json; charset=utf-8",
+                "/service-worker.js": "text/javascript; charset=utf-8",
+                "/offline.html": "text/html; charset=utf-8",
+            }
+            if u.path in app_files:
+                return self.send(200, (HERE / u.path[1:]).read_bytes(), app_files[u.path])
             if u.path == "/favicon.ico":
                 return self.send(204, b"", "image/x-icon")
             if u.path.startswith("/assets/"):
-                asset_path = HERE / u.path[1:]
-                if asset_path.is_file():
+                asset_root = (HERE / "assets").resolve()
+                asset_path = (asset_root / u.path[len("/assets/"):]).resolve()
+                if asset_root in asset_path.parents and asset_path.is_file():
                     ext = asset_path.suffix.lower()
                     mimes = {
                         ".js": "text/javascript; charset=utf-8",
@@ -713,7 +743,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, (HERE / "ui" / name).read_bytes(),
                                  "text/javascript; charset=utf-8" if name.endswith(".js") else "text/css; charset=utf-8")
             if u.path == "/health":
-                return self.send(200, {"ok": True, "active_runs": sum(s.running for s in list(LIVE.values()))})
+                return self.send(200, {"ok": True, "workspace_ready": any(mesh.AGENT_NOTES.glob("*.md")),
+                                       "active_runs": sum(s.running for s in list(LIVE.values()))})
             if u.path == "/api/ax/status":
                 import shutil
                 import subprocess
@@ -829,8 +860,9 @@ class Handler(BaseHTTPRequestHandler):
                 agents = engine.load_agents()
                 info = {n["name"]: n for n in mesh.notes()}
                 info[engine.ORCHESTRATOR] = next((n for n in info.values() if n["orchestrator"]), {})
+                stages = mesh.agent_stages(agents, engine.ORCHESTRATOR)
                 return self.send(200, {"agents": [{
-                    "name": a.name, "model": a.model.split("/")[-1], "steps": a.max_iter, "description": a.description,
+                    "name": a.name, "stage": stages[a.name], "model": a.model.split("/")[-1], "steps": a.max_iter, "description": a.description,
                     "color": info.get(a.name, {}).get("color", "gray"), "role": info.get(a.name, {}).get("role", ""),
                     "skills": info.get(a.name, {}).get("skills", []),
                     "tools": [{"name": t.name, "title": t.title, "kind": t.kind} for t in a.tools]}
@@ -838,7 +870,10 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/mesh":
                 return self.send(200, mesh.mesh())
             if u.path == "/api/mesh/gates":
-                return self.send(200, {"ok": True, "gates": mesh.get_gates()})
+                project = q.get("project", "")
+                if project:
+                    studio._project(bridge, project)
+                return self.send(200, {"ok": True, "project": project, "gates": mesh.get_gates(project)})
             if u.path.startswith("/api/form/"):
                 getter = {"appearance": forms.appearance_get, "blocks": forms.blocks_get, "tools": forms.tools_get,
                           "skills": forms.skills_get, "models": forms.models_get}.get(u.path.rsplit("/", 1)[1])
@@ -893,6 +928,7 @@ class Handler(BaseHTTPRequestHandler):
                 cut = active_from if s.running else s.next_seq
                 return self.send(200, {"id": s.id, "title": s.title, "running": s.running, "messages": s.messages,
                                        "next_seq": s.next_seq, "project": s.project, "active_from": active_from,
+                                       "turn_seq": s.turn_seq, "stopping": s.running and s.stop_requested.is_set(),
                                        "history": [e for e in s.history if e.get("seq", 0) < cut],
                                        "paused": bool(s.engine and s.engine.paused.is_set()),
                                        "pause_requested": s.pause_requested.is_set() or bool(s.engine and s.engine.pause_requested.is_set())})
@@ -916,10 +952,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, bridge("/fs/list", {"path": q.get("path", ""), "depth": int(q.get("depth", 3))}))
             if u.path == "/api/file":
                 return self.send(200, bridge("/fs/read", {"path": q["path"], "limit": 2000}))
+            if u.path == "/api/isolated/boxes":
+                slug = q.get("slug", "")
+                studio._project(bridge, slug)
+                return self.send(200, {"boxes": codetools.list_isolated_boxes(slug)})
             if u.path == "/api/isolated/list":
                 return self.send(200, codetools.list_isolated_box(q.get("slug", ""), q.get("box_id", "default")))
             if u.path == "/api/git/branch/status":
                 return self.send(200, codetools.get_branch_change_status(q.get("slug", "")))
+            if u.path == "/api/bots":
+                return self.send(200, {"ok": True, "bots": bots.list_bots(bridge)})
+            if u.path == "/api/bot":
+                return self.send(200, {"ok": True, "bot": bots.get_bot(q.get("id", ""))})
+            if u.path == "/api/bots/computer":
+                return self.send(200, bots.get_bot_computer(bridge, q.get("id", ""), q.get("slug", "")))
             self.send(404, {"error": "not found"})
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -963,15 +1009,18 @@ class Handler(BaseHTTPRequestHandler):
             s.touched = time.time()
 
     def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Jarvis")
-        self.end_headers()
+        if self.authorize():
+            self.send(405, {"error": "cross-origin requests are not supported"})
 
     def do_POST(self):
+        if not self.authorize():
+            return
+        if not is_local_origin(self.headers.get("Origin", ""), self.headers["Host"]):
+            return self.send(403, {"error": "origin does not match this app"})
         try:
             u = urlparse(self.path).path
+            if u in ("/v1/chat/completions", "/mcp") and self.headers.get_content_type() != "application/json":
+                return self.send(415, {"error": "send a JSON request"})
             if u == "/v1/chat/completions":
                 self.handle_openai_proxy()
                 return
@@ -997,7 +1046,11 @@ class Handler(BaseHTTPRequestHandler):
         """POST /v1/chat/completions: OpenAI Proxy Route to K.R.Y.Z.E.N specialist agents."""
         try:
             length = int(self.headers.get("Content-Length") or 0)
+            if not 0 <= length <= 4000000:
+                return self.send(413, {"error": "request too large"})
             body = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            if not isinstance(body, dict):
+                raise ValueError("body must be an object")
         except Exception as e:
             return self.send(400, {"error": {"message": f"Invalid JSON body: {e}", "type": "invalid_request_error"}})
 
@@ -1031,9 +1084,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-cache")
-            self.send_header("Connection", "keep-alive")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
             self.end_headers()
+            self.close_connection = True
 
             def emit_token(tok):
                 chunk = {
@@ -1079,7 +1132,11 @@ class Handler(BaseHTTPRequestHandler):
         """POST /mcp: Model Context Protocol (MCP) JSON-RPC 2.0 endpoint."""
         try:
             length = int(self.headers.get("Content-Length") or 0)
+            if not 0 <= length <= 4000000:
+                return self.send(413, {"error": "request too large"})
             rpc = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            if not isinstance(rpc, dict):
+                raise ValueError("body must be an object")
         except Exception as e:
             return self.send(400, {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}})
 
@@ -1121,7 +1178,7 @@ class Handler(BaseHTTPRequestHandler):
                             "fact": {"type": "string", "description": "Fact to record for remember"},
                             "project": {"type": "string", "description": "Project slug (optional)"}
                         },
-                        "required": ["action"]
+                        "required": ["action", "project"]
                     }
                 },
                 {
@@ -1159,13 +1216,29 @@ class Handler(BaseHTTPRequestHandler):
                     out_text = eng.run_agent(target, t_task, [])
 
                 elif tool_name == "kryzen_project_memory":
+                    project = str(args.get("project", ""))
+                    studio._project(bridge, project)
+                    path = codetools._root(project) + "/" + brain.MEMORY_PATH
                     action = args.get("action")
+                    stored = bridge("/fs/read", {"path": path, "raw": True})
+                    missing = "not found" in str(stored.get("error", "")).lower() or "no such file" in str(stored.get("error", "")).lower()
+                    if stored.get("error") and not missing:
+                        raise ValueError(stored["error"])
                     if action == "remember":
-                        fact = args.get("fact", "")
-                        out_text = f"Stored memory fact: {fact}"
+                        line = brain.memory_line(args.get("fact", ""), "fact")
+                        data = {"path": path, "content": line, "append": True}
+                        if missing:
+                            data = {"path": path, "content": brain.MEMORY_HEADER + line, "create_only": True}
+                        result = bridge("/fs/write", data)
+                        if result.get("error"):
+                            raise ValueError(result["error"])
+                        out_text = "Remembered."
+                    elif action == "recall":
+                        entries = brain.parse_memory(stored.get("content", ""))
+                        hits = brain.recall(entries, str(args.get("query", "")), k=5)
+                        out_text = json.dumps(hits, ensure_ascii=False)
                     else:
-                        query = args.get("query", "")
-                        out_text = json.dumps(brain.recall(query, k=5), ensure_ascii=False)
+                        raise ValueError("choose remember or recall")
 
                 elif tool_name == "kryzen_skills":
                     action = args.get("action")
@@ -1193,10 +1266,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
     def post(self):
-        origin = self.headers.get("Origin", "")
-        if self.headers.get("X-Jarvis") != "1" or not is_local_origin(origin):
-            print(f"[jarvis] refused POST {self.path}: origin={origin!r} x-jarvis={self.headers.get('X-Jarvis')!r}",
-                  flush=True)
+        if self.headers.get("X-Jarvis") != "1":
             return self.send(403, {"error": "forbidden"})
         try:
             length = int(self.headers.get("Content-Length") or 0)
@@ -1262,7 +1332,11 @@ class Handler(BaseHTTPRequestHandler):
         if u == "/api/network/tailscale/action":
             return self.send(200, tailscale_action(body.get("action", ""), body.get("args")))
         if u == "/api/project/test":
-            return self.send(200, project_logic.run_project_tests(str(body.get("slug", "")), str(body.get("framework", "auto"))))
+            slug = str(body.get("slug", ""))
+            studio._project(bridge, slug)
+            framework = str(body.get("framework", "auto"))
+            return self.send(200, codetools.verify_change_branch(
+                slug, lambda: project_logic.run_project_tests(slug, framework, bridge=bridge)))
         if u in ("/api/project/remove", "/api/project/rename"):
             if any(x.running for x in list(LIVE.values())):
                 return self.send(409, {"error": "Finish or stop the current run first."})
@@ -1271,6 +1345,7 @@ class Handler(BaseHTTPRequestHandler):
             old, new = str(body.get("slug", "")), str(body.get("name", "")).strip()
             result = bridge("/project/rename", {"slug": old, "name": new})
             if result.get("ok"):
+                mesh.rename_project_gates(old, new)
                 for live in list(LIVE.values()):
                     if live.project == old:
                         live.project = new
@@ -1298,7 +1373,9 @@ class Handler(BaseHTTPRequestHandler):
                                                                str(body.get("goal", "")),
                                                                str(body.get("template", "node"))))
         if u == "/api/project/reference/save":
-            return self.send(200, project_logic.save_project_reference(str(body.get("slug", "")), str(body.get("title", "")),
+            slug = str(body.get("slug", ""))
+            studio._project(bridge, slug)
+            return self.send(200, project_logic.save_project_reference(slug, str(body.get("title", "")),
                                                                       str(body.get("url", "")), str(body.get("category", "General"))))
         if u == "/api/code/slash":
             slug = str(body.get("slug", ""))
@@ -1312,19 +1389,34 @@ class Handler(BaseHTTPRequestHandler):
                 before = len(QUEUE)
                 QUEUE[:] = [i for i in QUEUE if i["qid"] != body.get("qid")]
                 return self.send(200, {"ok": len(QUEUE) < before})
-        if u == "/api/isolated/create":
-            return self.send(200, codetools.create_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default"))))
-        if u == "/api/isolated/merge":
-            return self.send(200, codetools.merge_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default")),
-                                                               discard_on_success=body.get("discard_on_success", True)))
-        if u == "/api/isolated/discard":
-            return self.send(200, codetools.discard_isolated_box(str(body.get("slug", "")), str(body.get("box_id", "default"))))
+        if u in ("/api/isolated/create", "/api/isolated/merge", "/api/isolated/discard"):
+            slug = str(body.get("slug", ""))
+            box_id = str(body.get("box_id", "default"))
+            studio._project(bridge, slug)
+            with START_LOCK:
+                if any(run.running and run.project == slug for run in list(LIVE.values())):
+                    return self.send(409, {"error": "Stop or finish the current run before changing its box."})
+                if u.endswith("/create"):
+                    result = codetools.create_isolated_box(slug, box_id)
+                elif u.endswith("/discard"):
+                    result = codetools.discard_isolated_box(slug, box_id)
+                elif body.get("approve") is True:
+                    result = codetools.merge_isolated_box(slug, box_id)
+                else:
+                    return self.send(400, {"error": "Confirm the staged changes before applying the box."})
+            return self.send(200 if result["ok"] else 409, result)
         if u == "/api/git/branch/create":
             return self.send(200, codetools.create_change_branch(str(body.get("slug", "")), body.get("branch")))
         if u == "/api/git/branch/commit":
             return self.send(200, codetools.commit_change_branch(str(body.get("slug", "")), str(body.get("message", "agent change"))))
         if u == "/api/git/branch/merge":
-            return self.send(200, codetools.merge_change_branch(str(body.get("slug", "")), body.get("branch"), approve=bool(body.get("approve", True))))
+            slug = str(body.get("slug", ""))
+            studio._project(bridge, slug)
+            with START_LOCK:
+                if any(run.running and run.project == slug for run in list(LIVE.values())):
+                    return self.send(409, {"error": "Wait for the active run to finish before merging."})
+                result = codetools.merge_change_branch(slug, body.get("branch"), body.get("approve"), commit=body.get("commit"))
+            return self.send(200 if result["ok"] else 409, result)
         if u == "/api/lane":
             s = get_session(body.get("id"))
             if not s or not s.running or not s.engine:
@@ -1335,6 +1427,20 @@ class Handler(BaseHTTPRequestHandler):
             s.engine.cancelled_tasks.add(task_id)
             s.emit({"type": "lane_cancel", "task_id": task_id})
             return self.send(200, {"ok": True})
+        if u == "/api/bots/save":
+            return self.send(200, bots.save_bot(body))
+        if u == "/api/bots/delete":
+            return self.send(200, bots.delete_bot(str(body.get("id", ""))))
+        if u == "/api/bots/run":
+            bot_id = str(body.get("id", ""))
+            prompt = str(body.get("prompt", ""))
+            slug = str(body.get("slug", ""))
+            mode = str(body.get("mode", "auto"))
+            background = body.get("background", True)
+            return self.send(200, bots.run_bot(bridge, bot_id, prompt, slug, mode=mode, background=background))
+        if u == "/api/bots/routine":
+            bot_id = str(body.get("id", ""))
+            return self.send(200, bots.add_or_update_routine(bot_id, body.get("routine", {})))
         if u == "/api/memory":
             slug = str(body.get("slug", ""))
             studio._project(bridge, slug)
@@ -1388,26 +1494,29 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404, {"error": "unknown skills action"})
         if u == "/api/run-control":
             s = get_session(body.get("id"))
-            if not s or not s.running:
+            if not s:
                 return self.send(409, studio.fail("no active run to control"))
             action = body.get("action")
             if action not in ("pause", "resume", "hold"):
                 return self.send(400, studio.fail("action must be pause, resume or hold"))
-            if action == "hold":
-                if s.engine:
-                    s.engine.hold_auto_resume()
-                return self.send(200, {"ok": True, "state": "held"})
-            if action == "pause":
-                s.pause_requested.set()
-                if s.engine:
-                    s.engine.pause_requested.set()
-                state = "pause_requested"
-            else:
-                s.pause_requested.clear()
-                if s.engine:
-                    s.engine.pause_requested.clear()
-                state = "running"
-            event = s.emit({"type": "run_state", "state": state})
+            with s.cond:
+                if not s.running or s.stop_requested.is_set() or body.get("turn_seq", s.turn_seq) != s.turn_seq:
+                    return self.send(409, studio.fail("this run is no longer available"))
+                if action == "hold":
+                    if s.engine:
+                        s.engine.hold_auto_resume()
+                    return self.send(200, {"ok": True, "state": "held"})
+                if action == "pause":
+                    s.pause_requested.set()
+                    if s.engine:
+                        s.engine.pause_requested.set()
+                    state = "paused" if s.engine and s.engine.paused.is_set() else "pause_requested"
+                else:
+                    s.pause_requested.clear()
+                    if s.engine:
+                        s.engine.pause_requested.clear()
+                    state = "running"
+                event = s.emit({"type": "run_state", "state": state})
             return self.send(200, {"ok": True, "state": state, "seq": event["seq"]})
         if u in ("/api/chat", "/api/continue"):
             if not isinstance(body.get("project", ""), str):
@@ -1445,7 +1554,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(code, result)
         if u.startswith("/api/mesh/"):
             if u == "/api/mesh/gate":
-                return self.send(200, mesh.set_gate(body.get("stage"), body.get("locked")))
+                project = str(body.get("project", ""))
+                if project:
+                    studio._project(bridge, project)
+                return self.send(200, mesh.set_gate(body.get("stage"), body.get("locked"), project))
             action = {"save": mesh.save, "create": mesh.create, "archive": mesh.archive}.get(u.rsplit("/", 1)[1])
             if not action:
                 return self.send(404, {"error": "unknown mesh action"})
@@ -1506,16 +1618,7 @@ class Handler(BaseHTTPRequestHandler):
                     prompt = body.get("prompt", "")
                     styles = body.get("styles", {})
                     file_hint = body.get("file", "")
-                    # Auto checkpoint before patch
-                    codetools.vibe_checkpoint(bridge, slug, f"pre-patch: {selector}")
-                    all_agents = engine.load_agents()
-                    build_agent = None
-                    for a in all_agents.values():
-                        if "build" in a.name.lower() or "engineer" in a.name.lower():
-                            build_agent = a
-                            break
-                    if not build_agent:
-                        build_agent = list(all_agents.values())[0]
+                    studio._project(bridge, slug)
                     patch_task = (
                         f"SURGICAL UI HOT-PATCH for element matching selector `{selector}` in project `{slug}`.\n"
                         f"User Request: {prompt}\n"
@@ -1523,9 +1626,12 @@ class Handler(BaseHTTPRequestHandler):
                         f"Current Computed Styles: {json.dumps(styles)}\n"
                         f"Instructions: Apply minimal, surgical edits strictly to resolve the user's styling/UI request. Do not refactor unrelated code."
                     )
-                    eng = engine.Engine(emit=lambda ev: None, project=slug)
-                    result_text = eng.run_agent(build_agent, patch_task, [])
-                    return self.send(200, {"ok": True, "result": result_text, "selector": selector})
+                    with START_LOCK:
+                        session = get_session(body.get("id"), create=True)
+                        if session is None:
+                            return self.send(404, {"error": "conversation not found"})
+                        code, result = start_turn(session, patch_task, slug)
+                    return self.send(code, {**result, "ok": code == 200})
             except Exception as e:
                 return self.send(200, {"ok": False, "error": str(e)})
             return self.send(404, {"error": "unknown vibe action"})
@@ -1563,15 +1669,33 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404, {"error": "unknown control action"})
         if u == "/api/stop":
             s = get_session(body.get("id"))
-            if s and s.running:
+            if not s:
+                return self.send(404, {"error": "conversation not found"})
+            with START_LOCK, s.cond:
+                if body.get("turn_seq", s.turn_seq) != s.turn_seq:
+                    return self.send(409, {"error": "the selected run has already ended"})
                 s.stop_requested.set()
-                if s.engine:
-                    s.engine.stop.set()
-            return self.send(200, {"stopping": bool(s and s.running)})
+                s.pause_requested.clear()
+                s.cancel_auto_continue()
+                with QUEUE_LOCK:
+                    before = len(QUEUE)
+                    QUEUE[:] = [item for item in QUEUE if item["session"] != s.id]
+                    cancelled = before - len(QUEUE)
+                event = None
+                if s.running:
+                    if s.engine:
+                        s.engine.request_stop()
+                    event = s.emit({"type": "run_state", "state": "stopping"})
+                result = {"ok": True, "stopping": s.running, "cancelled_queue": cancelled}
+                if event:
+                    result["seq"] = event["seq"]
+            return self.send(200, result)
         self.send(404, {"error": "not found"})
 
 
 if __name__ == "__main__":
+    if not is_loopback_host(HOST) and not os.environ.get("JARVIS_ACCESS_TOKEN"):
+        raise SystemExit("Set JARVIS_ACCESS_TOKEN before enabling a non-loopback bind.")
     print(f"[jarvis] http://{HOST}:{PORT}", flush=True)
     threading.Thread(target=housekeeping, daemon=True, name="kryzen-housekeeping").start()
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

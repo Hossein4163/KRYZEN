@@ -41,7 +41,7 @@ export function onEvent(fn) { window.addEventListener("kryzen:event", e => fn(e.
 export function onMode(fn) { window.addEventListener("kryzen:mode", e => fn(e.detail)); }
 export function activeMode() {
   const b = document.body.classList;
-  return b.contains("home-mode") ? "home" : b.contains("trace-mode") ? "trace" : "";
+  return b.contains("home-mode") ? "home" : b.contains("trace-mode") ? "trace" : b.contains("bots-mode") ? "bots" : "";
 }
 
 // Render a unified diff with add/remove colouring (safe: text only).

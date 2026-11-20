@@ -1,13 +1,14 @@
 // Entry point for the K.R.Y.Z.E.N modules (Home, Trace, palette, review) plus small chat/Activity additions.
 import {$, esc, fmtMs, fmtTokens, onEvent, setMode, shortAgent} from "./core.js";
 import "./review.js";
-import "./dashboard.js";
+import "./dashboard.js?v=3.1";
+import "./bots.js?v=3.1";
 import "./trace.js";
-import "./palette.js";
+import "./palette.js?v=3.1";
 import "./runstatus.js";
 import "./chatcompact.js";
 import "./media.js";
-import "./projects.js";
+import "./projects.js?v=3.1";
 import {askNotifyPermission} from "./review.js";
 
 // Ask for notification permission on the first user interaction (browsers require a gesture).

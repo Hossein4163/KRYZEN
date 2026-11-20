@@ -1,7 +1,12 @@
 // Command palette (Ctrl+K / ⌘K): every view, action, conversation, project, file and setting from the keyboard.
 import {api, currentProject, currentSession, esc, setMode, toast} from "./core.js";
 
-let box = null, items = [], shown = [], cursor = 0;
+let dialog = null;
+
+const GROUP_ICONS = {
+  "Go to": "arrow-up-right", Actions: "list-todo", Conversations: "message-square-plus",
+  Projects: "folder", Settings: "sliders-horizontal", Files: "file-code"
+};
 
 const VIEWS = [
   ["home", "Home dashboard"],
@@ -36,7 +41,7 @@ function collectStatic() {
 
   add("Actions", "New chat session", () => document.getElementById("newBtn")?.click(), "");
   add("Actions", "New project…", () => document.getElementById("newProjectBtn")?.click());
-  add("Actions", "Continue selected project", () => (window.continueProject || window.continueProject)?.(), currentProject());
+  add("Actions", "Continue selected project", () => window.continueProject?.(), currentProject());
   add("Actions", "Pause / resume active run", () => document.getElementById("pauseBtn")?.click());
   add("Actions", "Stop active run", () => document.getElementById("stopBtn")?.click());
   add("Actions", "Trace active conversation", () => {
@@ -71,7 +76,7 @@ async function collectDynamic() {
 
   try {
     const [sessions, projects] = await Promise.all([api("/api/sessions"), api("/api/projects")]);
-    (sessions.sessions || []).forEach(s => add("Conversations", s.title || s.id, () => window.openSession?.(s.id), (s.running ? "● running · " : "") + (s.project || "")));
+    (sessions.sessions || []).forEach(s => add("Conversations", s.title || s.id, async () => { if (await window.openSession(s.id)) window.showChat(); }, (s.running ? "● running · " : "") + (s.project || "")));
     (projects.folders || []).forEach(p => add("Projects", p, () => { window.switchProject?.(p); toast("Project: " + p, "ok"); }));
     const slug = currentProject();
     if (slug) {
@@ -88,69 +93,142 @@ async function collectDynamic() {
 
 function score(item, q) {
   if (!q) return 1;
-  const t = (item.label + " " + item.group + " " + item.hint).toLowerCase();
-  if (t.includes(q)) return 100 - t.indexOf(q);
+  const label = item.label.toLowerCase();
+  if (label === q) return 300;
+  const titleMatch = label.indexOf(q);
+  if (titleMatch >= 0) return 200 + 1 / (1 + titleMatch);
+  const searchable = (label + " " + item.group + " " + item.hint).toLowerCase();
+  const match = searchable.indexOf(q);
+  if (match >= 0) return 100 + 1 / (1 + match);
   let i = 0;
-  for (const ch of q) { i = t.indexOf(ch, i); if (i < 0) return 0; i++; }
+  for (const ch of q) { i = searchable.indexOf(ch, i); if (i < 0) return 0; i++; }
   return 10;
 }
 
-function draw(q) {
-  q = q.trim().toLowerCase();
-  shown = items.map(it => [score(it, q), it]).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0]).slice(0, 80).map(([, it]) => it);
-  if (!q) shown.sort((a, b) => ["Go to", "Actions", "Conversations", "Projects", "Settings", "Files"].indexOf(a.group) - ["Go to", "Actions", "Conversations", "Projects", "Settings", "Files"].indexOf(b.group));
-  cursor = Math.min(cursor, Math.max(0, shown.length - 1));
-  let last = "";
-  box.querySelector("ul").innerHTML = shown.map((it, n) => {
-    const head = it.group !== last ? `<li class="group" role="presentation">${esc(it.group)}</li>` : ""; last = it.group;
-    return head + `<li role="option" id="kzp${n}" data-n="${n}" aria-selected="${n === cursor}">${esc(it.label)}<small>${esc(it.hint)}</small></li>`;
-  }).join("") || '<li class="group">No matches</li>';
-  box.querySelector("input").setAttribute("aria-activedescendant", "kzp" + cursor);
-  box.querySelector(`#kzp${cursor}`)?.scrollIntoView({block: "nearest"});
-}
-
-function close() { box?.remove(); box = null; }
-async function run(it) {
-  close();
-  try {
-    await it.run();
-  } catch (e) {
-    toast(e.message, "err");
-  }
-}
-
 export function openPalette() {
-  if (box) return close();
-  box = document.createElement("div");
-  box.className = "kz-palette";
-  box.innerHTML = `<div class="kz-palette-box" role="dialog" aria-label="Command palette"><input type="text" placeholder="Type a view, setting, project or file…" role="combobox" aria-expanded="true" aria-controls="kzpList" aria-autocomplete="list"><ul id="kzpList" role="listbox"></ul></div>`;
-  document.body.appendChild(box);
-  const input = box.querySelector("input");
-  box.addEventListener("mousedown", e => { if (e.target === box) close(); });
-  box.querySelector("ul").addEventListener("click", e => { const li = e.target.closest("[data-n]"); if (li) run(shown[+li.dataset.n]); });
-  input.addEventListener("input", () => { cursor = 0; draw(input.value); });
-  input.addEventListener("keydown", e => {
-    if (e.key === "Escape") { e.preventDefault(); close(); }
-    else if (e.key === "ArrowDown") { e.preventDefault(); cursor = Math.min(shown.length - 1, cursor + 1); draw(input.value); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); cursor = Math.max(0, cursor - 1); draw(input.value); }
-    else if (e.key === "Enter" && shown[cursor]) { e.preventDefault(); run(shown[cursor]); }
-  });
-  input.focus();
+  if (dialog?.open) return dialog.close();
+  dialog?.remove();
+  const panel = document.createElement("dialog");
+  panel.className = "workspace-search";
+  panel.setAttribute("aria-labelledby", "workspaceSearchTitle");
+  panel.innerHTML = `
+    <div class="workspace-search-content">
+      <header class="workspace-search-header">
+        <h2 id="workspaceSearchTitle">Search workspace</h2>
+        <button type="button" class="btn" data-search-close aria-label="Close search">Esc</button>
+      </header>
+      <label class="workspace-search-field">
+        <i class="icon-search" aria-hidden="true"></i>
+        <input id="workspaceSearchQuery" type="search" placeholder="Commands, projects, files…" aria-label="Search workspace"
+          autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true"
+          aria-controls="workspaceSearchResults" aria-autocomplete="list" autofocus>
+      </label>
+      <div id="workspaceSearchResults" class="workspace-search-results" role="listbox" aria-label="Search results"></div>
+      <div class="workspace-search-empty" role="status" hidden>No matches. Try a different search.</div>
+      <footer class="workspace-search-footer"><span><kbd>↑</kbd> <kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span></footer>
+    </div>`;
+  document.body.append(panel);
+  dialog = panel;
+  const input = panel.querySelector("input");
+  const results = panel.querySelector('[role="listbox"]');
+  const empty = panel.querySelector(".workspace-search-empty");
+  let items = collectStatic();
+  let shown = [];
+  let cursor = 0;
 
-  // Instant zero-latency render of static navigation & settings items
-  items = collectStatic();
-  draw("");
+  function select(index) {
+    results.querySelector('[aria-selected="true"]')?.setAttribute("aria-selected", "false");
+    cursor = Math.max(0, Math.min(shown.length - 1, index));
+    const option = results.querySelector(`[data-result="${cursor}"]`);
+    if (option) {
+      option.setAttribute("aria-selected", "true");
+      input.setAttribute("aria-activedescendant", option.id);
+      option.scrollIntoView({block: "nearest"});
+    } else {
+      input.removeAttribute("aria-activedescendant");
+    }
+  }
 
-  // Background fetch of conversations, projects, and files
-  collectDynamic().then(dyn => {
-    if (box) {
-      items = [...collectStatic(), ...dyn];
-      draw(input.value);
+  function draw(keepSelection = false) {
+    const previous = keepSelection ? shown[cursor] : null;
+    const query = input.value.trim().toLowerCase();
+    const ranked = items.map(item => [score(item, query), item])
+      .filter(([points]) => points > 0).sort((a, b) => b[0] - a[0]).slice(0, 80);
+    const groups = new Map();
+    for (const [, item] of ranked) {
+      if (!groups.has(item.group)) groups.set(item.group, []);
+      groups.get(item.group).push(item);
+    }
+    const orderedGroups = query ? [...groups.keys()] : Object.keys(GROUP_ICONS).filter(group => groups.has(group));
+    shown = orderedGroups.flatMap(group => groups.get(group));
+    let index = 0;
+    results.innerHTML = orderedGroups.map((group, groupIndex) => `
+      <div class="workspace-search-group" role="group" aria-labelledby="searchGroup${groupIndex}">
+        <div class="workspace-search-label" id="searchGroup${groupIndex}">${esc(group)}</div>
+        ${groups.get(group).map(item => {
+          const id = index++;
+          return `<div class="workspace-search-option" role="option" id="searchResult${id}" data-result="${id}" aria-selected="false">
+            <i class="icon-${GROUP_ICONS[group]}" aria-hidden="true"></i>
+            <span dir="auto">${esc(item.label)}</span>
+            ${item.hint ? `<small dir="auto">${esc(item.hint)}</small>` : ""}
+          </div>`;
+        }).join("")}
+      </div>`).join("");
+    empty.hidden = shown.length > 0;
+    select(previous ? shown.indexOf(previous) : 0);
+  }
+
+  async function run(item) {
+    panel.close();
+    try {
+      await item.run();
+    } catch (error) {
+      toast(error.message, "err");
+    }
+  }
+
+  panel.addEventListener("close", () => {
+    if (dialog === panel) dialog = null;
+    panel.remove();
+  }, {once: true});
+  panel.querySelector("[data-search-close]").onclick = () => panel.close();
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !event.isComposing) {
+      event.preventDefault();
+      panel.close();
     }
   });
+  panel.addEventListener("click", event => {
+    if (event.target === panel) panel.close();
+  });
+  results.addEventListener("click", event => {
+    const option = event.target.closest("[data-result]");
+    if (option) run(shown[Number(option.dataset.result)]);
+  });
+  input.addEventListener("input", () => draw());
+  input.addEventListener("keydown", event => {
+    if (event.isComposing) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      select(cursor + (event.key === "ArrowDown" ? 1 : -1));
+    } else if (event.key === "Enter" && shown[cursor]) {
+      event.preventDefault();
+      run(shown[cursor]);
+    }
+  });
+  panel.showModal();
+  draw();
+  collectDynamic().then(dynamic => {
+    if (dialog !== panel || !panel.open) return;
+    items.push(...dynamic);
+    draw(true);
+  });
 }
 
-document.addEventListener("keydown", e => {
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); }
+document.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    if (!event.repeat) openPalette();
+  }
 });
 window.addEventListener("kryzen:palette", openPalette);

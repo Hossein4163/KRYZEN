@@ -4,9 +4,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import codetools
+import runtime_settings
+from engine import pc_bridge
 
 
 class BranchWorkflowTests(unittest.TestCase):
@@ -28,6 +31,10 @@ class BranchWorkflowTests(unittest.TestCase):
 
         self.orig_workspace = codetools.WORKSPACE
         codetools.WORKSPACE = str(self.workspace)
+        for patcher in (patch.object(pc_bridge, "WORKSPACE", self.workspace),
+                        patch.object(runtime_settings, "FILE", self.workspace / "runtime.json")):
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def tearDown(self):
         codetools.WORKSPACE = self.orig_workspace
@@ -59,7 +66,13 @@ class BranchWorkflowTests(unittest.TestCase):
         self.assertEqual(status.get("default_branch"), "main")
 
         # 4. User approval merge
-        merge_res = codetools.merge_change_branch(self.slug, branch_name, approve=True)
+        self.assertFalse(codetools.merge_change_branch(self.slug, branch_name, approve=True, commit=status["commit"])["ok"])
+        self.assertFalse(codetools.verify_change_branch(self.slug, lambda: {"ok": False})["ok"])
+        self.assertFalse(codetools.get_branch_change_status(self.slug)["can_merge"])
+        verified = codetools.verify_change_branch(self.slug, lambda: {"ok": True})
+        self.assertEqual(verified["verified_commit"], status["commit"])
+        self.assertFalse(codetools.merge_change_branch(self.slug, branch_name, commit=status["commit"])["ok"])
+        merge_res = codetools.merge_change_branch(self.slug, branch_name, approve=True, commit=status["commit"])
         self.assertTrue(merge_res.get("ok"))
         self.assertTrue(merge_res.get("merged"))
 

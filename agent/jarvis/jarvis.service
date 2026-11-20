@@ -1,13 +1,13 @@
 [Unit]
-Description=Antigravity CLI Agent Studio Web UI (http://127.0.0.1:8770)
+Description=Antigravity CLI Agent Studio Web UI (http://127.0.0.1:8780)
 After=network.target
 StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-EnvironmentFile=/home/kryazzy/Space/K.R.Y.Z.E.N/agent/runtime.env
+EnvironmentFile=-/home/kryazzy/Space/K.R.Y.Z.E.N/agent/runtime.env
 WorkingDirectory=/home/kryazzy/Space/K.R.Y.Z.E.N/agent/jarvis
-ExecStart=/usr/bin/python3 /home/kryazzy/Space/K.R.Y.Z.E.N/agent/jarvis/server.py
+ExecStart=/bin/bash /home/kryazzy/Space/K.R.Y.Z.E.N/agent/jarvis/start.sh
 Restart=always
 RestartSec=3
 

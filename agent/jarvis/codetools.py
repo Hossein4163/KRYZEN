@@ -8,15 +8,21 @@ import shlex
 import shutil
 import subprocess
 import time
+import threading
+import uuid
+import sys
 
 from pathlib import Path
 
-WORKSPACE = os.environ.get("KRYZEN_WORKSPACE") or (str(Path.home() / "Space" / "Projects") if (Path.home() / "Space" / "Projects").exists() else str(Path.home() / "Projects" / "devpilot"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
+from projectdata import atomic_write
+
+WORKSPACE = os.environ.get("KRYZEN_WORKSPACE") or os.environ.get("PC_BRIDGE_WORKSPACE") or (str(Path.home() / "Space" / "Projects") if (Path.home() / "Space" / "Projects").exists() else str(Path.home() / "Projects" / "devpilot"))
 SLUG = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\-\.]{0,79}$")
 
 
 def _root(slug):
-    if not SLUG.match(slug or ""):
+    if not SLUG.fullmatch(slug or ""):
         raise ValueError("pick a project first")
     return f"{WORKSPACE}/{slug}"
 
@@ -178,44 +184,43 @@ def vibe_config_save(slug, config):
 
 
 def vibe_checkpoint(bridge, slug, label="vibe"):
-    import time
     ts = int(time.time())
-    tag = f"vibe-checkpoint-{ts}"
-    safe_label = shlex.quote(str(label or "checkpoint").replace('"', ''))
-    root = _root(slug)
-
-    # Commit with tag
+    tag = f"vibe-checkpoint-{ts}-{uuid.uuid4().hex[:8]}"
+    message = shlex.quote(f"{tag}: {str(label)[:120]}")
+    root = Path(_root(slug)).resolve()
     cmd = (
-        f"git add -A && "
-        f"if git var GIT_AUTHOR_IDENT >/dev/null 2>&1; then "
-        f"git commit -m \"{tag}: {safe_label}\" --allow-empty; "
-        f"else git -c user.name=DevPilot -c user.email=devpilot@localhost commit -m \"{tag}: {safe_label}\" --allow-empty; fi && "
-        f"git tag -f {tag} && git rev-parse HEAD"
+        "git add -A -- . ':(exclude).devpilot' && "
+        f"git -c core.hooksPath=/dev/null -c user.name=DevPilot -c user.email=devpilot@localhost "
+        f"commit -m {message} --allow-empty -- . ':(exclude).devpilot' && "
+        f"git tag {tag} && git rev-parse HEAD"
     )
-    r = run(bridge, slug, cmd, timeout=30)
-    commit_hash = (r.get("stdout") or "").strip().splitlines()[-1] if r.get("stdout") else tag
-
-    # Save metadata
-    meta_dir = Path(root) / ".devpilot" / "vibe-checkpoints"
-    meta_dir.mkdir(parents=True, exist_ok=True)
+    result = run(bridge, slug, cmd, timeout=30)
+    if result.get("exit_code") != 0 or not result.get("stdout", "").strip():
+        return {"ok": False, "error": result.get("error") or result.get("stderr") or "Checkpoint failed"}
+    commit_hash = result["stdout"].strip().splitlines()[-1]
+    meta_dir = _within(root, ".devpilot/vibe-checkpoints")
     meta = {
         "tag": tag,
         "hash": commit_hash,
         "timestamp": ts,
         "label": label or "Vibe checkpoint"
     }
-    (meta_dir / f"{tag}.json").write_text(json.dumps(meta, indent=2))
+    atomic_write(meta_dir / f"{tag}.json", json.dumps(meta, indent=2))
     return {"ok": True, **meta}
 
 
 def vibe_rollback(bridge, slug, checkpoint_id):
-    if not checkpoint_id or not re.match(r"^[a-zA-Z0-9_\-\.]+$", str(checkpoint_id)):
+    if not re.fullmatch(r"vibe-checkpoint-[A-Za-z0-9-]+", str(checkpoint_id)):
         raise ValueError("invalid checkpoint id")
-    cmd = f"git reset --hard {shlex.quote(str(checkpoint_id))}"
-    r = run(bridge, slug, cmd, timeout=30)
-    if r.get("exit_code") != 0:
-        raise RuntimeError(f"rollback failed: {r.get('stderr') or r.get('error')}")
-    return {"ok": True, "restored": checkpoint_id}
+    branch = f"restore/{uuid.uuid4().hex[:12]}"
+    ref = f"refs/tags/{checkpoint_id}"
+    cmd = f"""status=$(git status --porcelain -- . ':(exclude).devpilot') &&
+        if test -n "$status"; then echo 'Commit or stash existing changes first.' >&2; exit 1; fi &&
+        git -c core.hooksPath=/dev/null switch -c {branch} {ref}"""
+    result = run(bridge, slug, cmd, timeout=30)
+    if result.get("exit_code") != 0:
+        raise RuntimeError(result.get("error") or result.get("stderr") or "Checkpoint restoration failed")
+    return {"ok": True, "restored": checkpoint_id, "branch": branch}
 
 
 def vibe_checkpoints(bridge, slug):
@@ -251,125 +256,171 @@ def _file_hash(p):
     return h.hexdigest()
 
 
+BOX_LOCK = threading.RLock()
+BOX_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}")
+
+
+def _within(root, rel):
+    path = root / rel
+    if not path.resolve().is_relative_to(root) or any(
+        part.is_symlink() for part in (path, *path.parents) if part != root and root in part.parents
+    ):
+        raise ValueError("isolated files cannot use symlinks or leave the project")
+    return path
+
+
 def _box_dir(slug, box_id):
-    root = Path(_root(slug))
-    clean_box = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", str(box_id or "default"))
-    return root / ".devpilot" / "isolated" / clean_box
+    if not isinstance(box_id, str) or not BOX_ID.fullmatch(box_id):
+        raise ValueError("invalid isolated box ID")
+    root = Path(_root(slug)).resolve()
+    if not root.is_dir():
+        raise ValueError("project does not exist")
+    return _within(root, f".devpilot/isolated/{box_id}")
+
+
+def _box_rel(rel):
+    rel = _rel(rel)
+    parts = Path(rel).parts
+    if not parts or ".box-meta.json" in parts or parts[0] == ".git" or parts[:2] == (".devpilot", "isolated"):
+        raise ValueError("invalid isolated file path")
+    return rel
+
+
+def _box_metadata(box):
+    path = _within(box, ".box-meta.json")
+    return json.loads(path.read_text()) if path.is_file() else {"baselines": {}}
 
 
 def create_isolated_box(slug, box_id="default"):
-    bdir = _box_dir(slug, box_id)
-    bdir.mkdir(parents=True, exist_ok=True)
-    meta_path = bdir / ".box-meta.json"
-    if not meta_path.exists():
-        meta = {
-            "box_id": box_id,
-            "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "baselines": {}
-        }
-        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    return {"ok": True, "box_id": box_id, "path": str(bdir)}
+    with BOX_LOCK:
+        box = _box_dir(slug, box_id)
+        box.mkdir(parents=True, exist_ok=True)
+        path = _within(box, ".box-meta.json")
+        if not path.exists():
+            atomic_write(path, json.dumps({"box_id": box_id, "created": time.time(), "baselines": {}}))
+        return {"ok": True, "box_id": box_id, "path": str(box)}
 
 
 def write_isolated_box(slug, box_id, rel_path, content):
-    clean_rel = _rel(rel_path)
-    bdir = _box_dir(slug, box_id)
-    if not bdir.exists():
-        create_isolated_box(slug, box_id)
-    meta_path = bdir / ".box-meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {"baselines": {}}
-
-    root = Path(_root(slug))
-    orig_file = root / clean_rel
-    if clean_rel not in meta.get("baselines", {}):
-        meta.setdefault("baselines", {})[clean_rel] = _file_hash(orig_file)
-        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-
-    target = bdir / clean_rel
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
-    return {"ok": True, "path": str(target), "size": len(content)}
+    rel = _box_rel(rel_path)
+    with BOX_LOCK:
+        box = _box_dir(slug, box_id)
+        if not box.exists():
+            create_isolated_box(slug, box_id)
+        original = _within(Path(_root(slug)).resolve(), rel)
+        target = _within(box, rel)
+        metadata = _box_metadata(box)
+        if rel not in metadata["baselines"]:
+            metadata["baselines"][rel] = _file_hash(original)
+            atomic_write(_within(box, ".box-meta.json"), json.dumps(metadata))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write(target, content)
+        return {"ok": True, "path": str(target), "size": len(content)}
 
 
 def read_isolated_box(slug, box_id, rel_path):
-    clean_rel = _rel(rel_path)
-    bdir = _box_dir(slug, box_id)
-    target = bdir / clean_rel
-    if target.exists() and target.is_file():
-        return {"ok": True, "source": "isolated", "content": target.read_text(encoding="utf-8", errors="replace")}
-    root = Path(_root(slug))
-    orig = root / clean_rel
-    if orig.exists() and orig.is_file():
-        return {"ok": True, "source": "project", "content": orig.read_text(encoding="utf-8", errors="replace")}
-    return {"ok": False, "error": f"File not found: {rel_path}"}
+    rel = _box_rel(rel_path)
+    with BOX_LOCK:
+        box = _box_dir(slug, box_id)
+        target = _within(box, rel)
+        if target.is_file():
+            return {"ok": True, "source": "isolated", "content": target.read_text(errors="replace")}
+        original = _within(Path(_root(slug)).resolve(), rel)
+        if original.is_file():
+            return {"ok": True, "source": "project", "content": original.read_text(errors="replace")}
+        return {"ok": False, "error": f"File not found: {rel}"}
 
 
 def list_isolated_box(slug, box_id):
-    bdir = _box_dir(slug, box_id)
-    if not bdir.exists():
-        return {"ok": False, "error": "Box not found", "files": []}
-    files = []
-    for p in bdir.rglob("*"):
-        if p.is_file() and p.name != ".box-meta.json":
-            files.append(str(p.relative_to(bdir)))
-    return {"ok": True, "box_id": box_id, "files": sorted(files)}
+    with BOX_LOCK:
+        box = _box_dir(slug, box_id)
+        if not box.is_dir():
+            return {"ok": False, "error": "Box not found", "files": []}
+        files = []
+        for path in box.rglob("*"):
+            rel = str(path.relative_to(box))
+            _within(box, rel)
+            if path.is_file() and rel != ".box-meta.json":
+                files.append(_box_rel(rel))
+        return {"ok": True, "box_id": box_id, "files": sorted(files)}
 
 
 def merge_isolated_box(slug, box_id, discard_on_success=True):
-    bdir = _box_dir(slug, box_id)
-    if not bdir.exists():
-        return {"ok": False, "error": "Box not found"}
-    meta_path = bdir / ".box-meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {"baselines": {}}
-    baselines = meta.get("baselines", {})
-    root = Path(_root(slug))
-
-    conflicts = []
-    staged_files = []
-    for p in bdir.rglob("*"):
-        if p.is_file() and p.name != ".box-meta.json":
-            rel = str(p.relative_to(bdir))
-            staged_files.append((rel, p))
-            base_hash = baselines.get(rel)
-            curr_orig = root / rel
-            curr_hash = _file_hash(curr_orig)
-            if curr_hash != base_hash:
+    with BOX_LOCK:
+        listing = list_isolated_box(slug, box_id)
+        if not listing["ok"]:
+            return listing
+        box = _box_dir(slug, box_id)
+        root = Path(_root(slug)).resolve()
+        baselines = _box_metadata(box)["baselines"]
+        changes, conflicts = [], []
+        for rel in listing["files"]:
+            target = _within(root, rel)
+            if rel not in baselines or _file_hash(target) != baselines[rel] or (target.exists() and not target.is_file()):
                 conflicts.append(rel)
+                continue
+            source = _within(box, rel).read_bytes()
+            original = target.read_bytes() if target.exists() else None
+            changes.append((rel, target, source, original))
+        if conflicts:
+            return {"ok": False, "conflict": True, "error": "Project files changed or were not staged", "conflicts": conflicts}
+        applied = []
+        try:
+            for rel, target, source, original in changes:
+                _within(root, rel)
+                if _file_hash(target) != baselines[rel]:
+                    raise ValueError(f"Project file changed during merge: {rel}")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                atomic_write(target, source)
+                applied.append((target, source, original))
+        except (OSError, ValueError):
+            for target, source, original in reversed(applied):
+                if target.is_symlink() or not target.is_file() or target.read_bytes() != source:
+                    continue
+                if original is None:
+                    target.unlink()
+                else:
+                    atomic_write(target, original)
+            raise
+        if discard_on_success:
+            shutil.rmtree(box)
+        return {"ok": True, "merged_files": listing["files"]}
 
-    if conflicts:
-        return {
-            "ok": False,
-            "conflict": True,
-            "error": f"Cannot merge: {len(conflicts)} conflicting file(s) modified concurrently",
-            "conflicts": conflicts
-        }
 
-    applied = []
-    for rel, src in staged_files:
-        dest = root / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        tmp = dest.with_suffix(".tmp_" + str(int(time.time())))
-        tmp.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
-        tmp.replace(dest)
-        applied.append(rel)
-
-    if discard_on_success:
-        shutil.rmtree(bdir, ignore_errors=True)
-
-    return {"ok": True, "merged_files": applied}
+def list_isolated_boxes(slug):
+    with BOX_LOCK:
+        parent = _box_dir(slug, "default").parent
+        if not parent.is_dir():
+            return []
+        boxes = []
+        for entry in sorted(parent.iterdir()):
+            if not BOX_ID.fullmatch(entry.name) or entry.is_symlink() or not entry.is_dir():
+                continue
+            listing = list_isolated_box(slug, entry.name)
+            if listing["files"]:
+                boxes.append(listing)
+        return boxes
 
 
 def discard_isolated_box(slug, box_id):
-    bdir = _box_dir(slug, box_id)
-    if bdir.exists():
-        shutil.rmtree(bdir, ignore_errors=True)
-    return {"ok": True, "discarded": box_id}
+    with BOX_LOCK:
+        box = _box_dir(slug, box_id)
+        if box.exists():
+            shutil.rmtree(box)
+        return {"ok": True, "discarded": box_id}
 
 
 # ---------------------------------------------------------------------------- Branch Per Change & Merge Approval Workflow
 def _git_run(slug, args, check=False):
     root = _root(slug)
-    res = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bridge"))
+    import pc_bridge
+    try:
+        result = pc_bridge.git_command(root, args)
+    except (OSError, ValueError) as error:
+        result = {"error": str(error)}
+    res = subprocess.CompletedProcess(args, result.get("exit_code", 1) or (1 if result.get("error") else 0),
+                                      result.get("stdout", ""), result.get("error") or result.get("stderr", ""))
     if check and res.returncode != 0:
         raise RuntimeError(res.stderr or f"git command failed: {args}")
     return res
@@ -379,7 +430,7 @@ def detect_default_branch(slug):
     # 1. Try remote origin HEAD
     r = _git_run(slug, ["symbolic-ref", "refs/remotes/origin/HEAD"])
     if r.returncode == 0 and r.stdout.strip():
-        return r.stdout.strip().split("/")[-1]
+        return r.stdout.strip().removeprefix("refs/remotes/origin/")
     # 2. Check local main
     r_main = _git_run(slug, ["rev-parse", "--verify", "refs/heads/main"])
     if r_main.returncode == 0:
@@ -395,93 +446,143 @@ def detect_default_branch(slug):
     return "main"
 
 
+BRANCH_LOCK = threading.RLock()
+BRANCH_TESTS = {}
+
+
+def _branch_commit(slug, branch):
+    result = _git_run(slug, ["rev-parse", "--verify", f"refs/heads/{branch}^{{commit}}"])
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def _current_branch(slug):
+    return _git_run(slug, ["branch", "--show-current"]).stdout.strip()
+
+
+def _clean_branch(slug):
+    result = _git_run(slug, ["status", "--porcelain", "--untracked-files=all", "--",
+                             ".", ":(exclude).devpilot"])
+    return result.returncode == 0 and not result.stdout.strip()
+
+
+def _verification_file():
+    import runtime_settings
+    return runtime_settings.FILE.with_name("branch-verifications.json")
+
+
+def _branch_verifications():
+    try:
+        records = json.loads(_verification_file().read_text())
+        return records if isinstance(records, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
 def create_change_branch(slug, branch_name=None):
-    default_branch = detect_default_branch(slug)
-    if not branch_name:
-        ts = int(time.time())
-        branch_name = f"agent/{slug}-{ts}"
-    branch_name = re.sub(r"[^a-zA-Z0-9_\-\./]", "-", str(branch_name)).strip("-")
-
-    # Checkout new branch
-    r = _git_run(slug, ["checkout", "-b", branch_name])
-    if r.returncode != 0:
-        r = _git_run(slug, ["checkout", branch_name])
-        if r.returncode != 0:
-            return {"ok": False, "error": r.stderr or "failed to checkout branch"}
-
-    return {"ok": True, "branch": branch_name, "default_branch": default_branch}
+    with BRANCH_LOCK:
+        primary = detect_default_branch(slug)
+        if not _clean_branch(slug):
+            return {"ok": False, "error": "Save or commit existing changes before starting a change branch."}
+        branch = branch_name or f"agent/{slug}-{uuid.uuid4().hex[:10]}"
+        if not isinstance(branch, str) or branch.startswith("-") or branch == primary:
+            return {"ok": False, "error": "Choose a valid change branch."}
+        result = _git_run(slug, ["switch", "-c", branch, primary])
+        if result.returncode:
+            return {"ok": False, "error": result.stderr or "Could not create the change branch"}
+        return {"ok": True, "branch": branch, "default_branch": primary}
 
 
-def commit_change_branch(slug, message="agent change"):
-    _git_run(slug, ["add", "-A"])
-    m = message.strip() or "agent change"
-    r = _git_run(slug, ["commit", "-m", m])
-    if r.returncode != 0:
-        if "nothing to commit" in (r.stdout + r.stderr):
-            return {"ok": True, "committed": False, "message": "nothing to commit"}
-        r = _git_run(slug, ["-c", "user.name=DevPilot", "-c", "user.email=devpilot@localhost", "commit", "-m", m])
-        if r.returncode != 0:
-            return {"ok": False, "error": r.stderr or "commit failed"}
-    return {"ok": True, "committed": True, "message": m}
+def commit_change_branch(slug, message="agent change", branch=None):
+    with BRANCH_LOCK:
+        current = _current_branch(slug)
+        if not current or current == detect_default_branch(slug) or (branch and current != branch):
+            return {"ok": False, "error": "Switch to the intended change branch before committing."}
+        staged = _git_run(slug, ["add", "-A", "--", ".", ":(exclude).devpilot"])
+        if staged.returncode:
+            return {"ok": False, "error": staged.stderr}
+        result = _git_run(slug, ["-c", "user.name=DevPilot", "-c", "user.email=devpilot@localhost",
+                                "commit", "-m", message.strip() or "agent change", "--", ".", ":(exclude).devpilot"])
+        if result.returncode:
+            if "nothing to commit" in result.stdout + result.stderr:
+                return {"ok": True, "committed": False, "message": "nothing to commit"}
+            return {"ok": False, "error": result.stderr or "commit failed"}
+        return {"ok": True, "committed": True, "commit": _branch_commit(slug, current)}
 
 
 def get_branch_change_status(slug):
-    default_branch = detect_default_branch(slug)
-    r_head = _git_run(slug, ["rev-parse", "--abbrev-ref", "HEAD"])
-    curr = r_head.stdout.strip() if r_head.returncode == 0 else ""
-
-    if curr and curr != default_branch:
-        r_log = _git_run(slug, ["log", f"{default_branch}..{curr}", "--oneline"])
-        commits = [line.strip() for line in r_log.stdout.splitlines() if line.strip()]
-        return {
-            "ok": True,
-            "pending_approval": True,
-            "current_branch": curr,
-            "default_branch": default_branch,
-            "commits": commits,
-            "commit_count": len(commits)
-        }
-    return {
-        "ok": True,
-        "pending_approval": False,
-        "current_branch": curr,
-        "default_branch": default_branch,
-        "commits": [],
-        "commit_count": 0
-    }
+    with BRANCH_LOCK:
+        primary = detect_default_branch(slug)
+        current = _current_branch(slug)
+        result = {"ok": True, "pending_approval": False, "current_branch": current,
+                  "default_branch": primary, "commit_count": 0, "commits": []}
+        if not current or current == primary:
+            return result
+        commit, base = _branch_commit(slug, current), _branch_commit(slug, primary)
+        if not commit or not base or commit == base:
+            return result
+        commits = _git_run(slug, ["log", "--oneline", f"{base}..{commit}"]).stdout.splitlines()
+        ancestor = _git_run(slug, ["merge-base", "--is-ancestor", base, commit]).returncode == 0
+        clean = _clean_branch(slug)
+        key = str(Path(_root(slug)).resolve())
+        verified = _branch_verifications().get(key) == {"commit": commit, "base": base}
+        return {**result, "pending_approval": bool(commits), "commit": commit, "base": base,
+                "verified": verified, "can_merge": bool(commits and ancestor and verified and clean),
+                "clean": clean, "based_on_primary": ancestor, "commit_count": len(commits), "commits": commits}
 
 
-def merge_change_branch(slug, branch_name=None, approve=True):
-    if not approve:
-        return {"ok": False, "error": "User approval is required to merge into primary branch."}
-
-    default_branch = detect_default_branch(slug)
-    if not branch_name:
+def verify_change_branch(slug, test):
+    with BRANCH_LOCK:
         status = get_branch_change_status(slug)
-        branch_name = status.get("current_branch")
-        if not branch_name or branch_name == default_branch:
-            return {"ok": False, "error": f"Already on default branch '{default_branch}', nothing to merge."}
+        key = str(Path(_root(slug)).resolve())
+        records = _branch_verifications()
+        token = BRANCH_TESTS[key] = object()
+        if key in records:
+            del records[key]
+            atomic_write(_verification_file(), json.dumps(records))
+    import pc_bridge
+    readonly = pc_bridge.RUN_READ_ONLY.set(bool(status.get("pending_approval")))
+    try:
+        result = test()
+    except BaseException:
+        with BRANCH_LOCK:
+            if BRANCH_TESTS.get(key) is token:
+                del BRANCH_TESTS[key]
+        raise
+    finally:
+        pc_bridge.RUN_READ_ONLY.reset(readonly)
+    with BRANCH_LOCK:
+        if BRANCH_TESTS.get(key) is not token:
+            return result
+        del BRANCH_TESTS[key]
+        after = get_branch_change_status(slug)
+        if (result.get("ok") is True and status.get("pending_approval") and status.get("clean")
+                and after.get("clean") and after.get("based_on_primary")
+                and all(after.get(field) == status.get(field) for field in ("commit", "base", "current_branch"))):
+            records = _branch_verifications()
+            records[key] = {"commit": status["commit"], "base": status["base"]}
+            atomic_write(_verification_file(), json.dumps(records))
+            return {**result, "verified_commit": status["commit"]}
+        return result
 
-    r_co = _git_run(slug, ["checkout", default_branch])
-    if r_co.returncode != 0:
-        return {"ok": False, "error": f"Failed to switch to {default_branch}: {r_co.stderr}"}
 
-    r_merge = _git_run(slug, ["merge", "--no-ff", branch_name, "-m", f"Merge agent branch '{branch_name}' into {default_branch}"])
-    if r_merge.returncode != 0:
-        _git_run(slug, ["merge", "--abort"])
-        return {
-            "ok": False,
-            "conflict": True,
-            "error": f"Merge conflict encountered: {r_merge.stderr}",
-            "default_branch": default_branch
-        }
-
-    return {
-        "ok": True,
-        "merged": True,
-        "branch": branch_name,
-        "default_branch": default_branch
-    }
-
-
-
+def merge_change_branch(slug, branch_name=None, approve=False, *, commit=None):
+    if approve is not True or not isinstance(commit, str):
+        return {"ok": False, "error": "Explicit approval for the tested commit is required."}
+    with BRANCH_LOCK:
+        status = get_branch_change_status(slug)
+        branch = branch_name or status["current_branch"]
+        if (str(Path(_root(slug)).resolve()) in BRANCH_TESTS or not status.get("can_merge")
+                or branch != status["current_branch"] or commit != status.get("commit")):
+            return {"ok": False, "error": "The current commit must pass tests against the current primary branch in a clean worktree."}
+        primary = status["default_branch"]
+        switched = _git_run(slug, ["switch", "--", primary])
+        if switched.returncode:
+            return {"ok": False, "error": switched.stderr}
+        if _branch_commit(slug, primary) != status["base"] or _branch_commit(slug, branch) != commit:
+            _git_run(slug, ["switch", "--", branch])
+            return {"ok": False, "error": "A branch changed after verification. Test it again."}
+        merged = _git_run(slug, ["merge", "--ff-only", commit])
+        if merged.returncode:
+            _git_run(slug, ["switch", "--", branch])
+            return {"ok": False, "error": merged.stderr or "Fast-forward merge failed"}
+        return {"ok": True, "merged": True, "branch": branch, "default_branch": primary, "commit": commit}

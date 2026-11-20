@@ -308,7 +308,8 @@ def project_create(d, bridge):
                                  "goal": str(d.get("goal", "")).strip(), "create_only": True})
     if "error" in r:
         return _fail(r["error"])
-    return {"ok": True, "message": f"Project {slug} created with {len(r.get('created', []))} files.", "slug": slug}
+    return {"ok": True, "message": f"Project {slug} created with {len(r.get('created', []))} files.",
+            "slug": slug, "warning": r.get("git_warning", "")}
 
 
 def models_get():

@@ -72,7 +72,7 @@ class Milestone2Tests(unittest.TestCase):
     # --- 3. Tainted Context Tracking & Safety
     def test_tainted_context_requires_approval_for_shell(self):
         e = engine.Engine.__new__(engine.Engine)
-        e.stop, e.pause_requested = threading.Event(), threading.Event()
+        e.stop, e.pause_requested, e.paused = threading.Event(), threading.Event(), threading.Event()
         e.emit = MagicMock()
         e.tainted_context = False
         e.project_root = str(self.root)

@@ -171,7 +171,10 @@ def log_agy_invocation(agent, prompt, flags=None, cwd=None):
         rec = {
             "t": time.time(),
             "agent": str(getattr(agent, "name", agent) if agent else "anonymous"),
-            "flags": flags or [],
+            "flags": [flag for flag in (flags or []) if flag in {
+                "--sandbox", "--output-format", "--mode", "--model", "--agent", "--effort",
+                "--continue", "--new-project", "--add-dir", "--dangerously-skip-permissions",
+            }],
             "cwd": str(cwd or ""),
             "prompt_length": len(prompt) if prompt else 0,
         }

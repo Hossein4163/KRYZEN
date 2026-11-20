@@ -28,11 +28,12 @@ REBUILD_PREFIXES = ("Agents/", "Tools/", "Settings.md")
 UI_FILE = mesh.SYS / "jarvis.json"
 UI_DEFAULTS = {
     "name": "K.R.Y.Z.E.N", "subtitle": "DevPilot", "accent": "#22d3ee",
-    "greeting": "Good to see you. Describe a project, or say continue to resume the last one.",
-    "quick": [{"label": "continue", "text": "continue"},
-              {"label": "status", "text": "Where does the active project stand? What's done and what's next?"},
-              {"label": "approve plan", "text": "plan approved, start the next milestone"},
-              {"label": "autonomous", "text": "go fully autonomous"}],
+    "greeting": "Describe what you want to build or inspect.",
+    "quick": [{"label": "Continue project", "text": "continue"},
+              {"label": "Project status", "text": "Where does the active project stand? What is completed and what is next?"},
+              {"label": "Parallel build", "text": "Use Antigravity in parallel to implement the open tasks of the next milestone"},
+              {"label": "Security audit", "text": "Audit the codebase for security vulnerabilities and prioritize the fixes."},
+              {"label": "UI review", "text": "Audit the project’s interfaces for usability, accessibility, and visual consistency."}],
 }
 
 
@@ -191,11 +192,12 @@ def ui():
 
 
 # ---------------------------------------------------------------------------- services
-def _http_ok(url):
+def _http_ok(url, *, access_token=""):
     if url == "local":
         return subprocess.run(["which", "agy"], capture_output=True).returncode == 0
     try:
-        with urllib.request.urlopen(url, timeout=4) as r:
+        headers = {"Authorization": f"Bearer {access_token}"} if access_token else {}
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=4) as r:
             return r.status < 500
     except Exception:
         return False
@@ -224,7 +226,7 @@ SERVICES = {
     },
     "jarvis": {
         "title": "K.R.Y.Z.E.N web app",
-        "health": "http://127.0.0.1:" + os.environ.get("JARVIS_PORT", "8770") + "/health",
+        "health": "http://127.0.0.1:" + os.environ.get("JARVIS_PORT", "8780") + "/health",
         "restart": ["systemctl", "--user", "restart", "jarvis"],
         "logs": ["journalctl", "--user", "-u", "jarvis", "-n", "150", "--no-pager"]
     },
@@ -234,7 +236,9 @@ SERVICES = {
 def services():
     out = []
     for key, s in SERVICES.items():
-        out.append({"id": key, "title": s["title"], "up": True if s["health"] is None else _http_ok(s["health"])})
+        token = os.environ.get("JARVIS_ACCESS_TOKEN", "") if key == "jarvis" else ""
+        up = s["health"] is None or _http_ok(s["health"], access_token=token)
+        out.append({"id": key, "title": s["title"], "up": up})
     return {"services": out}
 
 

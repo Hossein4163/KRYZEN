@@ -8,20 +8,25 @@
   const requests=[];
   window.fetch=async (...args)=>{if(args[1]?.method==='POST')requests.push({url:args[0],body:JSON.parse(args[1].body)});return originalFetch(...args);};
   const type=(id,text)=>{q(id).value=text;q(id).dispatchEvent(new Event('input',{bubbles:true}));};
+  const newProject = async () => {
+    q('#newProjectBtn').click();
+    q('#pkNew').click();
+    await wait(() => q('#newProjectDialog')?.open, 'New project dialog did not open');
+  };
   try {
     await wait(()=>!runBusy&&!sending,'Previous run did not stop');
     jarvisStudio.setMode('mesh',false);
-    q('#newProjectBtn').click();
+    await newProject();
     check(q('#newProjectDialog').open&&document.activeElement.id==='npTitle','Project dialog did not take focus');
     check(!q('#npStart').checked,'Creation must not start a model run by default');
     q('#newProjectForm').requestSubmit();await pause(70);
     check(!requests.some(r=>r.url==='/api/form/project'),'Invalid form sent a create request');
     type('#npTitle','Growth Project');check(q('#npSlug').value==='growth-project','Title did not fill slug');
     type('#npSlug','custom-project');type('#npTitle','New title');check(q('#npSlug').value==='custom-project','Edited slug was overwritten');
-    q('#npCancel').click();await wait(()=>!q('#newProjectDialog'),'Cancel did not close dialog');check(document.activeElement.id==='newProjectBtn','Dialog did not restore focus');
+    q('#npCancel').click();await wait(()=>!q('#newProjectDialog'),'Cancel did not close dialog');await wait(()=>document.activeElement.id==='newProjectBtn','Dialog did not restore focus');
     checks.push('new project dialog validates inputs, preserves custom slug and restores focus');
 
-    q('#newProjectBtn').click();type('#npTitle','Existing');type('#npSlug','example-project');type('#npGoal','Keep this input');
+    await newProject();type('#npTitle','Existing');type('#npSlug','example-project');type('#npGoal','Keep this input');
     q('#newProjectForm').requestSubmit();await wait(()=>q('#npError').textContent,'Duplicate project was not rejected');
     check(q('#npGoal').value==='Keep this input'&&q('#newProjectDialog').open,'Create failure lost form input');
     q('#npCancel').click();await wait(()=>!q('#newProjectDialog'),'Cancel did not close dialog');checks.push('duplicate project creation preserves existing project and user input');
@@ -29,7 +34,7 @@
     switchProject('example-project');jarvisStudio.setMode('code',false);
     await wait(()=>CW.files.includes('src/example.txt'),'Code did not load');await cwOpen('src/example.txt');
     cwCode.value='Unsaved before creation';cwCode.dispatchEvent(new Event('input'));
-    q('#newProjectBtn').click();type('#npTitle','Growth Project');
+    await newProject();type('#npTitle','Growth Project');
     const before=requests.length;window.confirm=()=>false;q('#newProjectForm').requestSubmit();await pause(80);
     check(requests.length===before&&codeDirty(),'Cancelled discard still created a project or lost code');
     window.confirm=()=>true;
@@ -46,7 +51,7 @@
     check((await api('/api/projects')).folders.includes('growth-project'),'New project was not registered');
     checks.push('created workspace is registered and exposes structured continuation');
 
-    q('#newProjectBtn').click();type('#npTitle','Started Project');type('#npGoal','Build a disposable app');q('#npStart').checked=true;
+    await newProject();type('#npTitle','Started Project');type('#npGoal','Build a disposable app');q('#npStart').checked=true;
     q('#newProjectForm').requestSubmit();await wait(()=>requests.some(r=>r.url==='/api/chat'&&r.body.project==='started-project'),'Intake did not target newly created project');
     await wait(()=>!runBusy&&!sending,'Intake did not finish');
     const current=await api('/api/session?id='+sessionId);
@@ -69,7 +74,7 @@
     checks.push('Plan Continue uses the same resumable project workflow');
 
     const mesh=await api('/api/mesh');
-    check(['Marketing','Product','Content','SEO','Operations'].every(label=>mesh.agents.some(a=>a.label===label)),'Specialists are missing');
+    check(['Marketing','Product','Content','SEO','DevOps'].every(label=>mesh.agents.some(a=>a.label===label)),'Specialists are missing');
     checks.push('all five project specialists are available in agent controls');
     return {ok:true,passed:checks.length,checks};
   } finally {window.confirm=originalConfirm;window.fetch=originalFetch;}

@@ -12,9 +12,13 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
+import socket
+import tempfile
 import sys
 import threading
+from contextlib import contextmanager
 import time
 import urllib.error
 import urllib.parse
@@ -22,19 +26,22 @@ import urllib.request
 from pathlib import Path
 
 AGENT_DIR = Path(__file__).resolve().parent.parent
-WORKFLOW_FILE = AGENT_DIR / "workflow" / "ai-dev-agent.json"
+PACKAGED_WORKFLOW = AGENT_DIR / "workflow" / "ai-dev-agent.json"
 sys.path.insert(0, str(AGENT_DIR / "workflow"))
 sys.path.insert(0, str(AGENT_DIR / "bridge"))
-from vaultnotes import AGENT_NOTES, load_custom_tools, read_note  # noqa: E402
+from vaultnotes import AGENT_NOTES, SYS, load_custom_tools, read_note  # noqa: E402
 from modelpolicy import RESPONSE_STYLE, model_options  # noqa: E402
 from orchestration import REQUESTS, TaskLedger, task_schema, source_path  # noqa: E402
 import brain  # noqa: E402
 import codetools  # noqa: E402
 import diet  # noqa: E402
 import media  # noqa: E402
+import mesh  # noqa: E402
 import project_logic  # noqa: E402
 import runtime_settings  # noqa: E402
 import telemetry  # noqa: E402
+import pc_bridge  # noqa: E402
+WORKFLOW_FILE = SYS / "ai-dev-agent.json"
 TOOL_RESULT_LIMIT = 12000
 # Rarely needed tools are offered by name only; their schemas are sent after enable_tools (saves prompt tokens).
 # agy_run is NEVER dormant: Antigravity CLI is the primary engine for high quality implementation.
@@ -94,7 +101,8 @@ class AgentSpec:
 
 def load_agents():
     """Parse the compiled agent definitions (workflow/ai-dev-agent.json) into agent specs (orchestrator first)."""
-    wf = json.loads(WORKFLOW_FILE.read_text())
+    workflow = WORKFLOW_FILE if WORKFLOW_FILE.is_file() else PACKAGED_WORKFLOW
+    wf = json.loads(workflow.read_text())
     nodes = {n["name"]: n for n in wf["nodes"]}
     conns = wf["connections"]
     today = datetime.date.today().isoformat()
@@ -172,11 +180,11 @@ class OpenAICompatibleProvider:
     """Zero-dependency SSE streaming client supporting /v1/chat/completions."""
     def __init__(self, endpoint=None, api_key=None):
         cfg = runtime_settings.get()
-        base = endpoint or cfg.get("openai_base_url") or os.environ.get("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+        base = endpoint or os.environ.get("OPENAI_BASE_URL") or cfg["openai_base_url"]
         if not base.endswith("/chat/completions"):
             base = base.rstrip("/") + "/chat/completions"
         self.endpoint = base
-        self.api_key = api_key or cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("NIM_KEY", "")
+        self.api_key = api_key or runtime_settings.provider_key()
 
     def is_available(self):
         return bool(self.api_key or "127.0.0.1" in self.endpoint or "localhost" in self.endpoint)
@@ -209,7 +217,7 @@ class OllamaProvider:
 class AgyCLIProvider:
     """Antigravity CLI runner adapter."""
     def is_available(self):
-        return True
+        return bool(shutil.which("agy") and pc_bridge.network_enabled())
 
     def stream(self, engine, agent, prompt):
         return engine._stream_agy(agent, prompt)
@@ -282,8 +290,8 @@ class Engine:
         self.tainted_context = False
         self.router = ModelRouter(self)
         self.agents = load_agents()
+        self.stages = mesh.agent_stages(self.agents, ORCHESTRATOR)
         self.nim_key = ""
-        self.bridge_token = secret(AGENT_DIR / "bridge" / ".token")
         self.stop = threading.Event()
         self.pause_requested = threading.Event()
         self.paused = threading.Event()
@@ -422,27 +430,62 @@ class Engine:
         elif depth == 0 and getattr(self, '_coordinator_record', None):
             self.ledger.checkpoint(self._coordinator_record['id'], messages, step, pending, self._coordinator_record)
 
+    def request_stop(self):
+        self.stop.set()
+        pc_bridge.cancel_jobs(self.stop)
+
+    _control_lock = threading.RLock()
+
+    @contextmanager
+    def operation(self):
+        while True:
+            self.checkpoint_control()
+            with self._control_lock:
+                if not self.pause_requested.is_set():
+                    self._operations = getattr(self, "_operations", 0) + 1
+                    break
+        try:
+            yield
+        finally:
+            with self._control_lock:
+                self._operations -= 1
+
     def checkpoint_control(self):
-        """Pause at safe tool/model boundaries; stop always releases a paused run."""
-        if self.stop.is_set():
-            raise Stopped()
+        """Pause at safe boundaries after in-flight operations reach a checkpoint."""
         task_id = getattr(getattr(self, "_context", None), "task_id", None)
-        if task_id and task_id in self.cancelled_tasks:
-            raise RuntimeError("lane cancelled by the user")
-        if self.pause_requested.is_set():
-            if not self.paused.is_set():
-                self.paused.set()
-                self.emit({"type": "run_state", "state": "paused"})
-            while self.pause_requested.is_set():
-                if self.stop.wait(0.15):
-                    self.paused.clear()
-                    raise Stopped()
-            self.paused.clear()
-            if self.budget.tripped:
-                fresh = runtime_settings.get()
-                self.budget.extend(fresh["budget_tokens"], fresh["budget_minutes"])
-                self.emit({"type": "budget", "state": "extended", **self.budget.state(self.tokens_used())})
-            self.emit({"type": "run_state", "state": "running"})
+        while True:
+            if self.stop.is_set():
+                self.paused.clear()
+                raise Stopped()
+            if task_id and task_id in self.cancelled_tasks:
+                raise RuntimeError("lane cancelled by the user")
+            with self._control_lock:
+                if not self.pause_requested.is_set():
+                    if self.paused.is_set():
+                        self.paused.clear()
+                        if self.budget.tripped:
+                            fresh = runtime_settings.get()
+                            self.budget.extend(fresh["budget_tokens"], fresh["budget_minutes"])
+                            self.emit({"type": "budget", "state": "extended", **self.budget.state(self.tokens_used())})
+                        self.emit({"type": "run_state", "state": "running"})
+                    return
+                if not getattr(self, "_operations", 0) and not self.paused.is_set():
+                    self.paused.set()
+                    self.emit({"type": "run_state", "state": "paused"})
+            self.stop.wait(0.1)
+
+    def wait_for_stage(self, agent):
+        stage = getattr(self, "stages", {}).get(agent)
+        gate = None
+        while True:
+            self.checkpoint_control()
+            blocked = mesh.blocking_gate(self.project, stage)
+            if blocked != gate:
+                self.emit({"type": "gate_wait", "agent": agent, "stage": stage, "gate": blocked})
+                gate = blocked
+            if not blocked:
+                return
+            self.stop.wait(0.2)
 
     # --- Antigravity CLI (agy) Engine (Zero External APIs)
     def _extract_tool_calls(self, text, tools):
@@ -504,38 +547,32 @@ class Engine:
     def _stream_from_req(self, agent, req):
         content, reasoning, calls = [], [], {}
         complete, finish_reason = False, None
-        with urllib.request.urlopen(req, timeout=300) as r:
-            for raw in r:
+        with self.operation(), urllib.request.urlopen(req, timeout=30) as r:
+            finished = threading.Event()
+            stream_socket = getattr(getattr(getattr(r, "fp", None), "raw", None), "_sock", None)
+
+            def interrupt():
+                while not finished.wait(0.1):
+                    if self.stop.is_set():
+                        try:
+                            stream_socket.shutdown(socket.SHUT_RDWR)
+                        except OSError:
+                            pass
+                        return
+
+            watcher = threading.Thread(target=interrupt, daemon=True) if stream_socket else None
+            if watcher:
+                watcher.start()
+            try:
+                complete, finish_reason = self._read_model_stream(agent, r, content, reasoning, calls)
+            except (OSError, http.client.HTTPException):
                 if self.stop.is_set():
-                    raise Stopped()
-                line = raw.decode("utf-8", "replace").strip()
-                if not line.startswith("data:"):
-                    continue
-                payload = line[5:].strip()
-                if payload == "[DONE]":
-                    complete = True
-                    break
-                chunk = json.loads(payload)
-                if chunk.get("error"):
-                    raise RuntimeError("model returned an error: " + str(chunk["error"])[:500])
-                if not chunk.get("choices"):
-                    continue
-                delta = chunk["choices"][0].get("delta") or {}
-                finish_reason = chunk["choices"][0].get("finish_reason") or finish_reason
-                if delta.get("reasoning_content"):
-                    reasoning.append(delta["reasoning_content"])
-                    self.emit({"type": "thinking", "agent": agent.name, "text": delta["reasoning_content"]})
-                if delta.get("content"):
-                    content.append(delta["content"])
-                    self.emit({"type": "token", "agent": agent.name, "text": delta["content"]})
-                for tc in delta.get("tool_calls") or []:
-                    c = calls.setdefault(tc.get("index", 0), {"id": "", "name": "", "args": ""})
-                    c["id"] = tc.get("id") or c["id"]
-                    fn = tc.get("function") or {}
-                    name = fn.get("name") or ""
-                    if name and name != c["name"]:
-                        c["name"] += name
-                    c["args"] += fn.get("arguments") or ""
+                    raise Stopped() from None
+                raise
+            finally:
+                finished.set()
+        if self.stop.is_set():
+            raise Stopped()
         if not complete and not finish_reason:
             raise IncompleteStream("model stream ended before completion")
         if finish_reason == "length":
@@ -546,32 +583,81 @@ class Engine:
             raise RuntimeError("model returned an empty response")
         return "".join(content), [calls[i] for i in sorted(calls)]
 
+    def _read_model_stream(self, agent, response, content, reasoning, calls):
+        complete, finish_reason = False, None
+        for raw in response:
+            if self.stop.is_set():
+                raise Stopped()
+            line = raw.decode("utf-8", "replace").strip()
+            if not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if payload == "[DONE]":
+                complete = True
+                break
+            chunk = json.loads(payload)
+            if chunk.get("error"):
+                raise RuntimeError("model returned an error: " + str(chunk["error"])[:500])
+            if not chunk.get("choices"):
+                continue
+            delta = chunk["choices"][0].get("delta") or {}
+            finish_reason = chunk["choices"][0].get("finish_reason") or finish_reason
+            if delta.get("reasoning_content"):
+                reasoning.append(delta["reasoning_content"])
+                self.emit({"type": "thinking", "agent": agent.name, "text": delta["reasoning_content"]})
+            if delta.get("content"):
+                content.append(delta["content"])
+                self.emit({"type": "token", "agent": agent.name, "text": delta["content"]})
+            for tc in delta.get("tool_calls") or []:
+                c = calls.setdefault(tc.get("index", 0), {"id": "", "name": "", "args": ""})
+                c["id"] = tc.get("id") or c["id"]
+                fn = tc.get("function") or {}
+                name = fn.get("name") or ""
+                if name and name != c["name"]:
+                    c["name"] += name
+                c["args"] += fn.get("arguments") or ""
+        return complete, finish_reason
+
     def _stream(self, agent, data):
-        url = getattr(self, "endpoint", None) or os.environ.get("OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
-        headers = {
-            "Authorization": f"Bearer {getattr(self, 'nim_key', '') or os.environ.get('OPENAI_API_KEY', '')}",
-            "Content-Type": "application/json",
-            "Accept": "text/event-stream"
-        }
+        provider = getattr(getattr(self, "router", None), "openai", None)
+        url = getattr(self, "endpoint", None) or (provider.endpoint if provider else None)
+        url = url or os.environ.get("OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1/chat/completions")
+        key = getattr(self, "nim_key", "") or (provider.api_key if provider else runtime_settings.provider_key())
+        headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
         req = urllib.request.Request(url, data=data, headers=headers)
         return self._stream_from_req(agent, req)
 
     def chat(self, agent, messages, tools):
         is_orchestrator = (agent.name == ORCHESTRATOR)
-        is_agy = str(agent.model).startswith("agy/")
-        is_mocked_stream = hasattr(self._stream, "assert_called") or getattr(self._stream, "_mock_wraps", None) is not None
-        has_openai = bool(getattr(self, "nim_key", None) or os.environ.get("OPENAI_API_KEY") or os.environ.get("NIM_KEY") or getattr(self, "router", None))
+        router = getattr(self, "router", None)
+        provider_name = "agy" if agent.model.startswith("agy/") else "openai"
+        provider = None
+        if router:
+            for name, candidate in router.get_chain(agent):
+                if candidate.is_available():
+                    provider_name, provider = name, candidate
+                    break
+            if provider is None:
+                raise RuntimeError("No model provider is available. Configure credentials or enable a local provider in Models & API.")
+        model = agent.model.removeprefix("agy/")
+        if router and agent.model.startswith("agy/") and provider_name != "agy":
+            model = router.get_tier_model(agent.name)
 
-        if not is_agy or is_mocked_stream or (has_openai and not is_agy):
-            body = {"model": agent.model, "messages": messages, "temperature": 0.3, "stream": True,
-                    "tools": [t.schema() for t in tools] if tools else None, **model_options(agent.model)}
+        if provider_name != "agy":
+            body = {"model": model, "messages": messages, "temperature": 0.3, "stream": True,
+                    "tools": [t.schema() for t in tools] if tools else None, **model_options(model)}
             if not tools:
                 body.pop("tools", None)
             last, compact_retry = None, False
             for attempt in range(5):
                 self.checkpoint_control()
                 try:
-                    return self._stream(agent, json.dumps(body).encode())
+                    payload = json.dumps(body).encode()
+                    if provider_name == "ollama":
+                        return provider.stream(self, agent, payload)
+                    return self._stream(agent, payload)
                 except Stopped:
                     raise
                 except OutputLimit:
@@ -580,7 +666,7 @@ class Engine:
                         raise OutputLimit(f"Model output still exceeded its limit {why}; no tools from this request were executed. Earlier completed work is preserved.")
                     compact_retry = True
                     body.pop("reasoning_effort", None)
-                    body.update(model_options(agent.model, recovery=True))
+                    body.update(model_options(model, recovery=True))
                     body["messages"] = [*messages, {"role": "system", "content":
                         "The previous generation reached its output limit and was discarded; no tools from that generation executed. "
                         "Respond concisely. Use one small, complete tool call at a time; split large artifacts into supported file operations. "
@@ -688,53 +774,33 @@ class Engine:
         return content, calls
 
     def _stream_agy(self, agent, prompt):
-        allow_skip = False
-        try:
-            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
-        except Exception:
-            allow_skip = False
+        with self.operation():
+            return self._read_agy_stream(agent, prompt)
 
-        cmd = ["agy", "-p", prompt, "--output-format", "stream-json"]
-        if allow_skip:
-            cmd.append("--dangerously-skip-permissions")
-        proj_root = getattr(self, "project_root", None)
-        if proj_root:
-            cmd += ["--add-dir", proj_root]
-        
-        telemetry.log_agy_invocation(agent, prompt, cmd, cwd=proj_root)
-
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-
+    def _read_agy_stream(self, agent, prompt):
+        cmd = ["agy", "-p", prompt, "--output-format", "stream-json", "--sandbox"]
+        if agent.model.startswith("agy/") and agent.model != "agy/auto":
+            cmd += ["--model", agent.model.removeprefix("agy/")]
+        project_root = getattr(self, "project_root", None)
+        telemetry.log_agy_invocation(agent, prompt, cmd, cwd=project_root)
         tl = getattr(self, "_tl", None)
         content, reasoning, calls = [], [], []
+        proc = pc_bridge.spawn(cmd, project_root, agy=True, stderr=subprocess.STDOUT,
+                               readonly_project=self.readonly_subprocesses())
+        finished = threading.Event()
 
-        try:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=proj_root or None,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-            )
-        except FileNotFoundError:
-            cmd[0] = "/usr/bin/agy"
-            proc = subprocess.Popen(
-                cmd,
-                cwd=self.project_root or None,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-            )
+        def interrupt():
+            deadline = time.monotonic() + 300
+            while not finished.wait(0.1):
+                if self.stop.is_set() or time.monotonic() >= deadline:
+                    pc_bridge.terminate(proc)
+                    return
 
+        threading.Thread(target=interrupt, daemon=True).start()
         try:
             for raw_line in iter(proc.stdout.readline, ''):
                 if self.stop.is_set():
-                    proc.terminate()
+                    pc_bridge.terminate(proc)
                     raise Stopped()
                 line = raw_line.strip()
                 if not line:
@@ -790,30 +856,22 @@ class Engine:
 
             proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            proc.kill()
-        except Exception as e:
-            if not isinstance(e, Stopped):
-                proc.kill()
-            raise
+            pc_bridge.terminate(proc)
+            raise TimeoutError("Antigravity did not exit after its response") from None
         finally:
-            try:
-                if proc.stdout:
-                    proc.stdout.close()
-            except Exception:
-                pass
-            try:
-                if proc.stderr:
-                    proc.stderr.close()
-            except Exception:
-                pass
+            finished.set()
+            if proc.poll() is None:
+                pc_bridge.terminate(proc)
+                proc.wait()
+            proc.stdout.close()
 
+        if self.stop.is_set():
+            raise Stopped()
         full_text = "".join(content).strip()
+        if proc.returncode != 0:
+            raise RuntimeError(f"Antigravity exited with status {proc.returncode}: {full_text[-600:]}")
         if not full_text:
-            err = proc.stderr.read() if proc.stderr and not proc.stderr.closed else ""
-            if err and "error:" in err.lower():
-                full_text = f"Antigravity CLI: {err.strip()[:600]}"
-            else:
-                full_text = "Task completed by Antigravity CLI agent."
+            raise RuntimeError("Antigravity returned an empty response")
         return full_text, []
 
     # --- telemetry, budget, small model
@@ -874,54 +932,41 @@ class Engine:
         self.auto_hold = True
         self.emit({"type": "budget", "state": "held"})
 
+    def readonly_subprocesses(self):
+        lane = getattr(getattr(self, "_context", None), "node", None)
+        return bool(getattr(self, "_active_box_id", None) or lane)
+
+    def _agy_text(self, prompt, label, timeout, *, readonly_files=()):
+        cwd = getattr(self, "project_root", None)
+        cmd = ["agy", "-p", prompt, "--output-format", "text", "--sandbox"]
+        telemetry.log_agy_invocation(label, prompt, cmd, cwd=cwd)
+        cancel = getattr(self, "stop", None)
+        marker = pc_bridge.RUN_CANCEL.set(cancel)
+        readonly = pc_bridge.RUN_READ_ONLY.set(pc_bridge.RUN_READ_ONLY.get() or self.readonly_subprocesses())
+        try:
+            if cancel:
+                with self.operation():
+                    result = pc_bridge.run(cmd, cwd, timeout, False, readonly_files=readonly_files)
+            else:
+                result = pc_bridge.run(cmd, cwd, timeout, False, readonly_files=readonly_files)
+        finally:
+            pc_bridge.RUN_READ_ONLY.reset(readonly)
+            pc_bridge.RUN_CANCEL.reset(marker)
+        if cancel and cancel.is_set():
+            raise Stopped()
+        if result.get("exit_code") != 0:
+            raise RuntimeError(result.get("error") or result.get("stderr") or "Antigravity CLI failed")
+        return result.get("stdout", "").strip()
+
     def quick(self, prompt, system="Be concise.", max_tokens=700, label="Antigravity helper"):
-        """One small helper completion executed through the Antigravity CLI."""
-        allow_skip = False
-        try:
-            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
-        except Exception:
-            allow_skip = False
-        cmd = ["agy", "-p", f"{system}\n\n{prompt}", "--output-format", "text"]
-        if allow_skip:
-            cmd.append("--dangerously-skip-permissions")
-        telemetry.log_agy_invocation(label, prompt, cmd, cwd=self.project_root if self.project_root else None)
-        env = os.environ.copy()
-        try:
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=90, env=env,
-                                 cwd=self.project_root if self.project_root else None)
-            text = (res.stdout or "").strip()
-            if not text and res.stderr:
-                text = res.stderr.strip()
-            return text or "OK"
-        except Exception as e:
-            return f"Helper completed: {e}"
+        return self._agy_text(f"{system}\n\n{prompt}", label, 90)
 
     def vision(self, data, question, label="vision"):
-        """Ask the Antigravity CLI about an image."""
-        tmp_img = Path("/tmp") / f"agy_vision_{uuid.uuid4().hex[:8]}.jpg"
-        try:
-            tmp_img.write_bytes(data)
-            allow_skip = False
-            try:
-                allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
-            except Exception:
-                allow_skip = False
-            cmd = ["agy", "-p", f"Analyze this image: {tmp_img}. {question}", "--output-format", "text"]
-            if allow_skip:
-                cmd.append("--dangerously-skip-permissions")
-            telemetry.log_agy_invocation(label, question, cmd)
-            env = os.environ.copy()
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
-            text = (res.stdout or "").strip()
-            return text or "Image analyzed by Antigravity CLI."
-        except Exception as e:
-            return f"Image analysis completed: {e}"
-        finally:
-            if tmp_img.exists():
-                try:
-                    tmp_img.unlink()
-                except OSError:
-                    pass
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as image:
+            image.write(data)
+            image.flush()
+            path = Path(image.name)
+            return self._agy_text(f"Analyze this image: {path}. {question}", label, 120, readonly_files=(path,))
 
     def _image_bytes(self, ref):
         ref = str(ref or "").strip()
@@ -998,29 +1043,40 @@ class Engine:
         import pc_bridge
         handler = pc_bridge.ROUTES.get(path)
         if handler:
+            root = getattr(self, "project_root", "")
+            if root and path in ("/fs/read", "/fs/list", "/fs/write", "/shell", "/agy", "/agent/cli", "/browser"):
+                key = "path" if path.startswith("/fs/") else "cwd"
+                base = Path(root).resolve()
+                selected = (base / Path(str(args.get(key) or ".")).expanduser()).resolve()
+                if not selected.is_relative_to(base):
+                    raise PermissionError("tool path must stay inside the selected project")
+                args = {**args, key: str(selected)}
+            own_stop = getattr(self, "stop", None)
+            cancel = own_stop or pc_bridge.RUN_CANCEL.get()
+            marker = pc_bridge.RUN_CANCEL.set(cancel)
+            readonly = pc_bridge.RUN_READ_ONLY.set(pc_bridge.RUN_READ_ONLY.get() or self.readonly_subprocesses())
             try:
-                res = handler(args)
+                if own_stop:
+                    with self.operation():
+                        res = handler(args)
+                else:
+                    res = handler(args)
+                if cancel and cancel.is_set():
+                    raise Stopped()
                 return json.dumps(res, ensure_ascii=False) if not isinstance(res, str) else res
             except FileNotFoundError as e:
                 return json.dumps({"error": f"FileNotFoundError: [Errno 2] No such file or directory: {e}"})
+            except Stopped:
+                raise
             except Exception as e:
                 return json.dumps({"error": str(e)})
+            finally:
+                pc_bridge.RUN_READ_ONLY.reset(readonly)
+                pc_bridge.RUN_CANCEL.reset(marker)
         return json.dumps({"error": f"Unknown local tool handler: {path}"})
 
     def search(self, query):
-        """Search directly through Antigravity CLI without external search APIs."""
-        allow_skip = False
-        try:
-            allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
-        except Exception:
-            allow_skip = False
-        cmd = ["agy", "-p", f"Search information about: {query}. Provide concise factual results.",
-               "--output-format", "text"]
-        if allow_skip:
-            cmd.append("--dangerously-skip-permissions")
-        telemetry.log_agy_invocation("search", query, cmd)
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        text = (res.stdout or "").strip()
+        text = self._agy_text(f"Search information about: {query}. Provide concise factual results.", "search", 60)
         return json.dumps([{"title": "Antigravity Direct Search", "url": "local", "content": text}], ensure_ascii=False)
 
     def run_tool(self, agent, tool, args, depth):
@@ -1205,7 +1261,7 @@ class Engine:
                 try:
                     rel = str(target.resolve().relative_to(Path(self.project_root).resolve()))
                 except ValueError:
-                    rel = target.name
+                    raise PermissionError("staged writes must stay inside the selected project") from None
                 w_res = codetools.write_isolated_box(self.project, box_id, rel, args.get("content", ""))
                 return json.dumps({"ok": True, "path": str(target), "isolated": True, "box_id": box_id, "bytes": w_res.get("size", 0)})
             if tool.path == "/fs/read":
@@ -1246,7 +1302,7 @@ class Engine:
                     }, self.stop)
                     if not decision or not decision.get("approved"):
                         return json.dumps({"error": "PermissionApprovalDenied: User rejected privilege escalation", "ok": False})
-                    result = self.bridge(tool.path, {**args, "_force_privileged": True})
+                    return json.dumps({"error": "Approved privileged commands require a separate privileged executor.", "ok": False})
                 else:
                     return json.dumps({"error": "PermissionApprovalRequired: Privilege escalation requires explicit user approval", "ok": False})
         except Exception:
@@ -1321,15 +1377,11 @@ class Engine:
     def run_agent(self, agent, task, history, depth=0, images=None):
         if depth > 8:
             raise RuntimeError("delegation depth limit exceeded")
+        self.wait_for_stage(agent.name)
         tools = {t.name: t for t in agent.tools}
         system = agent.system if "COMPACT RESPONSES:" in agent.system else agent.system + "\n\n" + RESPONSE_STYLE
 
-        # Milestone 3: Vibe Studio Directives Injection & Auto-Checkpointing
         if self.project:
-            try:
-                from . import codetools
-            except ImportError:
-                import codetools
             try:
                 vcfg = codetools.vibe_config_get(self.project)
                 if vcfg:
@@ -1344,13 +1396,6 @@ class Engine:
                         system += vibe_msg
             except Exception:
                 pass
-
-            if any(role in agent.name.lower() for role in ("build", "design")) and self.bridge:
-                try:
-                    b_wrap = lambda p, b: json.loads(self.bridge(p, b))
-                    codetools.vibe_checkpoint(b_wrap, self.project, f"pre-{agent.name.lower()}")
-                except Exception:
-                    pass
 
         dormant = {n for n, t in tools.items() if (n in DORMANT or t.kind == "custom")} if len(tools) > 8 else set()
         if dormant:
@@ -1377,6 +1422,7 @@ class Engine:
                 view = diet.mask_observations(base, self.blobs, keep_last=self.settings.get("mask_after", 2))
                 offered = [t for n, t in tools.items() if n not in dormant or n in enabled]
                 content, calls = self.chat(agent, view, offered)
+                self.checkpoint_control()
                 self._maybe_compact(agent, messages, head, compact)
                 if not calls:
                     self.emit({"type": "agent_end", "agent": agent.name, "depth": depth, "text": content})
@@ -1461,14 +1507,16 @@ class Engine:
 
     def respond(self, user_text, history, images=None):
         """One user turn through the orchestrator. history: prior [{'role','content'}] messages."""
+        self.checkpoint_control()
         if self.project and self.project_root:
             if self.settings.get("branch_per_change"):
                 b_res = codetools.create_change_branch(self.project)
-                if b_res.get("ok"):
-                    self._active_branch_id = b_res.get("branch")
-                    self.emit({"type": "branch_change", "branch": self._active_branch_id, "default_branch": b_res.get("default_branch")})
+                if not b_res.get("ok"):
+                    raise RuntimeError(b_res.get("error", "Could not create a change branch"))
+                self._active_branch_id = b_res["branch"]
+                self.emit({"type": "branch_change", "branch": self._active_branch_id, "default_branch": b_res["default_branch"]})
             if self.settings.get("isolated_agent_box"):
-                self._active_box_id = f"box_{self.project}_{int(time.time())}"
+                self._active_box_id = f"box_{uuid.uuid4().hex[:16]}"
                 codetools.create_isolated_box(self.project, self._active_box_id)
             ledger = self.execution_ledger()
             self._coordinator_record={'id':'coordinator-'+uuid.uuid4().hex[:12],'state':'running','task':user_text[:1500],'started':time.time()}
@@ -1503,28 +1551,46 @@ class Engine:
                                              self.history_cache)
             if _key:
                 self.emit({"type": "context", "folded": len(history) - self.settings.get("fold_after", 12)})
-            reply=self.run_agent(self.agents[ORCHESTRATOR], user_text, folded, images=images)
-            if getattr(self, '_coordinator_record', None):self._coordinator_record.update(state='completed',result=reply[:1800])
+            reply = self.run_agent(self.agents[ORCHESTRATOR], user_text, folded, images=images)
+            self.checkpoint_control()
             if self.project_root and self.settings.get("auto_memory"):
                 self.learn_from_run(user_text, reply)
+            self.checkpoint_control()
+            box = getattr(self, "_active_box_id", None)
+            branch = getattr(self, "_active_branch_id", None)
+            complete = not reply.startswith("Reached the limit of")
+            if complete and box and branch:
+                with codetools.BRANCH_LOCK:
+                    if codetools._current_branch(self.project) != branch:
+                        raise RuntimeError("The change branch switched during this run. Staged files were kept.")
+                    self.checkpoint_control()
+                    applied = codetools.merge_isolated_box(self.project, box)
+                if not applied["ok"]:
+                    raise RuntimeError(applied["error"])
+                self.emit({"type": "isolated_merge", "ok": True, "result": applied})
+                self._active_box_id = None
+            if complete and branch:
+                self.checkpoint_control()
+                commit = codetools.commit_change_branch(self.project, f"agent: {user_text[:60]}", branch=branch)
+                if not commit["ok"]:
+                    raise RuntimeError(commit["error"])
+                marker = pc_bridge.RUN_CANCEL.set(self.stop)
+                try:
+                    tests = codetools.verify_change_branch(self.project, lambda: project_logic.run_project_tests(self.project))
+                finally:
+                    pc_bridge.RUN_CANCEL.reset(marker)
+                self.checkpoint_control()
+                self.emit({"type": "branch_pending_approval", "branch": branch, "commit": commit, "tests": tests})
+            if getattr(self, "_coordinator_record", None):
+                self._coordinator_record.update(state="completed" if complete else "interrupted", result=reply[:1800])
             return reply
         except BaseException:
-            if getattr(self, '_coordinator_record', None):self._coordinator_record['state']='interrupted' if self.stop.is_set() else 'failed'
+            if getattr(self, "_coordinator_record", None):
+                self._coordinator_record["state"] = "interrupted" if self.stop.is_set() else "failed"
             raise
         finally:
-            if getattr(self, '_coordinator_record', None):
-                self._coordinator_record['finished']=time.time();self.ledger.save()
-            if getattr(self, '_active_box_id', None) and self.project:
-                merge_res = codetools.merge_isolated_box(self.project, self._active_box_id)
-                self.emit({"type": "isolated_merge", "ok": merge_res.get("ok"), "result": merge_res})
-                self._active_box_id = None
-            if getattr(self, '_active_branch_id', None) and self.project:
-                commit_res = codetools.commit_change_branch(self.project, f"agent: {user_text[:60]}")
-                test_res = project_logic.run_project_tests(self.project)
-                self.emit({
-                    "type": "branch_pending_approval",
-                    "branch": self._active_branch_id,
-                    "commit": commit_res,
-                    "tests": test_res
-                })
-                self._active_branch_id = None
+            if getattr(self, "_coordinator_record", None):
+                self._coordinator_record["finished"] = time.time()
+                self.ledger.save()
+            if getattr(self, "_active_box_id", None):
+                self.emit({"type": "isolated_pending", "box_id": self._active_box_id, "project": self.project})

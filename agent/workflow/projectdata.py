@@ -16,8 +16,8 @@ def atomic_write(path, text):
     fd, name = tempfile.mkstemp(prefix="." + path.name + "-", dir=path.parent)
     temp = Path(name)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            stream.write(text)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(text if isinstance(text, bytes) else text.encode("utf-8"))
             stream.flush()
             os.fsync(stream.fileno())
         if path.exists():

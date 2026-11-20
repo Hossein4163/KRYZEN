@@ -36,26 +36,63 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
       document.body.appendChild(dialog);dialog.addEventListener('close',()=>{const name=dialog.returnValue==='save'?dialog.querySelector('input').value.trim():null;dialog.remove();resolve(name||null);},{once:true});dialog.showModal();dialog.querySelector('input').select();
     });
   }
+  const workspaceNav = document.getElementById("workspaceNav");
+  const modePicker = document.getElementById("modePickerBtn");
+  const compactNav = matchMedia("(max-width: 1100px)");
+  function syncWorkspaceNav() {
+    if (compactNav.matches) workspaceNav.setAttribute("popover", "auto");
+    else workspaceNav.removeAttribute("popover");
+    modePicker.setAttribute("aria-expanded", "false");
+  }
+  function positionWorkspaceNav() {
+    const anchor = modePicker.getBoundingClientRect();
+    workspaceNav.style.setProperty("--menu-left", `${Math.min(anchor.left, innerWidth - 224)}px`);
+    workspaceNav.style.setProperty("--menu-top", `${anchor.bottom + 8}px`);
+  }
+  workspaceNav.addEventListener("beforetoggle", event => {
+    if (event.newState === "open") positionWorkspaceNav();
+    modePicker.setAttribute("aria-expanded", String(event.newState === "open"));
+  });
+  workspaceNav.addEventListener("toggle", () => {
+    if (workspaceNav.matches(":popover-open")) workspaceNav.querySelector('[aria-current="page"]')?.focus({preventScroll: true});
+  });
+  compactNav.addEventListener("change", syncWorkspaceNav);
+  window.addEventListener("resize", () => {
+    if (workspaceNav.matches(":popover-open")) positionWorkspaceNav();
+  });
+  syncWorkspaceNav();
+
   function setMode(mode,guard=true) {
+    if (workspaceNav.matches(":popover-open")) workspaceNav.hidePopover();
+    if (mode === S.mode && closeMobileChat()) return;
     if(guard&&!okayToLeave())return;
     if(guard)discard();
+    closeMobileChat(false);
     S.mode=mode;try{localStorage.setItem('jarvis.mode',mode);}catch(_){}
-    document.body.classList.remove('studio-mode','code-mode','control-mode','home-mode','trace-mode');
+    document.body.classList.remove('studio-mode','code-mode','control-mode','home-mode','trace-mode','bots-mode');
     document.querySelectorAll('.dock-item').forEach(b=>{
       const match = (b.dataset.mode === mode) || (mode === 'control' && b.dataset.mode === 'ctrl');
       b.classList.toggle('on', match);
       b.classList.toggle('primary', match);
-      b.setAttribute('aria-pressed', String(match));
+      if (match) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
     });
+    const current = workspaceNav.querySelector('[aria-current="page"]');
+    if (current) {
+      const label = current.querySelector(".dock-lbl").textContent;
+      modePicker.firstElementChild.textContent = label;
+      modePicker.setAttribute("aria-label", `Switch workspace, current ${label}`);
+    }
     studio.hidden=!['flow','plan'].includes(mode);
     if(mode==='flow'||mode==='plan') {document.body.classList.add('studio-mode');mode==='flow'?loadFlows():loadPlan();}
     else if(mode==='code') {document.body.classList.add('code-mode');if(typeof window.cwInit==='function'||typeof cwInit==='function')(window.cwInit||cwInit)();}
     else if(mode==='control') {document.body.classList.add('control-mode');const fn=window.showSection||(typeof showSection==='function'?showSection:null);if(fn)fn(window.section||(typeof section!=='undefined'?section:'appearance'));}
-    else if(mode==='home'||mode==='trace') document.body.classList.add(mode+'-mode');
+    else if(mode==='home'||mode==='trace'||mode==='bots') document.body.classList.add(mode+'-mode');
     window.dispatchEvent(new CustomEvent('kryzen:mode',{detail:mode}));
+    if (guard && matchMedia("(max-width: 760px)").matches) window.scrollTo(0, 0);
     if(typeof meshMotionState==='function')meshMotionState();
   }
-  ['home','trace','mesh','flow','plan','code','ctrl'].forEach(key=>{
+  ['home','trace','mesh','flow','plan','code','ctrl','bots'].forEach(key=>{
     const el=document.getElementById(key+'Btn');
     if(el) el.onclick=()=>setMode(key==='ctrl'?'control':key);
   });
@@ -78,7 +115,7 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
   async function loadFlows(preferred) {
     if(S.mode!=='flow')return;
     const requestId=++S.flowListRequest;
-    studio.innerHTML=heading('Flow studio','Connected thinking','')+'<div class="studio-loading">Opening your canvases…</div>';
+    studio.innerHTML=heading('Flow studio','Canvases','')+'<div class="studio-loading" role="status">Loading canvases…</div>';
     await attempt(async()=>{
       const [list,mesh]=await Promise.all([request('/api/studio/flows'),request('/api/mesh')]);
       if(S.mode!=='flow'||requestId!==S.flowListRequest)return;
@@ -95,7 +132,7 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     const data=await request('/api/studio/flow?name='+encodeURIComponent(name));
     if(requestId!==S.flowRequest||S.mode!=='flow')return;
     validateCanvas(data.canvas);
-    S.flow=data;localStorage.setItem('jarvis.studio.flow',data.name);S.base=JSON.stringify(data.canvas);S.selected=null;S.selectedEdge=null;S.view={x:40,y:50,z:1};S.autoFit=true;
+    S.flow=data;localStorage.setItem('jarvis.studio.flow',data.name);S.base=JSON.stringify(data.canvas);S.selected=null;S.selectedEdge=null;S.view={x:40,y:50,z:1};S.autoFit='readable';
     if(S.mode==='flow'){renderFlow();requestAnimationFrame(()=>fitFlow(true));}
   }
   function validateCanvas(canvas) {
@@ -163,9 +200,53 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     const n={id:uid(),type,x:Math.round(center.x),y:Math.round(center.y),width:270,height:170,...(type==='file'?{file:'_DevPilot/Agents/'+agent.file,color:'6'}:{text:'# A new thought\nDescribe the task, decision or context.',color:'6'})};
     S.flow.canvas.nodes.push(n);S.selected=n.id;S.selectedEdge=null;dirtyFlow();renderInspector();
   }
-  function transformFlow() {const p=qs('#flowPlane');if(!p)return;p.style.transform=`translate(${S.view.x}px,${S.view.y}px) scale(${S.view.z})`;p.style.setProperty('--flow-scale',String(S.view.z));p.classList.toggle('flow-overview',S.view.z<.35);qs('#flowZoomLabel').textContent=Math.round(S.view.z*100)+'%';const v=qs('#flowViewport');v.style.backgroundPosition=`${S.view.x}px ${S.view.y}px`;v.style.backgroundSize=`${20*S.view.z}px ${20*S.view.z}px`;}
+  function transformFlow() {
+    const plane = qs('#flowPlane');
+    if (!plane) return;
+    const {x, y, z} = S.view;
+    plane.style.transform = `translate(${x}px,${y}px) scale(${z})`;
+    plane.style.setProperty('--flow-scale', String(z));
+    plane.classList.toggle('flow-overview', z < .35);
+    qs('#flowZoomLabel').textContent = Math.round(z * 100) + '%';
+    const viewport = qs('#flowViewport');
+    viewport.style.backgroundPosition = `${x}px ${y}px`;
+    const gridSize = Math.max(16, 20 * z);
+    viewport.style.backgroundSize = `${gridSize}px ${gridSize}px`;
+  }
   function zoomFlow(z,anchor) {S.autoFit=false;const v=qs('#flowViewport');if(!v)return;const point=anchor||{x:v.clientWidth/2,y:v.clientHeight/2};const old=S.view.z;z=Math.max(.01,Math.min(2.5,z));S.view.x=point.x-(point.x-S.view.x)*z/old;S.view.y=point.y-(point.y-S.view.y)*z/old;S.view.z=z;transformFlow();}
-  function fitFlow(preferReadable=false) {S.autoFit=true;const nodes=S.flow?.canvas.nodes||[],v=qs('#flowViewport');if(!v)return;if(!nodes.length){S.view={x:40,y:40,z:1};transformFlow();return;}const minX=Math.min(...nodes.map(n=>n.x)),minY=Math.min(...nodes.map(n=>n.y)),maxX=Math.max(...nodes.map(n=>n.x+n.width)),maxY=Math.max(...nodes.map(n=>n.y+n.height));const fitted=Math.max(.01,Math.min(1,(v.clientWidth-70)/Math.max(1,maxX-minX),(v.clientHeight-90)/Math.max(1,maxY-minY)));const z=fitted;S.view={z,x:(v.clientWidth-(maxX-minX)*z)/2-minX*z,y:(v.clientHeight-(maxY-minY)*z)/2-minY*z};transformFlow();}
+  function fitFlow(preferReadable = false) {
+    const nodes = S.flow?.canvas.nodes || [];
+    const viewport = qs('#flowViewport');
+    if (!viewport) return;
+    S.autoFit = preferReadable ? 'readable' : 'all';
+    if (!nodes.length) {
+      S.view = {x: 40, y: 40, z: 1};
+      transformFlow();
+      return;
+    }
+    const minX = Math.min(...nodes.map(node => node.x));
+    const minY = Math.min(...nodes.map(node => node.y));
+    const width = Math.max(...nodes.map(node => node.x + node.width)) - minX;
+    const height = Math.max(...nodes.map(node => node.y + node.height)) - minY;
+    const fitted = Math.max(.01, Math.min(1, (viewport.clientWidth - 70) / width, (viewport.clientHeight - 90) / height));
+    const readableZoom = .55;
+    if (preferReadable && fitted < readableZoom) {
+      const cards = nodes.filter(node => node.type !== 'group');
+      const first = (cards.length ? cards : [...nodes]).sort((a, b) => a.x - b.x || a.y - b.y)[0];
+      S.view = {
+        z: readableZoom,
+        x: 22 - first.x * readableZoom,
+        y: Math.max(22, (viewport.clientHeight - first.height * readableZoom) / 2) - first.y * readableZoom,
+      };
+    } else {
+      S.view = {
+        z: fitted,
+        x: (viewport.clientWidth - width * fitted) / 2 - minX * fitted,
+        y: (viewport.clientHeight - height * fitted) / 2 - minY * fitted,
+      };
+    }
+    transformFlow();
+  }
   function nodeTitle(node) {const a=agentFor(node);if(a)return a.label||short(a.name);if(node.type==='text')return (node.text||'Untitled note').split('\n')[0].replace(/^#+\s*/,'').slice(0,100);if(node.type==='group')return node.label||'Group';return(node.file||node.url||'Linked card').split('/').pop();}
   function renderCanvas() {
     if(S.mode!=='flow'||!qs('#flowNodes'))return;
@@ -194,7 +275,7 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
   function wireCanvas() {
     const viewport=qs('#flowViewport');let drag=null;
     flowResize?.disconnect();
-    flowResize=new ResizeObserver(()=>{if(S.mode==='flow'&&S.autoFit&&qs('#flowViewport')===viewport)fitFlow(true);});flowResize.observe(viewport);
+    flowResize=new ResizeObserver(()=>{if(S.mode==='flow'&&S.autoFit&&qs('#flowViewport')===viewport)fitFlow(S.autoFit==='readable');});flowResize.observe(viewport);
     viewport.addEventListener('pointerdown',event=>{
       if(event.button!==0||event.target.closest('.canvas-zoom')||event.target.closest('.node-edit'))return;
       const card=event.target.closest('[data-node]'),edge=event.target.closest('[data-edge]');
@@ -255,8 +336,8 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     const slug=document.getElementById('proj').value;
     if(S.plan?.slug===slug&&planDirty()){renderPlan();return;}
     const requestId=++S.planRequest;S.planSlug=slug;
-    studio.innerHTML=heading('Plan studio','Give the work a direction','')+'<div class="studio-loading">Reading the project plan…</div>';
-    if(!slug){S.plan=null;studio.innerHTML=heading('Plan studio','Your next chapter','')+'<div class="plan-content"><div class="plan-empty"><div class="studio-eyebrow">Choose a project</div><h2>Good work starts with a plan.</h2><p>Select a project in the header to open its canonical plan, review milestones and guide the next run.</p></div></div>';return;}
+    studio.innerHTML=heading('Plan studio','Project plan','')+'<div class="studio-loading" role="status">Loading plan…</div>';
+    if(!slug){S.plan=null;studio.innerHTML=heading('Plan studio','Project plan','')+'<div class="plan-content"><div class="plan-empty"><h2>Choose a project</h2><p>Select a project in the project list to open its plan and review its milestones.</p></div></div>';return;}
     await attempt(async()=>{const plan=await request('/api/studio/plan?slug='+encodeURIComponent(slug));if(requestId!==S.planRequest)return;S.plan=plan;S.planBase=plan.content||'';S.planText=S.planBase;if(S.mode==='plan')renderPlan();});
   }
   function approvalStatus() {if(planDirty())return'changed';return S.plan?.approval?.status||'pending';}
@@ -271,7 +352,7 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
   function renderPlan() {
     if(S.mode!=='plan'||!S.plan)return;
     const p=S.plan,progress=p.progress||{done:0,total:0},state=p.state||{};
-    studio.innerHTML=heading('Plan studio',`${esc(S.planSlug)} <small>PROJECT PLAN</small>`,button('Refresh','planRefresh')+button('Save plan','planSave','primary',!planDirty()))+
+    studio.innerHTML=heading('Plan studio',esc(S.planSlug),button('Refresh','planRefresh')+button('Save plan','planSave','primary',!planDirty()))+
       `<div class="plan-layout"><section class="plan-main"><nav class="plan-tabs" role="tablist" aria-label="Plan views">${[['board','Milestones'],['editor','Markdown'],['preview','Preview']].map(([id,title])=>`<button role="tab" id="planTab-${id}" aria-controls="planContent" data-plan-tab="${id}" class="${S.planTab===id?'on':''}" aria-selected="${S.planTab===id}">${title}</button>`).join('')}</nav><div class="plan-content" id="planContent" role="tabpanel" aria-labelledby="planTab-${S.planTab}"></div></section><aside class="plan-rail" aria-label="Plan controls"><h2>Direction &amp; control</h2><span class="approval-status" id="planApprovalState"></span><h3>Ready when you are.</h3><p id="planApprovalNote"></p>${button('Approve this plan','planApprove','primary')}${button('Continue project ↗','planContinue')}${button('Ask Planner ↗','planAsk')}<div class="plan-facts"><h2>Project context</h2><dl><dt>Source of truth</dt><dd>docs/plan/PLAN.md</dd><dt>Current milestone</dt><dd>${esc(state.current_milestone||state.milestone||'Defined in your plan')}</dd><dt>Progress</dt><dd>${Number(progress.done)||0} of ${Number(progress.total)||0} tasks complete</dd><dt>Plan revision</dt><dd>${esc(String(p.revision||'Not saved').slice(0,12))}</dd></dl></div><p class="routing-note">Approve saves your current edits. Ask Planner and Continue start a real chat run scoped to <b>${esc(S.planSlug)}</b>. Editing a plan never starts work automatically.</p></aside></div><footer class="studio-bottom"><span id="planSaveState"></span><span>${esc(S.planSlug)} / docs/plan/PLAN.md</span></footer>`;
     studio.querySelectorAll('[data-plan-tab]').forEach(b=>b.onclick=()=>{S.planTab=b.dataset.planTab;qs('#planContent').setAttribute('aria-labelledby','planTab-'+S.planTab);studio.querySelectorAll('[data-plan-tab]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-selected',String(x===b));});renderPlanContent();});
     on('planSave',savePlan);on('planRefresh',async()=>{if(planDirty()&&!confirm('Discard unsaved changes and reload the saved plan?'))return;S.planText=S.planBase;await loadPlan();});
@@ -299,7 +380,7 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     const p=S.plan,tasks=p.tasks||[],progress=p.progress||{done:0,total:0};
     if(!p.exists&&!S.planText){content.innerHTML=`<div class="plan-empty"><div class="studio-eyebrow">A clear beginning</div><h2>What are we making?</h2><p>This project has no PLAN.md yet. Start with a simple milestone template, or ask Planner to turn your project context into a thoughtful plan.</p><div class="studio-actions">${button('Create a plan template','planTemplate','primary')}${button('Ask Planner ↗','planEmptyAsk')}</div></div>`;on('planTemplate',()=>{S.planText=`# ${S.planSlug}\n\n## Objective\nDescribe the outcome and who it is for.\n\n## Acceptance criteria\n- Define the result that proves this project is complete.\n\n## Milestone 1: Define the work\n- [ ] Confirm the requirements and constraints\n- [ ] Review the implementation approach\n\n## Milestone 2: Build and verify\n- [ ] Implement the approved work\n- [ ] Verify the acceptance criteria\n- [ ] Document the result and next steps\n`;S.planTab='editor';renderPlan();toast('Template ready. Edit and Save plan to keep it.','ok');});on('planEmptyAsk',()=>runPlanAction('ask'));return;}
     if(planDirty()){content.innerHTML=`<div class="studio-notice" style="padding:12px 0 22px;color:#e3c592">Your Markdown has unsaved changes. Save it to refresh these milestone checkboxes.</div>`;}else content.innerHTML='';
-    content.innerHTML+=`<div class="plan-summary"><div><div class="studio-eyebrow">The work ahead</div><strong>${Number(progress.done)||0} <small>/ ${Number(progress.total)||0}</small></strong></div><span>${progress.total?Math.round(progress.done/progress.total*100):0}% complete</span></div><div class="plan-progress"><i style="width:${progress.total?Math.min(100,progress.done/progress.total*100):0}%"></i></div>`;
+    content.innerHTML+=`<div class="plan-summary"><div><div class="studio-eyebrow">Tasks complete</div><strong>${Number(progress.done)||0} <small>/ ${Number(progress.total)||0}</small></strong></div><span>${progress.total?Math.round(progress.done/progress.total*100):0}% complete</span></div><div class="plan-progress"><i style="width:${progress.total?Math.min(100,progress.done/progress.total*100):0}%"></i></div>`;
     if(!tasks.length){content.innerHTML+='<div class="plan-empty" style="min-height:160px"><h2>Give the work its next steps.</h2><p>Add Markdown checkboxes or a task table to PLAN.md. Saved tasks appear here with their milestone and completion state.</p></div>';return;}
     const groups=new Map();tasks.forEach(task=>{const key=task.milestone||'Project tasks';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(task);});
     content.innerHTML+=[...groups].map(([milestone,items])=>`<section class="milestone"><div class="milestone-head"><h2>${esc(milestone)}</h2><small>${items.filter(t=>t.done).length} / ${items.length}</small></div>${items.map((task,index)=>`<label class="plan-task ${task.done?'done':''}"><input type="checkbox" data-task-line="${task.line}" ${task.done?'checked':''} ${planDirty()||S.busy?'disabled':''} aria-label="${esc(task.title)}"><span>${esc(task.title)}</span><small>${esc(task.id||String(index+1).padStart(2,'0'))}</small></label>`).join('')}</section>`).join('');
@@ -336,27 +417,58 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     finally{S.busy=false;if(S.mode==='plan')renderPlan();}
   }
 
-  /* Pause is cooperative, between tool calls. */
-  let run={running:false,paused:false,pause_requested:false};
+  let run = {running: false};
+  let pending = "";
+  const pauseButton = document.getElementById("pauseBtn");
+  const stopButton = document.getElementById("stopBtn");
   window.updateRunControl = data => {
-    if(data.state==='pause_requested')run={running:true,paused:false,pause_requested:true};
-    else if(data.state==='paused')run={running:true,paused:true,pause_requested:false};
-    else if(data.state==='running')run={running:true,paused:false,pause_requested:false};
-    else {run={...run,...data};if(!run.running)run={running:false,paused:false,pause_requested:false};}
-    const b=document.getElementById('pauseBtn');b.disabled=!run.running||run.pause_requested;b.textContent=run.paused?'Resume':run.pause_requested?'Pausing…':'Pause';b.title=run.paused?'Resume the paused run':'Pause between tool calls. The current operation may finish.';
-    if(run.paused||run.pause_requested){document.getElementById('statusText').textContent=run.paused?'paused':'pause requested';document.getElementById('status').classList.add('busy');}
-    document.getElementById('status').classList.toggle('paused',!!run.paused);
-    if(data.state==='running')document.getElementById('statusText').textContent='working…';
-    document.getElementById('stopBtn').disabled=!run.running;
+    if (data.running === false) run = {running: false};
+    else {
+      run = {...run, ...data};
+      if (data.state === "stopping") run.stopping = true;
+      if (!run.stopping && data.state) {
+        run.paused = data.state === "paused";
+        run.pause_requested = data.state === "pause_requested";
+      }
+    }
+    const state = run.stopping ? "Stopping…" : run.paused ? "Paused" : run.pause_requested ? "Pausing…" : "";
+    pauseButton.disabled = !run.running || run.stopping || !!pending;
+    pauseButton.textContent = run.pause_requested ? "Cancel pause" : run.paused ? "Resume" : "Pause";
+    pauseButton.setAttribute("aria-label", run.pause_requested ? "Cancel pause request" : pauseButton.textContent + " run");
+    pauseButton.title = run.pause_requested ? "Cancel the pending pause" : run.paused ? "Resume this run" : "Pause after the current operations finish";
+    stopButton.disabled = !run.running || run.stopping || pending === "stop";
+    stopButton.textContent = run.stopping ? "Stopping…" : "Stop";
+    stopButton.setAttribute("aria-label", run.stopping ? "Stopping run" : "Stop run");
+    stopButton.title = "Cancel this run and queued messages in this chat";
+    const status = document.getElementById("status");
+    status.classList.toggle("paused", Boolean(run.paused && !run.stopping));
+    status.dataset.runState = run.stopping ? "stopping" : run.paused || run.pause_requested ? "paused" : run.running ? "running" : "idle";
+    if (state) document.getElementById("statusText").textContent = state;
+    else if (data.state === "running") document.getElementById("statusText").textContent = "working…";
   };
-  document.getElementById('pauseBtn').onclick=async()=>{
-    if(!sessionId||!run.running)return;
-    const action=run.paused?'resume':'pause',controlledId=sessionId,b=document.getElementById('pauseBtn');b.disabled=true;
-    try{const r=await request('/api/run-control',{id:controlledId,action});if(sessionId!==controlledId)return;if(Number.isInteger(r.seq)&&r.seq<=lastEventSeq)return;if(action==='pause'&&run.paused)return;window.updateRunControl(r.state?{state:r.state}:action==='pause'?{state:'pause_requested'}:{state:'running'});if(action==='resume')document.getElementById('statusText').textContent='working…';}
-    catch(e){toast(errorText(e),'err');window.updateRunControl(run);}
-  };
-  const originalNew=document.getElementById('newBtn').onclick;
-  document.getElementById('newBtn').onclick=event=>{originalNew(event);window.updateRunControl({running:false});};
+
+  async function controlRun(action) {
+    const id = sessionId, turn = run.turn_seq;
+    if (!id || !run.running || run.stopping || pending === "stop" || (pending && action !== "stop")) return;
+    pending = action;
+    window.updateRunControl({});
+    try {
+      const path = action === "stop" ? "/api/stop" : "/api/run-control";
+      const result = await request(path, {id, action, turn_seq: turn});
+      if (sessionId !== id || !run.running || turn !== run.turn_seq ||
+          (Number.isInteger(result.seq) && result.seq <= lastEventSeq)) return;
+      if (result.stopping || result.state) window.updateRunControl({state: result.stopping ? "stopping" : result.state});
+    } catch (error) {
+      if (sessionId === id) toast(errorText(error), "err");
+    } finally {
+      if (pending === action) pending = "";
+      window.updateRunControl({});
+    }
+  }
+  window.controlRun = controlRun;
+  pauseButton.onclick = () => controlRun(run.paused || run.pause_requested ? "resume" : "pause");
+  stopButton.onclick = () => controlRun("stop");
+  window.addEventListener("kryzen:session", () => { pending = ""; window.updateRunControl({running: false}); });
 
   /* The installed library stays fully editable through the original forms. */
   secSkills = async function () {
@@ -374,6 +486,6 @@ https://github.com/highlightjs/highlight.js/issues/2277`),C=l,O=_),m===void 0&&(
     document.getElementById('skillSearch').oninput=render;document.getElementById('skillAgentFilter').onchange=render;document.getElementById('kNew').onclick=()=>skillForm(null);render();
   };
   // Wait for the existing startup to populate the selected project without coupling to it.
-  let savedMode='mesh';try{savedMode=localStorage.getItem('jarvis.mode')||'mesh';}catch(_){}
-  setMode(['home','trace','mesh','flow','plan','code','control'].includes(savedMode)?savedMode:'mesh',false);
+  let savedMode='home';try{savedMode=localStorage.getItem('jarvis.mode')||'home';}catch(_){}
+  setMode(['home','trace','mesh','flow','plan','code','control'].includes(savedMode)?savedMode:'home',false);
 })();

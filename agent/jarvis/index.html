@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#121215">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/app-192.png">
+<link rel="icon" href="/assets/app-192.png" type="image/png">
 <title>K.R.Y.Z.E.N · DevPilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,191 +16,193 @@
 <link rel="stylesheet" href="/assets/icons.css?v=3.0">
 <link rel="stylesheet" href="/assets/modernist.css?v=3.0">
 <link rel="stylesheet" href="/ui/modernist.css?v=3.0">
-<link rel="stylesheet" href="/ui/mesh.css?v=3.3">
-<script>
-// Prevent native browser right-click context menu across the platform
-window.addEventListener('contextmenu', e => e.preventDefault(), true);
-document.addEventListener('contextmenu', e => e.preventDefault(), true);
-</script>
+<link rel="stylesheet" href="/ui/mesh.css?v=3.7">
+<link rel="stylesheet" href="/ui/workspace.css?v=3.2">
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <div class="app">
   <header class="top">
-    <div class="mn-brand brand"><span class="mn-mark" aria-hidden="true"></span><span class="brand-title">K.R.Y.Z.E.N</span><span class="brand-sub">DevPilot</span></div>
-    <nav class="mn-nav" aria-label="Mode navigation">
-      <button class="dock-item" id="homeBtn" data-mode="home" title="Home"><i class="icon-house"></i><span class="dock-lbl">Home</span></button>
-      <button class="dock-item on" id="meshBtn" data-mode="mesh" title="Agent mesh"><i class="icon-network"></i><span class="dock-lbl">Mesh</span></button>
-      <button class="dock-item" id="flowBtn" data-mode="flow" title="Flow studio"><i class="icon-waypoints"></i><span class="dock-lbl">Flow</span></button>
-      <button class="dock-item" id="planBtn" data-mode="plan" title="Plan studio"><i class="icon-list-todo"></i><span class="dock-lbl">Plan</span></button>
-      <button class="dock-item" id="codeBtn" data-mode="code" title="Code workspace"><i class="icon-code"></i><span class="dock-lbl">Code</span></button>
-      <button class="dock-item" id="traceBtn" data-mode="trace" title="Run trace"><i class="icon-activity"></i><span class="dock-lbl">Trace</span></button>
-      <button class="dock-item" id="ctrlBtn" data-mode="ctrl" title="Control center"><i class="icon-sliders-horizontal"></i><span class="dock-lbl">Control</span></button>
+    <div class="mn-brand brand"><img class="mn-logo" src="/assets/app-192.png" width="32" height="32" alt=""><span class="brand-title">K.R.Y.Z.E.N</span></div>
+    <button type="button" class="btn" id="modePickerBtn" popovertarget="workspaceNav" aria-controls="workspaceNav" aria-label="Switch workspace" aria-expanded="false">
+      <span>Home</span><span class="mode-chevron" aria-hidden="true"></span>
+    </button>
+    <nav class="mn-nav" id="workspaceNav" aria-label="Workspaces">
+      <button class="dock-item on" id="homeBtn" data-mode="home" title="Home" aria-label="Home"><i class="icon-house" aria-hidden="true"></i><span class="dock-lbl">Home</span></button>
+      <button class="dock-item" id="meshBtn" data-mode="mesh" title="Agent mesh" aria-label="Agent mesh"><i class="icon-network" aria-hidden="true"></i><span class="dock-lbl">Mesh</span></button>
+      <button class="dock-item" id="botsBtn" data-mode="bots" title="Autonomous Bots & Teammates" aria-label="Autonomous Bots"><i class="icon-users" aria-hidden="true"></i><span class="dock-lbl">Bots</span></button>
+      <button class="dock-item" id="flowBtn" data-mode="flow" title="Flow studio" aria-label="Flow studio"><i class="icon-waypoints" aria-hidden="true"></i><span class="dock-lbl">Flow</span></button>
+      <button class="dock-item" id="planBtn" data-mode="plan" title="Plan studio" aria-label="Plan studio"><i class="icon-list-todo" aria-hidden="true"></i><span class="dock-lbl">Plan</span></button>
+      <button class="dock-item" id="codeBtn" data-mode="code" title="Code workspace" aria-label="Code workspace"><i class="icon-code" aria-hidden="true"></i><span class="dock-lbl">Code</span></button>
+      <button class="dock-item" id="traceBtn" data-mode="trace" title="Run trace" aria-label="Run trace"><i class="icon-activity" aria-hidden="true"></i><span class="dock-lbl">Trace</span></button>
+      <button class="dock-item" id="ctrlBtn" data-mode="ctrl" title="Control center" aria-label="Control center"><i class="icon-sliders-horizontal" aria-hidden="true"></i><span class="dock-lbl">Control</span></button>
     </nav>
     <div class="mn-tools">
-      <button class="btn mn-search" id="paletteBtn" title="Command palette (Ctrl+K)"><i class="icon-search"></i>Search<kbd>Ctrl K</kbd></button>
+      <button type="button" class="btn mn-search" id="paletteBtn" title="Search commands (Ctrl+K)" aria-label="Search workspace" aria-haspopup="dialog"><i class="icon-search" aria-hidden="true"></i><span>Search</span><kbd>Ctrl K</kbd></button>
+      <button type="button" class="btn mn-ico" id="executionBtn" style="--ico:'\e1d0'" title="Task queue and dependencies" aria-label="Tasks"><span class="task-label">Tasks</span><span id="activeTaskCount" hidden></span></button>
+      <button type="button" class="btn" id="installAppBtn" title="Install K.R.Y.Z.E.N" aria-label="Install app" hidden><i class="icon-arrow-up" aria-hidden="true"></i></button>
+      <button type="button" class="btn" id="jumpChatBtn" aria-controls="chatPanel" aria-expanded="false" title="Open chat" aria-label="Open chat"><i class="icon-message-square-plus" aria-hidden="true"></i><span>Chat</span></button>
     </div>
     <div class="mn-run" role="group" aria-label="Run controls">
-      <button class="btn mn-ico" id="executionBtn" style="--ico:'\e1d0'" title="View saved task dependencies, parallel branches and request queue">Tasks</button>
+      <div class="status" id="status" data-run-state="idle"><span class="dot" aria-hidden="true"></span><span id="statusText" role="status">Ready</span></div>
       <button class="btn mn-ico" id="pauseBtn" style="--ico:'\e132'" disabled title="Pause between tool calls">Pause</button>
       <button class="btn stop mn-ico" id="stopBtn" style="--ico:'\e16b'" disabled title="Stop the active run">Stop</button>
-      <button class="btn" id="newBtn" title="Start a new chat session"><i class="icon-message-square-plus"></i>New chat</button>
     </div>
   </header>
 
   <!-- Main Spatial Arena -->
   <main class="main">
     <!-- Left Blade: Neural Console -->
-    <section class="panel chatp" id="chatPanel">
+    <section class="panel chatp" id="chatPanel" aria-labelledby="chatTitle">
       <div class="mn-projects" id="projectsPanel">
-        <div class="mn-projects-head"><span>Projects</span><button type="button" class="btn mn-icon-btn" id="newProjectBtn" title="Add a project folder" aria-label="Add a project folder"><i class="icon-plus"></i></button></div>
+        <div class="project-toolbar">
+          <div class="sidebar-heading"><h2>Projects</h2><button type="button" class="btn sidebar-action" id="newProjectBtn" title="Add project" aria-label="Add a project folder"><i class="icon-plus" aria-hidden="true"></i><span>Add</span></button></div>
+          <div class="project-filter" id="projectFilter" hidden>
+            <i class="icon-search" aria-hidden="true"></i><input id="projectQuery" type="search" aria-label="Find a project" placeholder="Find a project…" autocomplete="off">
+          </div>
+        </div>
         <select class="proj" id="proj" hidden aria-hidden="true" tabindex="-1"></select>
         <ul class="mn-project-list" id="projectList" aria-label="Projects"></ul>
-        <div class="sessions" id="sessions" role="list" aria-label="Chats in this project"></div>
+        <div class="sessions" id="sessions" role="group" aria-label="Chats in this project"></div>
       </div>
-      <div class="chat-bar">
-        <span class="chat-bar-title">Chat</span>
-        <button class="btn chat-toggle-btn" id="chatCollapseBtn" title="Collapse chat"><i class="icon-panel-left-close"></i></button>
+      <div class="chat-bar sidebar-heading">
+        <div class="chat-context"><h2 id="chatTitle">Conversation</h2><span id="chatContext" dir="auto">General</span></div>
+        <button type="button" class="btn" id="chatProjectsBtn" aria-controls="projectsPanel" aria-expanded="false"><i class="icon-folder" aria-hidden="true"></i>Projects</button>
+        <button type="button" class="btn" id="newBtn" title="New conversation" aria-label="New conversation"><i class="icon-plus" aria-hidden="true"></i><span>New chat</span></button>
+        <button type="button" class="btn chat-toggle-btn" id="chatCollapseBtn" title="Collapse chat" aria-label="Collapse chat"><i class="icon-panel-left-close" aria-hidden="true"></i></button>
       </div>
-      <button type="button" class="collapsed-trigger" id="chatExpandTrigger" title="Open chat" aria-label="Open chat" aria-controls="chatPanel">
-        <i class="icon-panel-left-open"></i><span class="vertical-title">CHAT</span>
-      </button>
-      <div class="chat" id="chat"><div class="empty">Describe a project, or say continue to resume the last one.</div></div>
-      <div class="quick" id="quick">
-        <button data-t="continue">▶ continue</button>
-        <button data-t="Use Antigravity in parallel to implement the open tasks of the next milestone">parallel build</button>
-        <button data-t="Run a thorough security and vulnerability audit on our codebase using cloudflare-security-audit">security audit</button>
-        <button data-t="Audit all pages and polish UI aesthetics with impeccable and taste-skill">impeccable UI</button>
-        <button data-t="Design resilient API endpoints with Zod validation, retry jitter and idempotency">resilient API</button>
-        <button data-t="Where does the active project stand? What is completed and what is next?">roadmap & status</button>
-        <button data-t="plan approved, start the next milestone">approve plan</button>
-        <button data-t="go fully autonomous">autonomous</button>
+      <div class="chat-transcript">
+        <div class="chat" id="chat" role="region" aria-label="Conversation messages" tabindex="0"></div>
+        <button type="button" class="btn" id="chatLatest" hidden><i class="icon-arrow-up" aria-hidden="true"></i>Latest messages</button>
       </div>
-      <div class="mn-slash slash-commands-bar"><span>AGY</span>
-        <button type="button" class="slash-btn" data-slash="/goal" title="Autonomous long-running mode until 100% complete">/goal</button>
-        <button type="button" class="slash-btn" data-slash="/plan" title="Multi-step task planning with strict verification before code">/plan</button>
-        <button type="button" class="slash-btn" data-slash="/boost" title="Deep strategic thinking, multiple perspectives">/boost</button>
-        <button type="button" class="slash-btn" data-slash="/teamwork" title="Multi-agent parallel coordination without blocking">/teamwork</button>
-        <button type="button" class="slash-btn" data-slash="/audit" title="Security and vulnerability review">/audit</button>
-        <button type="button" class="slash-btn" data-slash="/learn" title="Learning-first interactive rationale and notes">/learn</button>
-        <button type="button" class="slash-btn" data-slash="/test" title="Run project test suites and verify outcomes before completion">/test</button>
-        <button type="button" class="slash-btn" data-slash="/vibe" title="Drop-to-clone or steal aesthetic tokens">/vibe</button>
-      </div>
-      <!-- Vibe Deck Drawer (Zero-Prompt Aesthetic & Architecture Sliders) -->
-      <div class="vibe-deck-bar" style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px;background:#0d0d0d;border-top:1px solid #222;font-size:11px;">
-        <span style="font-family:'JetBrains Mono',monospace;color:#888;font-size:10px;display:flex;align-items:center;gap:6px">
-          <i style="display:inline-block;width:6px;height:6px;background:#E60000"></i> VIBE DECK
-        </span>
-        <button type="button" class="btn" id="vibeDeckToggle" style="font-size:10px;padding:2px 8px;display:flex;align-items:center;gap:4px">
-          <span>CONFIGURE</span> <i class="icon-chevron-down" id="vibeDeckIcon"></i>
-        </button>
-      </div>
-      <div class="vibe-deck-drawer" id="vibeDeckDrawer" hidden style="background:#090909;border-top:2px solid #E60000;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label style="display:block;color:#aaa;font-size:10px;margin-bottom:4px">AESTHETIC DIAL</label>
-            <select id="vibeAesthetic" style="width:100%;background:#141414;border:1px solid #333;color:#FFF;padding:5px 8px;font-family:inherit;font-size:11px">
-              <option value="Swiss Grid">Swiss Grid (Default)</option>
+      <section id="chatTools" popover aria-label="Chat tools">
+        <h3>Prompt starters</h3>
+        <div class="quick" id="quick">
+          <button type="button" data-t="continue">Continue project</button>
+          <button type="button" data-t="Where does the active project stand? What is completed and what is next?">Project status</button>
+          <button type="button" data-t="Use Antigravity in parallel to implement the open tasks of the next milestone">Parallel build</button>
+          <button type="button" data-t="Audit the codebase for security vulnerabilities and prioritize the fixes.">Security audit</button>
+          <button type="button" data-t="Audit the project’s interfaces for usability, accessibility, and visual consistency.">UI review</button>
+        </div>
+        <h3>Slash commands</h3>
+        <div class="mn-slash slash-commands-bar">
+          <button type="button" class="slash-btn" data-slash="/goal">/goal</button>
+          <button type="button" class="slash-btn" data-slash="/plan">/plan</button>
+          <button type="button" class="slash-btn" data-slash="/boost">/boost</button>
+          <button type="button" class="slash-btn" data-slash="/teamwork">/teamwork</button>
+          <button type="button" class="slash-btn" data-slash="/audit">/audit</button>
+          <button type="button" class="slash-btn" data-slash="/learn">/learn</button>
+          <button type="button" class="slash-btn" data-slash="/test">/test</button>
+          <button type="button" class="slash-btn" data-slash="/vibe">/vibe</button>
+        </div>
+        <div class="vibe-deck-bar">
+          <button type="button" class="btn" id="vibeDeckToggle" aria-expanded="false" aria-controls="vibeDeckDrawer">
+            Project design settings <span class="vibe-chevron" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="vibe-deck-drawer" id="vibeDeckDrawer" hidden>
+          <label for="vibeAesthetic">Aesthetic
+            <select id="vibeAesthetic">
+              <option value="Swiss Grid">Swiss Grid</option>
               <option value="Brutalist">Brutalist</option>
               <option value="Minimal SaaS">Minimal SaaS</option>
               <option value="Cyberpunk">Cyberpunk</option>
               <option value="Playful Neo-Brutal">Playful Neo-Brutal</option>
             </select>
-          </div>
-          <div>
-            <label style="display:block;color:#aaa;font-size:10px;margin-bottom:4px">STACK LOCK</label>
-            <select id="vibeStack" style="width:100%;background:#141414;border:1px solid #333;color:#FFF;padding:5px 8px;font-family:inherit;font-size:11px">
+          </label>
+          <label for="vibeStack">Preferred stack
+            <select id="vibeStack">
               <option value="Vanilla Zero-Dep">Vanilla Zero-Dep</option>
               <option value="React/Tailwind">React / Tailwind</option>
               <option value="Python/HTMX">Python / HTMX</option>
               <option value="Full-Stack Auto">Full-Stack Auto</option>
             </select>
-          </div>
+          </label>
+          <label for="vibeDensity">Density <span id="vibeDensityVal">Level 3</span>
+            <input type="range" id="vibeDensity" min="1" max="5" value="3">
+          </label>
+          <label for="vibeMotion">Motion <span id="vibeMotionVal">Level 3</span>
+            <input type="range" id="vibeMotion" min="1" max="5" value="3">
+          </label>
+          <button type="button" class="btn primary" id="vibeSaveBtn">Save design settings</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
-          <div>
-            <div style="display:flex;justify-content:space-between;color:#aaa;font-size:10px;margin-bottom:2px">
-              <span>DENSITY</span> <span id="vibeDensityVal">Level 3</span>
-            </div>
-            <input type="range" id="vibeDensity" min="1" max="5" value="3" style="width:100%;accent-color:#E60000">
-            <div style="display:flex;justify-content:space-between;color:#666;font-size:9px"><span>Airy</span><span>Cockpit</span></div>
+      </section>
+      <form class="composer" id="form" aria-label="Message composer">
+        <div class="kz-att-strip" id="attachmentStrip" role="group" aria-label="Attached images" hidden></div>
+        <p id="attachmentStatus" role="status"></p>
+        <textarea id="input" dir="auto" rows="2" aria-label="Message K.R.Y.Z.E.N" title="Enter to send; Shift+Enter for a new line" placeholder="Write a message…"></textarea>
+        <div class="composer-actions">
+          <div class="composer-tools">
+            <button class="btn chat-tools-toggle" type="button" id="chatToolsToggle" popovertarget="chatTools" aria-label="Chat tools" title="Chat tools"><i class="icon-ellipsis" aria-hidden="true"></i></button>
           </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;color:#aaa;font-size:10px;margin-bottom:2px">
-              <span>MOTION</span> <span id="vibeMotionVal">Level 3</span>
-            </div>
-            <input type="range" id="vibeMotion" min="1" max="5" value="3" style="width:100%;accent-color:#E60000">
-            <div style="display:flex;justify-content:space-between;color:#666;font-size:9px"><span>Static</span><span>Spring Physics</span></div>
-          </div>
+          <button type="submit" class="send" title="Send (Enter)" aria-label="Send message" disabled><span>Send</span><i class="icon-arrow-up" aria-hidden="true"></i></button>
         </div>
-        <div style="display:flex;gap:6px;justify-content:flex-end">
-          <button type="button" class="btn primary" id="vibeSaveBtn" style="font-size:10px;background:#E60000;border:none">Apply Vibe</button>
-        </div>
-      </div>
-      <form class="composer" id="form">
-        <textarea id="input" rows="1" aria-label="Message K.R.Y.Z.E.N" title="Enter to send; Shift+Enter for a new line" placeholder="Ask K.R.Y.Z.E.N about your project…"></textarea>
-        <button class="send" title="Send (Enter)" aria-label="Send message"><i class="icon-arrow-up"></i></button>
       </form>
     </section>
 
-    <!-- Center Stage: 3D Holographic Mesh -->
     <section class="studio panel" id="studio" aria-label="Flow & Plan Studio" hidden></section>
-    <section class="panel stage">
-      <!-- Unified Cyber HUD Top Bar -->
-      <div class="mesh-top-hud">
-        <div class="mesh-status-badge">
-          <h2>Agent Mesh <span id="meshState">Online</span></h2>
-          <p id="meshSummary" role="status">14 specialized agents linked via synaptic conduits</p>
-          <button class="btn" id="meshRetry" hidden>Retry loading mesh</button>
+    <section class="panel stage" aria-labelledby="meshTitle">
+      <header class="mesh-header">
+        <div class="mesh-heading">
+          <h1 id="meshTitle">Agent Mesh</h1>
+          <p id="meshSummary" role="status">Loading agents…</p>
+          <button type="button" class="btn" id="meshRetry" hidden>Retry loading mesh</button>
         </div>
-        <div class="mesh-bar">
-          <div class="mesh-layers" role="group" aria-label="Mesh layers">
-            <button class="on" data-layer="tools" aria-pressed="true">Tools</button>
-            <button class="on" data-layer="skills" aria-pressed="true">Skills</button>
-            <button class="on" data-layer="flow" aria-pressed="true" title="Animate the journey line">Flow</button>
-          </div>
-          <button class="btn" id="meshAnatomyBtn" title="Inspect Honeycomb Cell Architecture"><i class="icon-cube"></i>Cell Anatomy</button>
-          <button class="btn add" id="addAgent"><i class="icon-plus"></i>Agent</button>
+        <div class="mesh-actions">
+          <button type="button" class="btn" id="meshAnatomyBtn" title="Inspect mesh node anatomy"><i class="icon-box" aria-hidden="true"></i>Anatomy</button>
+          <button type="button" class="btn primary" id="addAgent"><i class="icon-plus" aria-hidden="true"></i>Agent</button>
+        </div>
+      </header>
+      <div class="mesh-stage-strip">
+        <div class="jr-ruler" id="jrRuler" role="group" aria-label="Journey stages"></div>
+      </div>
+      <div class="mesh-toolbar">
+        <div class="mesh-layer-controls" role="group" aria-label="Mesh layers">
+          <span class="mesh-control-label" aria-hidden="true">Layers</span>
+          <button type="button" class="btn" data-layer="tools" aria-pressed="true">Tools</button>
+          <button type="button" class="btn" data-layer="skills" aria-pressed="true">Skills</button>
+          <button type="button" class="btn" data-layer="flow" aria-pressed="true" title="Animate the journey line">Flow</button>
+        </div>
+        <div class="mesh-camera" role="group" aria-label="Canvas zoom">
+          <button type="button" class="btn" id="meshZoomOut" aria-label="Zoom out"><i class="icon-minus" aria-hidden="true"></i></button>
+          <button type="button" class="btn" id="meshZoomLabel" title="Reset zoom">100%</button>
+          <button type="button" class="btn" id="meshZoomIn" aria-label="Zoom in"><i class="icon-plus" aria-hidden="true"></i></button>
+          <button type="button" class="btn" id="meshFit" title="Show the whole journey">Fit</button>
         </div>
       </div>
       <div class="mesh-viewport" id="meshViewport">
         <div class="jr-host" id="journey"></div>
-        <div class="mesh-navigation">
-          <div class="canvas-zoom mesh-zoom">
-            <button class="btn" id="meshZoomOut" aria-label="Zoom out"><i class="icon-minus"></i></button>
-            <button class="btn" id="meshZoomLabel" title="Reset zoom">100%</button>
-            <button class="btn" id="meshZoomIn" aria-label="Zoom in"><i class="icon-plus"></i></button>
-            <button class="btn" id="meshFit" title="Show the whole journey">Fit</button>
-          </div>
-        </div>
       </div>
       <footer class="mesh-footer">
-        <span id="stepInfo"></span>
+        <span id="meshState">Connecting</span>
         <div class="ticker" id="ticker">Ready for dispatch · Google AX agent executor standing by</div>
+        <span id="stepInfo"></span>
       </footer>
     </section>
 
     <!-- Right Blade: Telemetry & Superpowers Matrix -->
-    <section class="panel side" id="sidePanel">
-      <button type="button" class="collapsed-trigger" id="sideExpandTrigger" title="Open project panel" aria-label="Open project panel" aria-controls="sidePanel">
-        <i class="icon-panel-right-open"></i><span class="vertical-title">PROJECT</span>
+    <section class="panel side" id="sidePanel" aria-labelledby="inspectorTitle">
+      <button type="button" class="collapsed-trigger" id="sideExpandTrigger" title="Open inspector" aria-label="Open inspector" aria-controls="sidePanel">
+        <i class="icon-panel-right-open" aria-hidden="true"></i><span class="vertical-title">Inspector</span>
       </button>
-      <div class="tabs">
-        <button class="on" data-pane="pProject">Project</button>
-        <button data-pane="pFiles">Files</button>
-        <button data-pane="pLog">Activity</button>
-        <button data-pane="pAgy">Agy</button>
-        <button data-pane="pSkills" id="skillsTab">Skills</button>
-        <button data-pane="pExecution" id="executionTab">Tasks</button>
-        <span style="flex:1"></span>
-        <button class="btn side-expand-btn" id="sideExpandBtn" title="Toggle expand panel"></button>
-        <button class="btn side-collapse-btn" id="sideCollapseBtn" title="Collapse panel"><i class="icon-panel-right-close"></i></button>
+      <div class="sidebar-heading">
+        <h2 id="inspectorTitle">Inspector</h2>
+        <button type="button" class="btn sidebar-action" id="sideExpandBtn" title="Enlarge inspector" aria-label="Enlarge inspector" aria-pressed="false"><i class="icon-arrow-up-right" aria-hidden="true"></i></button>
+        <button type="button" class="btn sidebar-action" id="sideCollapseBtn" title="Collapse inspector" aria-label="Collapse inspector"><i class="icon-panel-right-close" aria-hidden="true"></i></button>
       </div>
-      <div class="pane on" id="pProject"><div class="empty">Select a project to inspect milestones.</div></div>
-      <div class="pane" id="pFiles"><ul class="list" id="tree"></ul><div id="fileView"></div></div>
-      <div class="pane log" id="pLog"></div>
-      <div class="pane log agy-side-pane" id="pAgy">
+      <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
+        <button type="button" role="tab" class="on" id="inspectorProject" data-pane="pProject" aria-controls="pProject" aria-selected="true">Project</button>
+        <button type="button" role="tab" id="inspectorFiles" data-pane="pFiles" aria-controls="pFiles" aria-selected="false" tabindex="-1">Files</button>
+        <button type="button" role="tab" id="inspectorLog" data-pane="pLog" aria-controls="pLog" aria-selected="false" tabindex="-1">Activity</button>
+        <button type="button" role="tab" id="skillsTab" data-pane="pSkills" aria-controls="pSkills" aria-selected="false" tabindex="-1">Skills</button>
+        <button type="button" role="tab" id="executionTab" data-pane="pExecution" aria-controls="pExecution" aria-selected="false" tabindex="-1">Tasks</button>
+        <button type="button" role="tab" id="inspectorAgy" data-pane="pAgy" aria-controls="pAgy" aria-selected="false" tabindex="-1">Antigravity</button>
+      </div>
+      <div class="pane on" id="pProject" role="tabpanel" aria-labelledby="inspectorProject" tabindex="0"><div class="empty">Select a project to inspect milestones.</div></div>
+      <div class="pane" id="pFiles" role="tabpanel" aria-labelledby="inspectorFiles" tabindex="0"><ul class="list" id="tree"></ul><div id="fileView"></div></div>
+      <div class="pane log" id="pLog" role="tabpanel" aria-labelledby="inspectorLog" tabindex="0"></div>
+      <div class="pane log agy-side-pane" id="pAgy" role="tabpanel" aria-labelledby="inspectorAgy" tabindex="0">
         <div class="agy-side-head">
           <span>Antigravity runs</span>
           <button class="btn" id="agySideRefresh">Refresh</button>
@@ -205,7 +211,7 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
         <div class="term-out agy-side-out" id="agySideOut">Select a run above to view full log.</div>
       </div>
       <!-- Superpower Skills Matrix Pane -->
-      <div class="pane skills-pane" id="pSkills">
+      <div class="pane skills-pane" id="pSkills" role="tabpanel" aria-labelledby="skillsTab" tabindex="0">
         <div class="skills-head">
           <div class="skills-filter-bar">
             <input type="text" id="skillPaneSearch" placeholder="Search skills…">
@@ -222,13 +228,13 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
         </div>
         <div class="skills-grid" id="skillsGrid"></div>
       </div>
-      <div class="pane execution-pane" id="pExecution"><div id="executionPanel"></div></div>
+      <div class="pane execution-pane" id="pExecution" role="tabpanel" aria-labelledby="executionTab" tabindex="0"><div id="executionPanel"></div></div>
     </section>
 
     <!-- Workspace View: Cyber IDE -->
     <section class="codews" id="codews">
       <div class="panel cw-files" id="cwExplorer">
-        <h2>Explorer<span style="flex:1"></span><button class="btn" id="cwNew" title="New file"><i class="icon-file-plus"></i></button><button class="btn" id="cwReload" title="Refresh"><i class="icon-refresh-cw"></i></button></h2>
+        <div class="sidebar-heading"><h2>Explorer</h2><button type="button" class="btn sidebar-action" id="cwNew" title="New file" aria-label="New file"><i class="icon-file-plus" aria-hidden="true"></i></button><button type="button" class="btn sidebar-action" id="cwReload" title="Refresh files" aria-label="Refresh files"><i class="icon-refresh-cw" aria-hidden="true"></i></button></div>
         <div class="cw-root" id="cwRoot">PROJECT</div><input type="text" class="filter" id="cwFilter" aria-label="Filter project files" placeholder="Filter files…"><button class="cw-quick-trigger" id="cwQuickOpen">Go to file <kbd>Ctrl P</kbd></button>
         <div class="cw-tree" id="cwTree" role="tree" aria-label="Project files"></div>
       </div>
@@ -238,7 +244,7 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
           <button class="btn" id="cwAsk" title="Send the file or selection to K.R.Y.Z.E.N"><i class="icon-sparkles"></i>Ask K.R.Y.Z.E.N</button>
           <button class="btn" id="cwReloadFile" title="Reload this file from disk after reviewing unsaved edits">Reload</button>
           <button class="btn primary" id="cwSave" title="Ctrl+S">Save</button></div>
-        <div class="cw-ed" id="cwTextView"><div class="cw-gutter" id="cwGutter" aria-hidden="true">1</div><div class="cw-code-stack" id="cwCodeStack"><pre id="cwHighlight" aria-hidden="true"></pre><textarea class="cw-code" id="cwCode" aria-label="Source code editor" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea></div><div class="cw-editor-empty" id="cwEditorEmpty"><span class="cw-empty-mark">⌘</span><strong>Your project, in focus.</strong><span>Choose a file in Explorer to edit code or preview an image.</span><button class="btn" id="cwEmptyOpen">Go to file <kbd>Ctrl P</kbd></button></div></div>
+        <div class="cw-ed" id="cwTextView"><div class="cw-gutter" id="cwGutter" aria-hidden="true">1</div><div class="cw-code-stack" id="cwCodeStack"><pre id="cwHighlight" aria-hidden="true"></pre><textarea class="cw-code" id="cwCode" aria-label="Source code editor" spellcheck="false" wrap="off" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea></div><div class="cw-editor-empty" id="cwEditorEmpty"><strong>Choose a file to edit code or preview an image.</strong><button class="btn" id="cwEmptyOpen">Go to file <kbd>Ctrl P</kbd></button></div></div>
         <div class="cw-image-view" id="cwImageView" hidden><div class="cw-image-tools"><span>IMAGE PREVIEW</span><button class="btn" id="cwImageFit">Fit</button><button class="btn" id="cwImageActual">100%</button><button class="btn" id="cwImageMinus" aria-label="Zoom out image">−</button><output id="cwImageZoom">Fit</output><button class="btn" id="cwImagePlus" aria-label="Zoom in image">＋</button></div><div class="cw-image-stage" id="cwImageStage"><img id="cwImage" alt="" hidden><div id="cwImageStatus" role="status">Loading image…</div></div><div class="cw-image-meta" id="cwImageMeta"></div></div>
         <div class="cw-statusbar"><span id="cwEditorState">No file open</span><span class="cw-status-spacer"></span><span id="cwCursor">Ln 1, Col 1</span><span id="cwEncoding">UTF-8</span><span id="cwIndent">Spaces: 2</span><label class="cw-lang-label"><span class="sr-only">Syntax language</span><select id="cwLanguage" aria-label="Syntax language"><option value="plaintext">Plain text</option></select></label></div>
       </div>
@@ -309,7 +315,7 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
             <button class="btn pv-port-btn" data-port="5175">:5175 (Frontend)</button>
             <button class="btn pv-port-btn" data-port="5173">:5173 (Dev)</button>
             <button class="btn pv-port-btn" data-port="5003">:5003 (API)</button>
-            <button class="btn pv-port-btn" data-port="8770">:8770 (Jarvis)</button>
+            <button class="btn pv-port-btn" data-port="8780">:8780 (Jarvis)</button>
             <button class="btn pv-port-btn" data-port="3000">:3000</button>
           </div>
           <div class="preview-wrap" style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0">
@@ -394,21 +400,32 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
 
     <!-- Mission Control & Trace Overlays -->
     <section class="kz-view" id="homeView" aria-label="Home dashboard"></section>
+    <section class="kz-view" id="botsView" aria-label="Autonomous Bots & Teammates"></section>
     <section class="kz-view" id="traceView" aria-label="Run trace"></section>
 
     <!-- System Matrix View -->
-    <section class="control" id="control">
-      <nav class="panel nav" id="cnav">
-        <button data-sec="appearance"><i class="ico icon-palette"></i>Appearance</button>
-        <button data-sec="agents"><i class="ico icon-users"></i>Agents</button>
-        <button data-sec="blocks"><i class="ico icon-blocks"></i>Prompt blocks</button>
-        <button data-sec="tools"><i class="ico icon-wrench"></i>Tools</button>
-        <button data-sec="skills"><i class="ico icon-sparkles"></i>Skills</button>
-        <button data-sec="projects"><i class="ico icon-box"></i>Projects</button>
-        <button data-sec="models"><i class="ico icon-cpu"></i>Models &amp; API</button>
-        <button data-sec="network"><i class="ico icon-network"></i>Network &amp; Tailscale</button>
-        <button data-sec="services"><i class="ico icon-server"></i>Services</button>
-        <button data-sec="advanced"><i class="ico icon-file-code"></i>Advanced files</button>
+    <section class="control" id="control" aria-labelledby="controlTitle">
+      <header class="control-heading"><h1 id="controlTitle">Control center</h1></header>
+      <nav class="panel nav" id="cnav" aria-label="Settings sections">
+        <div class="control-group" role="group" aria-label="Workspace">
+          <p aria-hidden="true">Workspace</p>
+          <button data-sec="appearance"><i class="ico icon-palette" aria-hidden="true"></i>Appearance</button>
+          <button data-sec="projects"><i class="ico icon-box" aria-hidden="true"></i>Projects</button>
+        </div>
+        <div class="control-group" role="group" aria-label="Agents">
+          <p aria-hidden="true">Agents</p>
+          <button data-sec="agents"><i class="ico icon-users" aria-hidden="true"></i>Agents</button>
+          <button data-sec="blocks"><i class="ico icon-blocks" aria-hidden="true"></i>Prompt blocks</button>
+          <button data-sec="tools"><i class="ico icon-wrench" aria-hidden="true"></i>Tools</button>
+          <button data-sec="skills"><i class="ico icon-sparkles" aria-hidden="true"></i>Skills</button>
+        </div>
+        <div class="control-group" role="group" aria-label="System">
+          <p aria-hidden="true">System</p>
+          <button data-sec="models"><i class="ico icon-cpu" aria-hidden="true"></i>Models &amp; API</button>
+          <button data-sec="network"><i class="ico icon-network" aria-hidden="true"></i>Network &amp; Tailscale</button>
+          <button data-sec="services"><i class="ico icon-server" aria-hidden="true"></i>Services</button>
+          <button data-sec="advanced"><i class="ico icon-file-code" aria-hidden="true"></i>Advanced files</button>
+        </div>
       </nav>
       <div class="panel cbody" id="cbody">
         <div id="cForms"></div>
@@ -443,7 +460,6 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
   </main>
 
   <footer class="mn-status">
-    <div class="status" id="status"><span class="dot"></span><span id="statusText">standing by</span></div>
     <span id="chipAgents"><b id="overviewAgents">0</b> agents</span>
     <span id="chipSkills"><b id="overviewSkills">0</b> skills</span>
     <span id="chipTools"><b id="overviewTools">0</b> tools</span>
@@ -470,7 +486,7 @@ document.addEventListener('contextmenu', e => e.preventDefault(), true);
   </div>
 </div>
 
-<script src="/assets/journey.js?v=3.2"></script>
+<script src="/assets/journey.js?v=3.6"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -481,7 +497,8 @@ const short = a => a === ORCH ? "Orchestrator" : a.replace(" Agent", "");
 
 let sessionId = localStorage.getItem("jarvis.session") || null, es = null, cfg = null;
 let sessionProject = "", sessionRequest = 0, sending = false, runBusy = false, lastEventSeq = -1;
-let uiName = "Antigravity CLI", live = null;               // current assistant bubble
+let uiName = "K.R.Y.Z.E.N", uiGreeting = "Describe what you want to build or inspect.", live = null;
+let composerPending = false;
 const cards = {};              // sub-agent cards by agent name
 const pos = {};                // graph positions
 
@@ -526,7 +543,7 @@ function meshStatus() {
 }
 function buildGraph() {
   if (!cfg || !Array.isArray(cfg.agents)) return;
-  window.Journey.render(cfg.agents.map(a => ({...a, orchestrator: a.name === ORCH})), {open: name => openEditor(name)});
+  window.Journey.render(cfg.agents.map(a => ({...a, orchestrator: a.name === ORCH})), {open: name => openEditor(name), colors: HEX});
   const tools = new Set(cfg.agents.flatMap(a => (a.tools || []).filter(t => t.kind !== "agent").map(t => t.title)));
   const skills = new Set(cfg.agents.flatMap(a => a.skills || []));
   $("#meshSummary").textContent = `${cfg.agents.length} agents · ${tools.size} tools · ${skills.size} assigned skills`;
@@ -546,20 +563,87 @@ function bumpStat(agent) { stats[agent] = (stats[agent] || 0) + 1; window.Journe
 
 /* ---------- chat rendering ---------- */
 const chat = $("#chat");
-function scroll() { chat.scrollTop = chat.scrollHeight; }
-function clearChat() { paintDirty.clear(); chat.innerHTML = ""; live = null; for (const k in cards) delete cards[k]; for (const k in pending) delete pending[k]; $("#pLog").innerHTML = ""; }
-function addUser(text, images) { const d = document.createElement("div"); d.className = "msg user";
-  const avatar = document.createElement("img"); avatar.className = "user-avatar"; avatar.src = "/assets/user-avatar.svg"; avatar.alt = ""; avatar.width = avatar.height = 28;
+const chatLatest = $("#chatLatest");
+let chatScroll = null;
+
+function updateLatestButton() {
+  chatLatest.hidden = !chat.clientHeight || nearBottom();
+}
+function scroll() {
+  chat.scrollTo({top: chat.scrollHeight, behavior: "instant"});
+  updateLatestButton();
+}
+chat.addEventListener("scroll", updateLatestButton, {passive: true});
+new ResizeObserver(updateLatestButton).observe(chat);
+chatLatest.onclick = () => {
+  scroll();
+  chat.focus({preventScroll: true});
+};
+
+function renderChatStarters() {
+  const slot = $(".chat-starters", chat);
+  if (!slot) return;
+  const starters = [...document.querySelectorAll("#quick button[data-t]")].slice(0, 2);
+  slot.replaceChildren(...starters.map(button => button.cloneNode(true)));
+}
+function renderEmptyChat(title = "Start a conversation") {
+  chat.innerHTML = `<div class="chat-empty">
+    <span class="chat-empty-icon" aria-hidden="true"><i class="icon-message-square-plus"></i></span>
+    <h3>${esc(title)}</h3><p dir="auto">${esc(uiGreeting)}</p><div class="chat-starters"></div>
+  </div>`;
+  renderChatStarters();
+  updateLatestButton();
+}
+function clearChat() {
+  chatScroll = null;
+  paintDirty.clear();
+  chat.replaceChildren();
+  live = null;
+  for (const k in cards) delete cards[k];
+  for (const k in pending) delete pending[k];
+  $("#pLog").innerHTML = "";
+  updateLatestButton();
+}
+function addUser(text, images) {
+  const message = document.createElement("article");
+  message.className = "msg user";
+  message.setAttribute("aria-label", "Your message");
+  const content = document.createElement("span");
+  content.dir = "auto";
+  content.textContent = text;
+  const avatar = document.createElement("img");
+  avatar.className = "user-avatar";
+  avatar.src = "/assets/user-avatar.svg";
+  avatar.alt = "";
+  avatar.width = avatar.height = 20;
   avatar.onerror = () => avatar.remove();
-  const content = document.createElement("span"); content.textContent = text; d.append(avatar, content);
-  if (images && images.length) { const g = document.createElement("div"); g.className = "kz-msg-images";
-    for (const id of images) { const im = document.createElement("img"); im.src = String(id).startsWith("/") ? id : "/api/image?id=" + encodeURIComponent(id); im.alt = "Attached image"; im.loading = "lazy"; g.appendChild(im); }
-    d.appendChild(g); }
-  chat.appendChild(d); scroll(); }
+  message.append(avatar, content);
+  if (images && images.length) {
+    const gallery = document.createElement("div");
+    gallery.className = "kz-msg-images";
+    for (const id of images) {
+      const image = document.createElement("img");
+      image.src = String(id).startsWith("/") ? id : "/api/image?id=" + encodeURIComponent(id);
+      image.alt = "Attached image";
+      image.loading = "lazy";
+      gallery.appendChild(image);
+    }
+    message.appendChild(gallery);
+  }
+  chat.appendChild(message);
+  scroll();
+}
 function addAI(text, extra = "") {
-  const d = document.createElement("div"); d.className = "msg ai " + extra;
-  d.innerHTML = `<div class="who">${esc(uiName)}</div><div class="md"></div>`; d._raw = text || "";
-  $(".md", d).innerHTML = md(d._raw); chat.appendChild(d); scroll(); return d;
+  const stick = nearBottom();
+  const message = document.createElement("article");
+  message.className = "msg ai " + extra;
+  message.innerHTML = `<div class="who"><span class="assistant-mark" aria-hidden="true"><i class="icon-sparkles"></i></span><span>${esc(uiName)}</span></div><div class="md" dir="auto"></div>`;
+  message._raw = text || "";
+  $(".md", message).innerHTML = md(message._raw);
+  chat.appendChild(message);
+  if (stick) scroll();
+  else updateLatestButton();
+  return message;
 }
 // Streaming output is coalesced: tokens only mark elements dirty, and one paint pass (at most ~10/s) re-renders
 // the markdown of each dirty element. Rendering per token made long runs progressively slower.
@@ -572,6 +656,7 @@ function paint() {
   paintDirty.clear();
   if (tickerDirty) { tickerDirty = false; tick.style.setProperty("--tick", color(tick._a)); tick.innerHTML = `<b>${esc(short(tick._a))}</b> ${esc(tick._t)}`; }
   if (stick) scroll();
+  else updateLatestButton();
 }
 function appendLive(t) { if (!live) live = addAI("", "live"); live._raw += t; paintDirty.add(live); schedulePaint(); }
 function card(agent, task, t) {
@@ -585,7 +670,11 @@ function card(agent, task, t) {
   $(".name", d).textContent = short(agent);
   $(".task", d).textContent = task; $(".task", d).title = task; d._raw = "";
   $(".ac-more", d).onclick = () => { d.classList.toggle("expanded"); $(".ac-more", d).textContent = d.classList.contains("expanded") ? "Show less" : "Show more"; };
-  chat.insertBefore(d, live && live.parentNode === chat ? live : null); scroll(); return d;
+  const stick = nearBottom();
+  chat.insertBefore(d, live && live.parentNode === chat ? live : null);
+  if (stick) scroll();
+  else updateLatestButton();
+  return d;
 }
 function fmtDur(sec) { sec = Math.max(0, Math.round(sec)); return sec >= 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`; }
 function finishCard(c, state, text, t) {
@@ -615,6 +704,7 @@ function handle(ev) {
     case "run_state": window.updateRunControl?.({running: true, state: ev.state}); break;
     case "turn_start": {
       window.Journey.resetRun();
+      window.updateRunControl?.({turn_seq: ev.seq});
       // Queued messages start server-side: show their bubble if send() did not already add it.
       const users = chat.querySelectorAll(".msg.user span"), lastUser = users[users.length - 1];
       if (ev.text && (!lastUser || lastUser.textContent !== ev.text || chat.lastElementChild?.classList.contains("ai") && !live)) { addUser(ev.text, ev.images); live = addAI("", "live"); }
@@ -656,13 +746,17 @@ function handle(ev) {
       busy(true, `${short(a)} · retrying`);
       window.Journey.onRetry?.(ev.attempt);
       break;
-    case "turn_end":
+    case "turn_end": {
+      const stick = nearBottom();
       if (live) { live.classList.remove("live"); live._raw = ev.text; paintDirty.delete(live); $(".md", live).innerHTML = md(ev.text); if (ev.error) live.classList.add("err"); }
       else addAI(ev.text, ev.error ? "err" : "");
       live = null; active.clear(); document.querySelectorAll(".agent-node.active,.edge.active").forEach(n => n.classList.remove("active"));
       document.querySelectorAll("[data-for]").forEach(n => n.remove());
       document.querySelectorAll(".tool-g.hot").forEach(n => n.classList.remove("hot"));
+      if (stick) scroll();
+      else updateLatestButton();
       busy(false); $("#stepInfo").textContent = ""; loadProjects(); loadSessions(); break;
+    }
   }
 }
 const pending = {};
@@ -693,11 +787,11 @@ function replayHistory(messages, history) {
 function busy(on, what) {
   runBusy = on;
   meshStatus();
-  $("#status").classList.toggle("busy", on); $("#statusText").textContent = on ? `${what || "working"}…` : "standing by";
-  $("#stopBtn").disabled = !on;
-  $("#form .send").disabled = sending;
-  $("#form .send").title = on ? "Queue: runs after the current turn" : "Send";
-  document.querySelectorAll("#quick button").forEach(b => b.disabled = on || sending);
+  $("#status").classList.toggle("busy", on);
+  $("#status").dataset.runState = on ? "running" : "idle";
+  $("#statusText").textContent = on ? `${what || "Working"}…` : "Ready";
+  $("#newBtn").disabled = on || sending;
+  syncComposer();
   document.querySelectorAll("#newProjectBtn,#projectContinue").forEach(b => b.disabled = on || sending);
   window.updateRunControl?.({running: on});
   if (sending) { $("#pauseBtn").disabled = true; $("#stopBtn").disabled = true; }
@@ -778,21 +872,45 @@ async function loadSessions(targetProj, autoSelect = false) {
   const sessions = data?.sessions;
   if (!sessions) return;
   const filtered = proj ? sessions.filter(s => (s.project || "") === proj) : sessions;
-  const box = $("#sessions"); box.innerHTML = "";
-  for (const s of filtered.slice(0, 16)) {
-    const b = document.createElement("button"); b.textContent = s.title || s.id;
-    b.title = `${s.created} · ${s.project || "general"} · ${s.messages} messages${s.running ? " · running" : ""}`;
-    if (s.running) b.textContent = "● " + b.textContent;
-    b.className = s.id === sessionId ? "on" : "";
-    b.onclick = () => openSession(s.id); box.appendChild(b);
+  const box = $("#sessions");
+  const focusedId = box.contains(document.activeElement) ? document.activeElement.dataset.session : null;
+  box.replaceChildren();
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "session-empty";
+    empty.textContent = "No conversations yet";
+    box.append(empty);
   }
+  for (const s of filtered.slice(0, 16)) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.session = s.id;
+    b.title = `${s.created} · ${s.project || "general"} · ${s.messages} messages${s.running ? " · running" : ""}`;
+    b.innerHTML = '<i class="icon-message-square-plus" aria-hidden="true"></i><span dir="auto"></span>';
+    b.querySelector("span").textContent = s.title || s.id;
+    if (s.running) {
+      b.insertAdjacentHTML("beforeend", '<span class="session-running">Running</span>');
+    }
+    if (s.id === sessionId) {
+      b.classList.add("on");
+      b.setAttribute("aria-current", "true");
+    }
+    b.onclick = async () => {
+      if (await openSession(s.id) && document.body.classList.contains("mobile-chat")) {
+        setChatProjects(false);
+        showChat();
+      }
+    };
+    box.appendChild(b);
+  }
+  if (focusedId) box.querySelector(`[data-session="${CSS.escape(focusedId)}"]`)?.focus({preventScroll: true});
   if (autoSelect && proj && sessionProject !== proj) {
     if (filtered.length > 0) {
       await openSession(filtered[0].id);
     } else {
       ++sessionRequest; sessionId = null; sessionProject = proj; busy(false);
       localStorage.removeItem("jarvis.session"); if (es) { es.close(); es = null; } clearChat();
-      chat.innerHTML = `<div class="empty">Project <b>${esc(proj)}</b>. Describe a task, or say <b>continue</b> to resume progress.</div>`;
+      renderEmptyChat();
     }
   }
 }
@@ -807,21 +925,26 @@ async function openSession(id) {
     $("#proj").value = s.project;
     localStorage.setItem("jarvis.project", s.project);
     showProject(s.project);
+    loadStageGates(s.project);
   }
   busy(false);
   replayHistory(s.messages, s.history);
+  if (!chat.firstElementChild && !s.running) renderEmptyChat();
+  scroll();
   if (s.running) { busy(true, "working"); live = addAI("", "live"); }
   window.updateRunControl?.(s);
   connect(s.running ? s.active_from : s.next_seq); loadSessions(sessionProject || $("#proj")?.value);
+  return true;
 }
 async function send(text, options = {}) {
   text = text.trim(); if (!text) return;
   if (sending) return {error: "A message is being sent."};
   const project = options.project ?? $("#proj").value;
+  const images = window.kryzenAttach?.peek() || [];
   if (runBusy && sessionId) {
     // A run is active: queue this message; it starts automatically when the session is free.
-    const q = await api("/api/chat", {id: sessionId, text, project: sessionProject || project, queue: true, images: window.kryzenAttach?.peek() || []});
-    if (q.queued) { window.kryzenAttach?.clear(); toast(`Queued (#${q.position}) — starts when the current run finishes`, "ok"); window.dispatchEvent(new Event("kryzen:queue")); return q; }
+    const q = await api("/api/chat", {id: sessionId, text, project: sessionProject || project, queue: true, images});
+    if (q.queued) { window.kryzenAttach?.removeSent(images); toast(`Queued (#${q.position}) — starts when the current run finishes`, "ok"); window.dispatchEvent(new Event("kryzen:queue")); return q; }
     toast(q.error || "Could not queue the message", "err"); return {error: q.error || "queue failed"};
   }
   const continuing = options.continuation || /^(continue|resume|ادامه)[.!\s]*$/i.test(text);
@@ -831,9 +954,9 @@ async function send(text, options = {}) {
   if (es) es.close(); es = null;
   sending = true; busy(true, "starting");
   let r;
-  const images = window.kryzenAttach?.peek() || [];
   try { r = await api(continuing && !images.length ? "/api/continue" : "/api/chat", {id, text, project, images}); }
   finally { sending = false; }
+  syncComposer();
   if (request !== sessionRequest) return r;
   if (r.error || r.ok === false) {
     busy(false);
@@ -842,8 +965,10 @@ async function send(text, options = {}) {
     toast(r.error || (r.errors || []).join("\n"), "err"); return r;
   }
   if (id === null || !chat.querySelector(".msg")) clearChat();
-  addUser(text, images); window.kryzenAttach?.clear(); live = addAI("", "live"); busy(true, "thinking");
+  addUser(text, images); window.kryzenAttach?.removeSent(images); live = addAI("", "live");
   sessionId = r.id; sessionProject = r.project || project; localStorage.setItem("jarvis.session", r.id);
+  busy(true, "thinking");
+  window.updateRunControl?.({turn_seq: r.from_seq});
   connect(r.from_seq ?? 0);
   loadSessions(); return r;
 }
@@ -861,11 +986,12 @@ function switchProject(slug) {
 function openNewProject() {
   if (sending || runBusy) return toast("Finish or stop the current run before creating a project.", "err");
   if ($("#newProjectDialog")) return;
+  const trigger = document.activeElement;
   const dialog = document.createElement("dialog"); dialog.id = "newProjectDialog"; dialog.className = "studio-dialog project-dialog";
   dialog.setAttribute("aria-labelledby", "npHeading");
   dialog.innerHTML = `<form id="newProjectForm"><h2 id="npHeading">Create a new project</h2><p>A dedicated workspace, saved progress and a clear place to continue.</p>
     <fieldset><label for="npTitle">Project title</label><input id="npTitle" required maxlength="160" placeholder="e.g. My product launch" autocomplete="off">
-    <label for="npSlug">Folder name</label><input id="npSlug" required minlength="2" maxlength="49" pattern="[a-z0-9][a-z0-9-]{1,48}" aria-describedby="npSlugHint" placeholder="my-product-launch" autocomplete="off"><small id="npSlugHint">2–49 lowercase letters, numbers and dashes.</small>
+    <label for="npSlug">Folder name</label><input id="npSlug" required minlength="2" maxlength="49" pattern="[a-z0-9][a-z0-9\\-]{1,48}" aria-describedby="npSlugHint" placeholder="my-product-launch" autocomplete="off"><small id="npSlugHint">2–49 lowercase letters, numbers and dashes.</small>
     <label for="npGoal">What do you want to build?</label><textarea id="npGoal" rows="3" maxlength="5000" placeholder="Describe the outcome and who it helps."></textarea>
     <label class="project-start"><input id="npStart" type="checkbox">Start intake with K.R.Y.Z.E.N after creating</label>
     <p id="npError" role="alert"></p><div class="studio-actions"><button type="button" class="btn" id="npCancel">Cancel</button><button class="btn primary" id="npCreate" type="submit">Create project</button></div></fieldset></form>`;
@@ -876,7 +1002,14 @@ function openNewProject() {
   q("#npTitle").oninput = () => { if (!customSlug) q("#npSlug").value = slugify(q("#npTitle").value).slice(0,49); };
   q("#npCancel").onclick = () => dialog.close();
   dialog.addEventListener("cancel", event => { if (pending) event.preventDefault(); });
-  dialog.addEventListener("close", () => { dialog.remove(); $("#newProjectBtn").focus(); }, {once:true});
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    requestAnimationFrame(() => {
+      const target = [trigger, $(".workspace-project-heading button"), $("#newProjectBtn"), chatButton]
+        .find(element => element?.getClientRects().length);
+      target?.focus({preventScroll: true});
+    });
+  }, {once: true});
   q("form").onsubmit = async event => {
     event.preventDefault(); if (pending) return;
     if (runBusy || sending) { q("#npError").textContent = "Finish or stop the current run first."; return; }
@@ -894,7 +1027,7 @@ function openNewProject() {
       await loadProjects();
       if (!switchProject(r.slug)) { q("#npError").textContent = `Project ${r.slug} was created. Select it from the project menu to continue.`; return; }
       window.jarvisStudio?.setMode("mesh", false);
-      dialog.close(); toast("✓ " + r.message, "ok");
+      dialog.close(); toast(r.warning || "✓ " + r.message, r.warning ? "warn" : "ok");
       if (start) await send(`New project "${payload.title}" (slug: ${r.slug}) is already created. Goal: ${payload.goal}. Continue from intake.`, {project:r.slug});
     } finally {
       pending = false; $("#proj").disabled = false; if (dialog.isConnected) q("fieldset").disabled = false;
@@ -904,41 +1037,65 @@ function openNewProject() {
 }
 
 /* ---------- project panel ---------- */
-let projectRequest = 0, projectTreeRequest = 0;
+let projectRequest = 0, projectTreeRequest = 0, stageRequest = 0;
+window.setStageGate = (project, stage, locked) => api("/api/mesh/gate", {project, stage, locked});
+async function loadStageGates(slug) {
+  const request = ++stageRequest;
+  window.Journey.setGates("", {});
+  if (!slug) return;
+  const result = await api("/api/mesh/gates?project=" + encodeURIComponent(slug));
+  if (request === stageRequest && result.ok) window.Journey.setGates(slug, result.gates);
+}
 async function loadProjects() {
   const d = await api("/api/projects"); const sel = $("#proj"), cur = sel.value || localStorage.getItem("jarvis.project") || "";
   if (d.error) return toast(d.error, "err");
   sel.innerHTML = (d.folders || []).map(f => `<option ${f === cur ? "selected" : ""}>${esc(f)}</option>`).join("");
   if (sel.value) showProject(sel.value);
+  loadStageGates(sel.value);
   window.dispatchEvent(new Event("jarvis:projects-ready"));
 }
 async function showProject(slug) {
   const request = ++projectRequest;
   localStorage.setItem("jarvis.project", slug);
-  const [p, gitStatus] = await Promise.all([
+  const [p, gitStatus, staged] = await Promise.all([
     api("/api/project?slug=" + encodeURIComponent(slug)),
-    api("/api/git/branch/status?slug=" + encodeURIComponent(slug)).catch(() => ({}))
+    api("/api/git/branch/status?slug=" + encodeURIComponent(slug)),
+    api("/api/isolated/boxes?slug=" + encodeURIComponent(slug))
   ]);
   const box = $("#pProject");
   if (request !== projectRequest || $("#proj").value !== slug) return;
   if (p.error) { box.innerHTML = `<div class="empty">${esc(p.error)}</div>`; return; }
   const st = p.state || {}; const [done, total] = (p.plan_progress || "0/0").split(" ")[0].split("/").map(Number);
-  const branchBanner = (gitStatus && gitStatus.pending_approval) ? `
-    <div class="next" style="border-color:#e60000;background:rgba(230,0,0,0.06);margin-bottom:12px">
-      <b>BRANCH READY FOR MERGE</b>
-      <p style="margin:4px 0">Branch <code>${esc(gitStatus.current_branch)}</code> (${gitStatus.commit_count} commit(s)) ready to merge into <code>${esc(gitStatus.default_branch)}</code>.</p>
-      <button class="btn primary" id="btnApproveBranchMerge" style="background:#e60000;border:none;margin-top:6px">Approve &amp; Merge to ${esc(gitStatus.default_branch)}</button>
-    </div>` : '';
+  const branchBanner = gitStatus.pending_approval ? `
+    <div class="next">
+      <b>${gitStatus.can_merge ? "Verified change branch" : "Change branch needs verification"}</b>
+      <p><code>${esc(gitStatus.current_branch)}</code> · <code>${esc(gitStatus.commit.slice(0, 12))}</code></p>
+      <p>${gitStatus.can_merge ? "Tests passed for this commit." : !gitStatus.clean ? "Commit existing source edits before verifying." : !gitStatus.based_on_primary ? "Update this branch with the current primary branch before testing." : "Run the project tests to enable merge."}</p>
+      <button class="btn" id="verifyBranchBtn" ${gitStatus.clean && gitStatus.based_on_primary && !runBusy ? "" : "disabled"}>Run tests</button>
+      <button class="btn primary" id="btnApproveBranchMerge" ${gitStatus.can_merge && !runBusy ? "" : "disabled"}>Approve &amp; merge into ${esc(gitStatus.default_branch)}</button>
+    </div>` : "";
+  const stagedBoxes = (staged.boxes || []).map(box => `
+    <details class="next"><summary>Staged box · ${box.files.length} file(s)</summary>
+      <ul class="list">${box.files.map(path => `<li>${esc(path)}</li>`).join("")}</ul>
+      <button class="btn" data-box="${esc(box.box_id)}" data-action="merge" ${runBusy ? "disabled" : ""}>Apply staged files</button>
+      <button class="btn danger" data-box="${esc(box.box_id)}" data-action="discard" ${runBusy ? "disabled" : ""}>Discard box</button>
+    </details>`).join("");
   box.innerHTML = `
     ${branchBanner}
-    <div class="next"><b>NEXT ACTION</b>${esc(p.continuation?.reason || st.next_action || "—")}${p.continuation?.next_task ? `<p>${esc(p.continuation.next_task.id)} · ${esc(p.continuation.next_task.title)}</p>` : ""}<button class="btn" id="projectContinue">Continue project ↗</button></div>
+    ${stagedBoxes}
+    <section class="next project-next" aria-labelledby="projectNextTitle">
+      <h3 id="projectNextTitle">Next action</h3>
+      <p class="project-next-summary">${esc(p.continuation?.reason || st.next_action || "No next action has been recorded.")}</p>
+      ${p.continuation?.next_task ? `<p>${esc(p.continuation.next_task.id)} · ${esc(p.continuation.next_task.title)}</p>` : ""}
+      <button type="button" class="btn primary" id="projectContinue">Continue project<i class="icon-arrow-up-right" aria-hidden="true"></i></button>
+    </section>
     <dl class="kv"><dt>Status</dt><dd>${esc(String(st.status || "—").replace(/^[^\p{L}\p{N}]+/u, ""))}</dd><dt>Phase</dt><dd>${esc(st.phase || "—")}</dd>
       <dt>Milestone</dt><dd>${esc(st.milestone || "—")}</dd><dt>Last task</dt><dd>${esc(st.task || "—")}</dd>
       <dt>Updated</dt><dd>${esc(st.updated || "—")}</dd></dl>
     <div class="mn-plan-line"><span>Plan</span><span>${esc(p.plan_progress || "no plan yet")}</span></div>
-    <div class="bar"><i style="width:${total ? Math.round(100 * done / total) : 0}%"></i></div>
+    ${total ? `<progress class="project-progress" aria-label="Plan tasks completed" value="${done || 0}" max="${total}"></progress>` : ""}
     <h3>Open tasks</h3>
-    <ul class="list">${(p.next_open_tasks || []).map(t => `<li>${esc(t.replace(/\|/g, " ").replace(/^[-–\s]*\[\s*\]\s*/, "").trim())}</li>`).join("") || "<li>—</li>"}</ul>
+    <ul class="list project-tasks">${(p.next_open_tasks || []).map(t => `<li>${esc(t.replace(/\|/g, " ").replace(/^[-–\s]*\[\s*\]\s*/, "").trim())}</li>`).join("") || "<li>—</li>"}</ul>
     <h3>Docs</h3>
     <ul class="list">${Object.entries(p.docs_status || {}).map(([k, v]) => `<li class="file" data-path="${esc(p.path + "/" + k)}">${esc(k.replace("docs/", ""))} · ${esc(v)}</li>`).join("")}</ul>
     <h3>Git</h3>
@@ -946,12 +1103,32 @@ async function showProject(slug) {
   box.querySelectorAll("[data-path]").forEach(li => li.onclick = () => openFile(li.dataset.path));
   $("#projectContinue").onclick = () => continueProject(slug);
   $("#projectContinue").disabled = runBusy || sending;
+  box.querySelectorAll("[data-box]").forEach(button => {
+    button.onclick = async () => {
+      const action = button.dataset.action;
+      if (!confirm(action === "merge" ? "Apply these staged files to the project?" : "Discard this staged box?")) return;
+      button.disabled = true;
+      const result = await api("/api/isolated/" + action, {slug, box_id: button.dataset.box, approve: true});
+      if (!result.ok) { toast(result.error || "Could not update staged files", "err"); button.disabled = false; return; }
+      await showProject(slug);
+    };
+  });
+  const verify = $("#verifyBranchBtn");
+  if (verify) verify.onclick = async () => {
+    verify.disabled = true;
+    verify.textContent = "Running tests…";
+    const result = await api("/api/project/test", {slug});
+    toast(result.verified_commit ? "Tests passed for this commit" : result.error || "This commit is still unverified",
+          result.verified_commit ? "ok" : "err");
+    await showProject(slug);
+  };
   const btnMerge = $("#btnApproveBranchMerge");
   if (btnMerge) {
     btnMerge.onclick = async () => {
+      if (!confirm(`Merge tested commit ${gitStatus.commit.slice(0, 12)} into ${gitStatus.default_branch}?`)) return;
       btnMerge.disabled = true;
       btnMerge.textContent = "Merging…";
-      const res = await api("/api/git/branch/merge", { slug, approve: true });
+      const res = await api("/api/git/branch/merge", {slug, branch: gitStatus.current_branch, commit: gitStatus.commit, approve: true});
       if (res.ok) {
         toast(`Merged branch ${res.branch} into ${res.default_branch}`, "ok");
         showProject(slug);
@@ -1070,7 +1247,14 @@ let section = localStorage.getItem("jarvis.section") || "appearance";
 function showSection(name) {
   if (!["appearance","agents","blocks","tools","skills","projects","models","network","services","advanced"].includes(name)) name = "appearance";
   section = name; localStorage.setItem("jarvis.section", name);
-  document.querySelectorAll("#cnav button").forEach(b => b.classList.toggle("on", b.dataset.sec === name));
+  document.querySelectorAll("#cnav button").forEach(button => {
+    const selected = button.dataset.sec === name;
+    button.classList.toggle("on", selected);
+    if (selected) {
+      button.setAttribute("aria-current", "page");
+      if (phoneLayout.matches) button.scrollIntoView({block: "nearest", inline: "nearest"});
+    } else button.removeAttribute("aria-current");
+  });
   $("#cServices").hidden = name !== "services"; $("#cAdvanced").hidden = name !== "advanced"; F.hidden = ["services", "advanced"].includes(name);
   if (name === "services") return loadServices();
   if (name === "advanced") return loadTree();
@@ -1079,26 +1263,56 @@ function showSection(name) {
 }
 window.showSection = showSection;
 document.querySelectorAll("#cnav button").forEach(b => b.onclick = () => showSection(b.dataset.sec));
-const field = (label, inner, help = "") => `<div class="field"><label>${label}</label>${help ? `<div class="help">${help}</div>` : ""}${inner}</div>`;
+const field = (label, inner, help = "", id = "") => `<div class="field"><label${id ? ` for="${id}"` : ""}>${label}</label>${help ? `<div class="help">${help}</div>` : ""}${inner}</div>`;
 const val = id => $("#" + id).value;
 
 /* appearance */
 async function secAppearance() {
   const u = await api("/api/form/appearance");
   if (section !== "appearance") return; if (u.error) return fail(u);
-  F.innerHTML = `<div class="form"><h1>Appearance</h1><p class="lead">How K.R.Y.Z.E.N looks and greets you. Changes apply instantly.</p>
-    <div class="row">${field("Name", `<input type="text" id="aName" value="${esc(u.name)}">`)}${field("Subtitle", `<input type="text" id="aSub" value="${esc(u.subtitle)}">`)}</div>
-    ${field("Greeting", `<textarea id="aGreet" rows="2">${esc(u.greeting)}</textarea>`, "Shown in an empty chat.")}
-    ${field("Accent colour", `<div class="row"><input type="color" id="aAccent" value="${esc(u.accent === "#22d3ee" ? "#ec3013" : u.accent)}" class="shrink"><div class="swatches">${["#ec3013", "#e15b47", "#f3f2f2", "#9b9797"].map(c => `<button type="button" data-c="${c}" style="background:${c}" class="${c === u.accent ? "on" : ""}"></button>`).join("")}</div></div>`)}
-    ${field("Quick buttons", `<div class="params" id="aQuick"></div><button class="btn" type="button" id="aAddQ" style="margin-top:8px">+ Add button</button>`, "One-click messages under the chat box.")}
-    <div class="formbar"><button class="btn primary" id="aSave">Save appearance</button></div></div>`;
-  const qrow = (q = {label: "", text: ""}) => { const d = document.createElement("div"); d.className = "prow"; d.style.gridTemplateColumns = "1fr 3fr auto";
-    d.innerHTML = `<input placeholder="Label" value="${esc(q.label)}"><input placeholder="Message it sends" value="${esc(q.text)}"><button class="btn" type="button" aria-label="Remove"><i class="icon-x"></i></button>`;
+  const defaultAccent = getComputedStyle(document.documentElement).getPropertyValue("--default-accent").trim();
+  const accent = u.accent?.toLowerCase() === "#22d3ee" ? defaultAccent : u.accent?.toLowerCase();
+  const swatches = [[defaultAccent, "Lavender"], ["#398d81", "Teal"], ["#a85c50", "Clay"], ["#777782", "Slate"]];
+  F.innerHTML = `<div class="form appearance-settings">
+    <h1>Appearance</h1><p class="lead">Set the app name, accent colour, and conversation starters.</p>
+    <section class="settings-group" aria-labelledby="appearance-identity">
+      <h3 id="appearance-identity">App identity</h3>
+      <div class="settings-fields">
+        <div class="row">${field("Name", `<input type="text" id="aName" value="${esc(u.name)}">`, "", "aName")}${field("Subtitle", `<input type="text" id="aSub" value="${esc(u.subtitle)}">`, "", "aSub")}</div>
+        ${field("Greeting", `<textarea id="aGreet" rows="2">${esc(u.greeting)}</textarea>`, "Shown in an empty chat.", "aGreet")}
+      </div>
+    </section>
+    <section class="settings-group" aria-labelledby="appearance-accent">
+      <h3 id="appearance-accent">Accent colour</h3>
+      <div class="settings-fields appearance-colours">
+        <div class="swatches" role="group" aria-label="Accent presets">${swatches.map(([colour, label]) => `<button type="button" data-c="${colour}" style="background:${colour}" aria-label="${label}" title="${label}" aria-pressed="${colour === accent}" class="${colour === accent ? "on" : ""}"></button>`).join("")}</div>
+        <label for="aAccent">Custom <input type="color" id="aAccent" value="${esc(accent)}"></label>
+      </div>
+    </section>
+    <section class="settings-group" aria-labelledby="appearance-prompts">
+      <h3 id="appearance-prompts">Prompt starters</h3>
+      <div class="settings-fields">
+        <p class="help">Available in Chat tools. A starter adds text to the conversation draft.</p>
+        <div class="params" id="aQuick"></div>
+        <div><button class="btn" type="button" id="aAddQ"><i class="icon-plus" aria-hidden="true"></i>Add starter</button></div>
+      </div>
+    </section>
+    <div class="settings-actions"><button type="button" class="btn primary" id="aSave">Save appearance</button></div></div>`;
+  const qrow = (q = {label: "", text: ""}) => { const d = document.createElement("div"); d.className = "prow";
+    d.innerHTML = `<input aria-label="Starter label" placeholder="Label" value="${esc(q.label)}"><input aria-label="Starter text" placeholder="Text to add to the draft" value="${esc(q.text)}"><button class="btn" type="button" aria-label="Remove starter"><i class="icon-x"></i></button>`;
     d.querySelector("button").onclick = () => d.remove(); $("#aQuick").appendChild(d); };
   (u.quick || []).forEach(qrow); $("#aAddQ").onclick = () => qrow();
-  const preview = () => applyUIValues({accent: val("aAccent")});
-  F.querySelectorAll(".swatches button").forEach(b => b.onclick = () => { $("#aAccent").value = b.dataset.c;
-    F.querySelectorAll(".swatches button").forEach(x => x.classList.toggle("on", x === b)); preview(); });
+  const presets = F.querySelectorAll(".swatches button");
+  const preview = () => {
+    const colour = val("aAccent");
+    presets.forEach(button => {
+      const selected = colour === button.dataset.c;
+      button.classList.toggle("on", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    applyUIValues({accent: colour});
+  };
+  presets.forEach(button => button.onclick = () => { $("#aAccent").value = button.dataset.c; preview(); });
   $("#aAccent").addEventListener("input", preview);
   $("#aSave").onclick = async () => {
     const quick = [...$("#aQuick").children].map(r => ({label: r.children[0].value, text: r.children[1].value}));
@@ -1274,12 +1488,9 @@ async function secModels() {
       </div>
 
       <div class="field">
-        <label>API Key / Secret Token</label>
-        <div class="help">Never committed to git. Stored securely in kryzen-runtime.json.</div>
-        <div class="row">
-          <input type="password" id="mApiKey" value="${esc(cfg.openai_api_key || "")}" placeholder="Enter API key…">
-          <button type="button" class="btn shrink" id="mApiKeyToggle">Show</button>
-        </div>
+        <label>Provider credentials</label>
+        <p class="help">${cfg.provider_key_configured ? "A key is available in the server environment." : "Supply OPENAI_API_KEY, GEMINI_API_KEY, or NIM_KEY through your process environment or service credential manager."}</p>
+        ${cfg.legacy_provider_key ? '<p class="help" role="status">A legacy key is stored in the settings file. Move it to the service environment before saving. Saving removes the legacy entry.</p>' : ""}
       </div>
 
       <div class="row">
@@ -1366,14 +1577,6 @@ async function secModels() {
     btn.onclick = () => { $("#mBaseUrl").value = btn.dataset.url; };
   });
 
-  // API Key show/hide
-  $("#mApiKeyToggle").onclick = () => {
-    const inp = $("#mApiKey");
-    const isPass = inp.type === "password";
-    inp.type = isPass ? "text" : "password";
-    $("#mApiKeyToggle").textContent = isPass ? "Hide" : "Show";
-  };
-
   // Test connection
   $("#mTestBtn").onclick = async () => {
     const status = $("#mTestStatus");
@@ -1382,7 +1585,6 @@ async function secModels() {
     const res = await api("/api/models/test", {
       provider: val("mProvider"),
       base_url: val("mBaseUrl"),
-      api_key: val("mApiKey"),
       model: val("mTierReasoning")
     });
     if (res.ok) {
@@ -1404,8 +1606,8 @@ async function secModels() {
     const res = await api("/api/browser/test", {});
     if (res.ok) {
       const eng = res.status?.active_engine || "obscura";
-      const ver = res.status?.obscura?.version || "0.2.6";
-      status.textContent = `✓ ${res.message || "Active"} (${ver}, ${res.latency_ms}ms)`;
+      const ver = res.status?.[eng.replace("-", "_")]?.version || "";
+      status.textContent = `✓ ${res.message || "Active"} (${[ver, res.latency_ms + "ms"].filter(Boolean).join(" · ")})`;
       status.style.color = "#44ff88";
       toast(`Browser engine verified: ${eng} (${ver})`, "ok");
     } else {
@@ -1430,10 +1632,6 @@ async function secModels() {
       obscura_path: val("mObscuraPath"),
       obscura_stealth: Boolean($("#mObscuraStealth")?.checked),
     };
-    const key = val("mApiKey");
-    if (key && key !== "••••••••") {
-      newSettings.openai_api_key = key;
-    }
     const r = await api("/api/settings/runtime", { settings: newSettings });
     if (r.ok) {
       toast("✓ Model router settings saved", "ok");
@@ -1467,6 +1665,7 @@ async function secNetwork() {
   const tsIp = net.tailscale_ip || "";
   const tsHost = net.tailscale_hostname || "";
   const lanIps = net.lan_ips || [];
+  const port = esc(String(net.port || location.port || "8780"));
 
   F.innerHTML = `
     <div class="form">
@@ -1479,45 +1678,41 @@ async function secNetwork() {
             <span style="font-size:10px;font-family:var(--mono);color:var(--muted)">TAILSCALE STATUS</span>
             <h3 style="margin:2px 0 0 0;font-size:15px;color:#fff">${esc(tsStatus)}</h3>
           </div>
-          <span class="badge ${tsRunning ? 'ok' : 'warn'}" style="padding:4px 8px;font-size:11px">${tsRunning ? '● CONNECTED' : tsStatus.toUpperCase()}</span>
+          <span class="badge ${tsRunning ? 'ok' : 'warn'}" style="padding:4px 8px;font-size:11px">${tsRunning ? '● CONNECTED' : esc(tsStatus.toUpperCase())}</span>
         </div>
 
         ${tsIp ? `
           <div style="display:flex;gap:12px;align-items:center;background:#141414;border:1px solid #222;padding:8px 12px">
             <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">TAILNET IP:</span>
-            <code style="color:#fff;font-size:13px">${esc(tsIp)}:8770</code>
-            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(tsIp)}:8770">Copy URL</button>
+            <code style="color:#fff;font-size:13px">${esc(tsIp)}:${port}</code>
+            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(tsIp)}:${port}">Copy URL</button>
           </div>
         ` : ''}
 
         ${tsHost ? `
           <div style="display:flex;gap:12px;align-items:center;background:#141414;border:1px solid #222;padding:8px 12px">
             <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">MAGICDNS:</span>
-            <code style="color:#fff;font-size:13px">${esc(tsHost)}:8770</code>
-            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(tsHost)}:8770">Copy URL</button>
+            <code style="color:#fff;font-size:13px">${esc(tsHost)}:${port}</code>
+            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(tsHost)}:${port}">Copy URL</button>
           </div>
         ` : ''}
 
         ${net.tailscale_auth_url ? `
           <div style="padding:10px;background:#1f1616;border:1px solid var(--color-accent);display:flex;align-items:center;gap:12px">
             <span style="font-size:11px;color:#ff8888">Tailscale authentication required:</span>
-            <a href="${esc(net.tailscale_auth_url)}" target="_blank" class="btn primary" style="background:var(--color-accent);font-size:11px">Open Auth Link ↗</a>
+            <a href="${esc(net.tailscale_auth_url)}" target="_blank" rel="noopener noreferrer" class="btn primary" style="background:var(--color-accent);font-size:11px">Open Auth Link ↗</a>
           </div>
         ` : ''}
 
         ${lanIps.length ? `
           <div style="display:flex;gap:12px;align-items:center;background:#141414;border:1px solid #222;padding:8px 12px">
             <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">LOCAL LAN IP:</span>
-            <code style="color:#fff;font-size:13px">${esc(lanIps[0])}:8770</code>
-            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(lanIps[0])}:8770">Copy URL</button>
+            <code style="color:#fff;font-size:13px">${esc(lanIps[0])}:${port}</code>
+            <button type="button" class="btn shrink" style="margin-left:auto;font-size:10px" data-copy="http://${esc(lanIps[0])}:${port}">Copy URL</button>
           </div>
         ` : ''}
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-          <button type="button" class="btn" id="tsActStart">Start Service</button>
-          <button type="button" class="btn" id="tsActUp">Tailscale Up</button>
-          <button type="button" class="btn" id="tsActDown">Tailscale Down</button>
-          <button type="button" class="btn" id="tsActServe">Serve Port 8770</button>
           <button type="button" class="btn" id="tsActRefresh">Refresh Status</button>
         </div>
       </div>
@@ -1535,10 +1730,8 @@ async function secNetwork() {
         <div class="help">Permits other laptops, phones, or workstations on your local Wi-Fi / Ethernet router.</div>
       </div>
 
-      <div class="field">
-        <label><input type="checkbox" id="netServe" ${cfg.tailscale_serve ? "checked" : ""}> Tailscale Serve Background Proxy</label>
-        <div class="help">Automatically routes your Tailnet MagicDNS hostname securely to Jarvis port 8770.</div>
-      </div>
+      ${field("Allowed hostnames", `<input id="netHosts" value="${esc(cfg.custom_allowed_hosts || "")}" placeholder="studio.example.com">`, "Comma-separated hosts for an HTTPS proxy. Remote access also requires server authentication.")}
+      <p class="help">Manage Tailscale and HTTPS through your system tooling. K.R.Y.Z.E.N listens on ${esc(net.bound_host || "127.0.0.1")}.</p>
 
       <div class="formbar">
         <button class="btn primary" id="netSave">Save Network Permissions</button>
@@ -1554,20 +1747,6 @@ async function secNetwork() {
     };
   });
 
-  // Actions
-  const runTs = async (act) => {
-    const res = await api("/api/network/tailscale/action", { action: act });
-    if (res.ok) {
-      toast("✓ Action executed: " + act, "ok");
-      setTimeout(secNetwork, 1000);
-    } else {
-      toast(res.error || "Action failed", "err");
-    }
-  };
-  $("#tsActStart").onclick = () => runTs("start_service");
-  $("#tsActUp").onclick = () => runTs("up");
-  $("#tsActDown").onclick = () => runTs("down");
-  $("#tsActServe").onclick = () => runTs("serve");
   $("#tsActRefresh").onclick = secNetwork;
 
   // Save network settings
@@ -1576,7 +1755,7 @@ async function secNetwork() {
       settings: {
         allow_tailscale: $("#netAllowTs").checked,
         allow_lan: $("#netAllowLan").checked,
-        tailscale_serve: $("#netServe").checked,
+        custom_allowed_hosts: val("netHosts"),
       }
     });
     if (r.ok) {
@@ -1665,7 +1844,10 @@ window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault()
 /* ---------- personalisation (Appearance form → _DevPilot/jarvis.json) ---------- */
 function applyUIValues(u) {
   const r = document.documentElement.style;
-  if (/^#[0-9a-f]{6}$/i.test(u.accent || "") && u.accent.toLowerCase() !== "#22d3ee") { r.setProperty("--color-accent", u.accent); r.setProperty("--accent-soft", u.accent + "59"); }
+  if (/^#[0-9a-f]{6}$/i.test(u.accent || "")) {
+    if (u.accent.toLowerCase() === "#22d3ee") r.removeProperty("--color-accent");
+    else r.setProperty("--color-accent", u.accent);
+  }
   if (u.motion != null) document.body.classList.toggle("still", !u.motion);
 }
 async function applyUI() {
@@ -1678,9 +1860,11 @@ async function applyUI() {
   if (brandSub) brandSub.textContent = u.subtitle;
   document.title = `${u.name.replace(/\./g, "")} · ${u.subtitle}`;
   applyUIValues(u);
-  const empty = chat.querySelector(".empty"); if (empty) empty.textContent = u.greeting;
-  $("#quick").innerHTML = (u.quick || []).map(q => `<button data-t="${esc(q.text)}">${esc(q.label)}</button>`).join("");
-  $("#quick").querySelectorAll("button").forEach(b => b.onclick = () => send(b.dataset.t));
+  uiGreeting = u.greeting || uiGreeting;
+  const greeting = $(".chat-empty p", chat);
+  if (greeting) greeting.textContent = uiGreeting;
+  $("#quick").innerHTML = (u.quick || []).map(q => `<button type="button" data-t="${esc(q.text)}">${esc(q.label)}</button>`).join("") || '<p class="chat-tools-empty">Add starters in Control › Appearance.</p>';
+  renderChatStarters();
 }
 
 /* ---------- code workspace ---------- */
@@ -1915,7 +2099,7 @@ function dock(id) {
 
 let lastTestResult = null;
 async function loadProjectTests(forceRun = false) {
-  const slug = $("#proj")?.value || CW.slug || "test";
+  const slug = $("#proj")?.value || CW.slug || "";
   const slugEl = $("#testProjectSlug");
   if (slugEl) slugEl.textContent = slug;
   if (!forceRun && lastTestResult && lastTestResult.slug === slug) return;
@@ -1926,6 +2110,7 @@ async function loadProjectTests(forceRun = false) {
   const fixBtn = $("#btnAgyFixTests");
 
   if (!btn || !chip || !out) return;
+  if (!slug) { chip.textContent = "Choose a project"; out.textContent = ""; return; }
   btn.disabled = true;
   chip.innerHTML = '<span style="color:var(--warn)">⚡ Running tests...</span>';
   out.textContent = `Executing test suite for '${slug}'...\n`;
@@ -1934,8 +2119,10 @@ async function loadProjectTests(forceRun = false) {
     const res = await api("/api/project/test", { slug, framework: $("#testFramework")?.value || "auto" });
     lastTestResult = { slug, res };
     btn.disabled = false;
+    if (res.verified_commit) showProject(slug);
     if (res.ok) {
-      chip.innerHTML = `<span style="color:var(--ok)">✓ ${res.passed} passed · ${res.failed} failed (${res.duration}s) [${res.framework}]</span>`;
+      const summary = res.total ? `${res.passed} passed · ${res.failed} failed` : "Test command passed";
+      chip.innerHTML = `<span style="color:var(--ok)">✓ ${summary} (${res.duration}s) [${esc(res.framework)}]</span>`;
       if (fixBtn) fixBtn.style.display = (res.failed > 0) ? "inline-flex" : "none";
     } else {
       chip.innerHTML = `<span style="color:var(--bad)">✕ Error (${res.duration || 0}s): ${esc(res.error || "Tests failed")}</span>`;
@@ -1978,7 +2165,7 @@ async function loadProjectReferences() {
           <span style="font-family:var(--mono);font-size:11.5px;color:var(--accent);display:flex;align-items:center;gap:6px">
             <b>${esc(d.name)}</b>
           </span>
-          <span style="font-size:10.5px;color:var(--faint)">${d.path} · ${(d.size/1024).toFixed(1)}k</span>
+          <span style="font-size:10.5px;color:var(--faint)">${esc(d.path)} · ${(d.size/1024).toFixed(1)}k</span>
         </div>
       `).join("");
       docsList.querySelectorAll(".ref-doc-item").forEach(item => {
@@ -1997,7 +2184,7 @@ async function loadProjectReferences() {
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
           <div style="display:flex;flex-direction:column;gap:2px">
             <span style="font-size:11.5px;font-weight:600;color:var(--text)">${esc(l.title)}</span>
-            <a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" style="font-size:10.5px;color:var(--accent);text-decoration:none;word-break:break-all">${esc(l.url)} ↗</a>
+            ${/^https?:\/\//i.test(l.url) ? `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.url)} ↗</a>` : `<span>${esc(l.url)}</span>`}
           </div>
           <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(34,211,238,0.12);color:var(--accent);border:1px solid rgba(34,211,238,0.3)">${esc(l.category||"Link")}</span>
         </div>
@@ -2312,8 +2499,7 @@ if (vibeToggle && vibeDrawer) {
   vibeToggle.onclick = () => {
     const isHidden = vibeDrawer.hidden;
     vibeDrawer.hidden = !isHidden;
-    $("#vibeDeckIcon")?.classList.toggle("icon-chevron-up", isHidden);
-    $("#vibeDeckIcon")?.classList.toggle("icon-chevron-down", !isHidden);
+    vibeToggle.setAttribute("aria-expanded", String(isHidden));
   };
 }
 $("#vibeDensity")?.addEventListener("input", e => { $("#vibeDensityVal").textContent = `Level ${e.target.value}`; });
@@ -2369,10 +2555,11 @@ async function loadVibeCheckpoints(slug) {
     container.querySelectorAll(".vibe-snap-btn").forEach(btn => {
       btn.onclick = async () => {
         const tag = btn.dataset.tag;
-        if (!confirm(`Rollback to checkpoint ${tag}? Uncommitted changes will be restored.`)) return;
+        if (codeDirty()) return toast("Save your open edits before restoring a checkpoint", "err");
+        if (!confirm(`Open checkpoint ${tag} on a new branch? The working tree must be clean.`)) return;
         const r = await api("/api/vibe/rollback", {slug, checkpoint_id: tag});
         if (r?.ok) {
-          toast(`✓ Restored to ${tag} in 1s`, "ok");
+          toast(`Opened checkpoint on ${r.branch}`, "ok");
           cwLoadTree();
           const frame = $("#pvFrame");
           if (frame && frame.src && frame.src !== "about:blank") frame.src = frame.src;
@@ -2467,14 +2654,15 @@ function toggleVibeInspector() {
 btnInspect?.addEventListener("click", toggleVibeInspector);
 
 window.addEventListener("message", ev => {
-  if (ev.data?.type === "vibe:inspect_hit") {
+  if (vibeInspectorEnabled && ev.data?.type === "vibe:inspect_hit" &&
+      (ev.source === window || ev.source === $("#pvFrame")?.contentWindow)) {
     vibeActiveElement = ev.data;
     if (vibeModal) {
       vibeModal.hidden = false;
       $("#vibeTargetSelector").textContent = ev.data.selector || "element";
       const styleBox = $("#vibeTargetStyles");
       if (styleBox && ev.data.styles) {
-        styleBox.innerHTML = Object.entries(ev.data.styles)
+        styleBox.innerHTML = Object.entries(ev.data.styles).slice(0, 12)
           .filter(([_, v]) => v && v !== "none" && v !== "normal")
           .map(([k, v]) => `<span style="background:#222;padding:2px 6px;border:1px solid #333">${esc(k)}: ${esc(v)}</span>`)
           .join("");
@@ -2495,28 +2683,15 @@ vibeSubmit?.addEventListener("click", async () => {
   const slug = CW.slug || $("#proj").value;
   if (!slug) return toast("Select a project first", "err");
 
-  toast("Applying surgical hot-patch…", "ok");
-  if (vibeModal) vibeModal.hidden = true;
-
-  const res = await api("/api/vibe/patch", {
-    slug,
-    selector: vibeActiveElement?.selector || "body",
-    prompt: promptText,
-    styles: vibeActiveElement?.styles || {},
-    element_text: vibeActiveElement?.text || ""
-  });
-
-  if (res?.ok) {
-    toast(`✓ Hot-patch applied to ${vibeActiveElement?.selector || 'element'}`, "ok");
-    if (vibeInput) vibeInput.value = "";
+  const selector = vibeActiveElement?.selector || "body";
+  const styles = JSON.stringify(vibeActiveElement?.styles || {}).slice(0, 2000);
+  const task = `Ask the Build Agent to update the element matching ${selector}. Current computed styles: ${styles}\n\nRequested edit: ${promptText}\nApply a focused change and verify it.`;
+  const result = await send(task, {project: slug});
+  if (!result?.error) {
+    vibeModal.hidden = true;
+    vibeInput.value = "";
     vibeActiveElement = null;
-    loadVibeCheckpoints(slug);
-    setTimeout(() => {
-      const f = $("#pvFrame");
-      if (f && f.src && f.src !== "about:blank") f.src = f.src;
-    }, 1200);
-  } else {
-    toast(res?.error || "Patch failed", "err");
+    toast(result.queued ? "Patch request queued" : "Patch request started in chat", "ok");
   }
 });
 
@@ -2529,22 +2704,101 @@ $("#proj")?.addEventListener("change", e => {
 });
 
 /* ---------- wiring ---------- */
-document.querySelectorAll(".side .tabs button[data-pane]").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".side .tabs button[data-pane],.side .pane").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); $("#" + b.dataset.pane).classList.add("on");
-  if (b.dataset.pane === "pAgy") loadAgyJobs();
-  try { localStorage.setItem("jarvis.pane", b.dataset.pane); } catch (_) {}
-});
-try { const saved = localStorage.getItem("jarvis.pane"); document.querySelector(`.side .tabs button[data-pane="${saved}"]`)?.click(); } catch (_) {}
+const inspectorTabs = [...document.querySelectorAll(".inspector-tabs [role='tab']")];
+function selectInspectorTab(selected) {
+  for (const tab of inspectorTabs) {
+    const active = tab === selected;
+    tab.classList.toggle("on", active);
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+    $("#" + tab.dataset.pane).classList.toggle("on", active);
+  }
+  if (selected.dataset.pane === "pAgy") loadAgyJobs();
+  try { localStorage.setItem("jarvis.pane", selected.dataset.pane); } catch (_) {}
+}
+for (const tab of inspectorTabs) {
+  tab.onclick = () => selectInspectorTab(tab);
+  tab.onkeydown = event => {
+    const index = inspectorTabs.indexOf(tab);
+    const last = inspectorTabs.length - 1;
+    const indices = {ArrowLeft: index ? index - 1 : last, ArrowRight: index === last ? 0 : index + 1, Home: 0, End: last};
+    if (!Object.hasOwn(indices, event.key)) return;
+    event.preventDefault();
+    const next = inspectorTabs[indices[event.key]];
+    selectInspectorTab(next);
+    next.focus();
+  };
+}
+try {
+  const saved = localStorage.getItem("jarvis.pane");
+  const tab = inspectorTabs.find(button => button.dataset.pane === saved);
+  if (tab) selectInspectorTab(tab);
+} catch (_) {}
 
 let chatCollapsed = false, sideCollapsed = false, sideExpanded = false;
+const phoneLayout = matchMedia("(max-width: 760px)");
+const chatButton = $("#jumpChatBtn");
+let workspaceScroll = 0;
+
+function syncChatButton() {
+  const open = phoneLayout.matches ? document.body.classList.contains("mobile-chat") : !chatCollapsed;
+  const label = open ? (phoneLayout.matches ? "Back to workspace" : "Hide chat") : "Open chat";
+  chatButton.setAttribute("aria-expanded", String(open));
+  chatButton.setAttribute("aria-label", label);
+  chatButton.title = label;
+  chatButton.querySelector("span").textContent = phoneLayout.matches && open ? "Back" : "Chat";
+  chatButton.querySelector("i").className = phoneLayout.matches && open ? "icon-arrow-up" : "icon-message-square-plus";
+}
+
+function setMobileChat(open, restoreScroll = true) {
+  if (open === document.body.classList.contains("mobile-chat")) return;
+  if (open) workspaceScroll = window.scrollY;
+  else rememberChatScroll();
+  document.body.classList.toggle("mobile-chat", open);
+  if (!open) setChatProjects(false);
+  syncChatButton();
+  window.scrollTo(0, open || !restoreScroll ? 0 : workspaceScroll);
+}
+
+function closeMobileChat(restoreScroll = true) {
+  if (!document.body.classList.contains("mobile-chat")) return false;
+  if (chatTools.matches(":popover-open")) chatTools.hidePopover();
+  setMobileChat(false, restoreScroll);
+  return true;
+}
+
+function setChatProjects(open) {
+  $("#projectsPanel").classList.toggle("projects-open", open);
+  $("#chatProjectsBtn").setAttribute("aria-expanded", String(open));
+}
+
+$("#chatProjectsBtn").onclick = () => {
+  const open = $("#chatProjectsBtn").getAttribute("aria-expanded") === "false";
+  setChatProjects(open);
+  if (open) {
+    const target = $("#projectList [aria-current='true']") || $("#newProjectBtn");
+    target.focus();
+  }
+};
+function arrangeChatHeader() {
+  const bar = $("#chatTitle").closest(".chat-bar");
+  const projects = $("#projectsPanel");
+  if (phoneLayout.matches) bar.after(projects);
+  else bar.before(projects);
+}
+arrangeChatHeader();
+phoneLayout.addEventListener("change", () => {
+  if (!phoneLayout.matches) closeMobileChat(false);
+  arrangeChatHeader();
+  syncChatButton();
+});
 
 function applyLayoutCollapses() {
   const m = document.querySelector(".main");
   if (!m) return;
   m.classList.toggle("chat-collapsed", chatCollapsed);
   m.classList.toggle("side-collapsed", sideCollapsed);
-  $("#chatCollapseBtn")?.setAttribute("aria-expanded", String(!chatCollapsed));
+  syncChatButton();
   $("#sideCollapseBtn")?.setAttribute("aria-expanded", String(!sideCollapsed));
   try {
     localStorage.setItem("jarvis.chat.collapsed", chatCollapsed ? "1" : "0");
@@ -2559,11 +2813,29 @@ try {
 } catch (_) {}
 applyLayoutCollapses();
 
-$("#chatCollapseBtn").onclick = () => { chatCollapsed = true; applyLayoutCollapses(); };
-$("#chatExpandTrigger").onclick = () => { chatCollapsed = false; applyLayoutCollapses(); };
+function rememberChatScroll() {
+  if (chat.getClientRects().length) chatScroll = nearBottom() ? null : chat.scrollTop;
+}
 
-$("#sideCollapseBtn").onclick = () => { sideCollapsed = true; applyLayoutCollapses(); };
-$("#sideExpandTrigger").onclick = () => { sideCollapsed = false; applyLayoutCollapses(); };
+function hideDesktopChat() {
+  rememberChatScroll();
+  if (chatTools.matches(":popover-open")) chatTools.hidePopover();
+  chatCollapsed = true;
+  applyLayoutCollapses();
+  chatButton.focus({preventScroll: true});
+}
+$("#chatCollapseBtn").onclick = hideDesktopChat;
+
+$("#sideCollapseBtn").onclick = () => {
+  sideCollapsed = true;
+  applyLayoutCollapses();
+  $("#sideExpandTrigger").focus({preventScroll: true});
+};
+$("#sideExpandTrigger").onclick = () => {
+  sideCollapsed = false;
+  applyLayoutCollapses();
+  $("#sideCollapseBtn").focus({preventScroll: true});
+};
 
 $("#sideExpandBtn").onclick = () => {
   if (sideCollapsed) {
@@ -2573,8 +2845,11 @@ $("#sideExpandBtn").onclick = () => {
   }
   sideExpanded = !sideExpanded;
   document.querySelector(".main").classList.toggle("side-expanded", sideExpanded);
-  $("#sideExpandBtn").textContent = sideExpanded ? "▾" : "⛶";
-  $("#sideExpandBtn").title = sideExpanded ? "Restore panel size" : "Expand panel height";
+  const button = $("#sideExpandBtn");
+  const label = sideExpanded ? "Restore inspector size" : "Enlarge inspector";
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.setAttribute("aria-pressed", String(sideExpanded));
 };
 
 let cwDockExpanded = false;
@@ -2677,38 +2952,136 @@ document.querySelectorAll(".pv-port-btn").forEach(btn => {
     }
   };
 });
-$("#form").onsubmit = async e => { e.preventDefault(); const t = $("#input").value; if (!t.trim() || sending) return;
-  const result = await send(t); if (!result?.error && $("#input").value === t) { $("#input").value = ""; autosize(); } };
-$("#input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#form").requestSubmit(); } });
-const autosize = () => { const t = $("#input"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 180) + "px"; };
-$("#input").addEventListener("input", autosize);
-document.querySelectorAll("#quick button").forEach(b => b.onclick = () => send(b.dataset.t));
-$("#stopBtn").onclick = () => api("/api/stop", {id: sessionId});
+const composer = $("#form");
+const composerInput = $("#input");
+const sendButton = $(".send", composer);
+
+function syncComposer() {
+  const pending = sending || composerPending;
+  const uploading = window.kryzenAttach?.uploading();
+  const label = pending ? "Sending…" : runBusy && sessionId ? "Queue" : "Send";
+  sendButton.disabled = pending || uploading || !composerInput.value.trim();
+  sendButton.firstElementChild.textContent = label;
+  sendButton.setAttribute("aria-label", label === "Queue" ? "Queue message" : pending ? "Sending message" : "Send message");
+  sendButton.title = uploading ? "Wait for the images to finish uploading"
+    : label === "Queue" ? "Queue message for after the active run" : "Send (Enter)";
+}
+function autosize() {
+  composerInput.style.height = "auto";
+  composerInput.style.height = composerInput.scrollHeight + "px";
+  syncComposer();
+}
+composer.onsubmit = async event => {
+  event.preventDefault();
+  const text = composerInput.value;
+  if (sendButton.disabled || !text.trim()) return;
+  composerPending = true;
+  syncComposer();
+  try {
+    const result = await send(text);
+    if (result && !result.error && result.ok !== false && composerInput.value === text) composerInput.value = "";
+  } finally {
+    composerPending = false;
+    autosize();
+  }
+};
+composerInput.addEventListener("keydown", event => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!sendButton.disabled) composer.requestSubmit();
+});
+composerInput.addEventListener("input", autosize);
+window.addEventListener("kryzen:attachment-state", syncComposer);
+renderEmptyChat();
+syncComposer();
+const chatTools = $("#chatTools");
+function positionChatTools() {
+  if (!chatTools.matches(":popover-open")) return;
+  const button = $("#chatToolsToggle").getBoundingClientRect();
+  const width = chatTools.getBoundingClientRect().width;
+  const left = Math.max(12, Math.min(button.left, innerWidth - width - 12));
+  const above = button.top > innerHeight / 2;
+  const top = above ? 12 : button.bottom + 8;
+  const bottom = above ? innerHeight - button.top + 8 : 12;
+  Object.assign(chatTools.style, {
+    left: left + "px",
+    top: above ? "auto" : top + "px",
+    bottom: above ? bottom + "px" : "auto",
+    maxHeight: Math.max(120, innerHeight - top - bottom) + "px"
+  });
+}
+chatTools.addEventListener("toggle", positionChatTools);
+window.addEventListener("resize", positionChatTools);
+function usePromptStarter(event) {
+  const button = event.target.closest("button[data-t]");
+  if (!button) return;
+  composerInput.value += (composerInput.value.trim() ? "\n\n" : "") + button.dataset.t;
+  if (chatTools.matches(":popover-open")) chatTools.hidePopover();
+  autosize();
+  composerInput.focus({preventScroll: true});
+  composerInput.setSelectionRange(composerInput.value.length, composerInput.value.length);
+}
+$("#quick").addEventListener("click", usePromptStarter);
+chat.addEventListener("click", event => {
+  if (event.target.closest(".chat-starters")) usePromptStarter(event);
+});
+let composerWidth = 0;
+new ResizeObserver(([entry]) => {
+  const width = entry.contentRect.width;
+  if (width > 0 && width !== composerWidth) {
+    composerWidth = width;
+    autosize();
+  }
+}).observe(composer);
+
+function showChat() {
+  const wasVisible = chat.getClientRects().length > 0;
+  if (phoneLayout.matches) setMobileChat(true);
+  else if (chatCollapsed) { chatCollapsed = false; applyLayoutCollapses(); }
+  chat.focus({preventScroll: true});
+  autosize();
+  if (!wasVisible) chat.scrollTo({top: chatScroll ?? chat.scrollHeight, behavior: "instant"});
+  updateLatestButton();
+}
+
+function focusChat() {
+  showChat();
+  $("#input").focus({preventScroll: true});
+}
+
+chatButton.onclick = () => {
+  if (phoneLayout.matches && closeMobileChat()) return;
+  if (!phoneLayout.matches && !chatCollapsed) return hideDesktopChat();
+  showChat();
+};
 $("#newProjectBtn").onclick = openNewProject;
 $("#newBtn").onclick = () => {
   ++sessionRequest; sessionId = null; const curProj = $("#proj") ? $("#proj").value : ""; sessionProject = curProj; busy(false);
   localStorage.removeItem("jarvis.session"); if (es) { es.close(); es = null; } clearChat(); window.dispatchEvent(new Event("kryzen:session"));
-  chat.innerHTML = `<div class="empty">New session${curProj ? ` for <b>${esc(curProj)}</b>` : ""}. What are we building?</div>`;
+  renderEmptyChat("New conversation");
   loadSessions(curProj);
+  focusChat();
 };
 $("#proj").onchange = async e => {
   const slug = e.target.value;
   showProject(slug);
+  loadStageGates(slug);
   await loadSessions(slug, true);
 };
 
 (async () => {
+  const startup = sessionRequest;
   $('#meshRetry').onclick = reloadMesh;
   await reloadMesh(); applyUI();
   await loadProjects();
-  const initialProj = $("#proj") ? $("#proj").value : "";
+  const initialProj = $("#proj")?.value || "";
   await loadSessions(initialProj);
-  if (sessionId) {
-    await openSession(sessionId);
-  } else if (initialProj) {
-    const projSessions = (await api("/api/sessions?project=" + encodeURIComponent(initialProj)))?.sessions;
-    if (projSessions && projSessions.length > 0) {
-      await openSession(projSessions[0].id);
+  if (startup === sessionRequest) {
+    if (sessionId) {
+      await openSession(sessionId);
+    } else if (initialProj) {
+      const previous = (await api("/api/sessions?project=" + encodeURIComponent(initialProj))).sessions?.[0];
+      if (previous && startup === sessionRequest && $("#proj").value === initialProj) await openSession(previous.id);
     }
   }
 
@@ -2762,6 +3135,9 @@ $("#proj").onchange = async e => {
       const slash = btn.dataset.slash;
       const inp = $('#input');
       if (slash === '/test') {
+        if (chatTools.matches(":popover-open")) chatTools.hidePopover();
+        window.jarvisStudio?.setMode("code");
+        if (window.jarvisStudio?.state.mode !== "code") return;
         dock('dTest');
         loadProjectTests(true);
         return;
@@ -2770,27 +3146,10 @@ $("#proj").onchange = async e => {
         if (!inp.value.startsWith(slash)) {
           inp.value = slash + ' ' + inp.value.replace(/^\/[a-z]+\s*/, '');
         }
+        autosize();
+        if (chatTools.matches(":popover-open")) chatTools.hidePopover();
         inp.focus();
-        toast('Activated ' + slash + ' mode', 'ok');
       }
-    });
-  });
-
-  // Sync Holo-Dock with kryzen:mode and bind clicks
-  document.querySelectorAll('.mn-nav .dock-item').forEach(btn => {
-    btn.onclick = (e) => {
-      e.preventDefault();
-      const m = btn.dataset.mode === 'ctrl' ? 'control' : btn.dataset.mode;
-      if (window.jarvisStudio) window.jarvisStudio.setMode(m);
-    };
-  });
-  window.addEventListener('kryzen:mode', (e) => {
-    const mode = e.detail;
-    document.querySelectorAll('.dock-item').forEach(btn => {
-      const match = (btn.dataset.mode === mode) || (mode === 'control' && btn.dataset.mode === 'ctrl');
-      btn.classList.toggle('on', match);
-      btn.classList.toggle('primary', match);
-      btn.setAttribute('aria-pressed', String(match));
     });
   });
 
@@ -2889,6 +3248,7 @@ $("#proj").onchange = async e => {
 <script src="/studio.js?v=3.0"></script>
 <script src="/panel-resize.js?v=3.0"></script>
 <script src="/execution.js?v=3.0"></script>
-<script type="module" src="/ui/app.js?v=3.0"></script>
+<script type="module" src="/ui/app.js?v=3.1"></script>
+<script type="module" src="/ui/install.js"></script>
 </body>
 </html>

@@ -292,6 +292,7 @@ class TaskLedger:
                             result=future.result()
                             report(name,'completed',result=str(result)[:18000],sources=self.fingerprints(nodes[name]['files']+nodes[name]['reads']),finished=time.time())
                         except Exception as error:
+                            check()
                             report(name,'failed',error=str(error)[:1500],finished=time.time())
                 check()
                 # Accept only verified writes from later lanes, never unrelated user edits.

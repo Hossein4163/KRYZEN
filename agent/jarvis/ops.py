@@ -77,8 +77,9 @@ def deep_health(force=False):
         return _health_cache["data"]
     checks = []
     for s in control.services()["services"]:
-        checks.append({"id": s["id"], "title": s["title"], "ok": s["up"],
-                       "detail": "responding" if s["up"] else "not responding"})
+        optional = s["id"] in ("bridge", "agy")
+        checks.append({"id": s["id"], "title": s["title"], "ok": s["up"], "optional": optional,
+                       "detail": "responding" if s["up"] else "optional service is offline" if optional else "not responding"})
     for label, path in (("Workspace disk", os.environ.get("KRYZEN_WORKSPACE", str(Path.home() / "Projects"))),
                         ("App disk", str(Path(__file__).parent))):
         try:
@@ -88,7 +89,7 @@ def deep_health(force=False):
                            "detail": f"{du.free / 1e9:.1f} GB free ({free:.0%})"})
         except OSError:
             pass
-    data = {"checks": checks, "ok": all(c["ok"] for c in checks), "t": time.time()}
+    data = {"checks": checks, "ok": all(c["ok"] for c in checks if not c.get("optional")), "t": time.time()}
     _health_cache.update(t=time.time(), data=data)
     return data
 

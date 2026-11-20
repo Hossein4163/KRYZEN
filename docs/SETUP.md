@@ -102,13 +102,17 @@ mkdir -p ~/Projects/devpilot
 | `KRYZEN_WORKSPACE` | The folder that holds your projects | `~/Projects/devpilot` |
 | `PC_BRIDGE_WORKSPACE` | The same folder, used by the tool bridge | `~/Projects/devpilot` |
 | `KRYZEN_VAULT` | Where agent notes, skills and templates live | `~/Projects/devpilot` |
-| `JARVIS_PORT` | The web app's port | `8770` |
-| `PC_BRIDGE_DISABLE_SANDBOX` | Set to `1` to run agent commands outside the sandbox | `0` |
+| `JARVIS_PORT` | The web app's port | `8780` |
+| `JARVIS_HOST` | Server bind address | `127.0.0.1` |
+| `KRYZEN_ALLOW_SANDBOX_NETWORK` | Enable networking for sandboxed tools after configuring app authentication | Disabled |
+| `KRYZEN_AGY_HOME` | Optional dedicated Antigravity configuration directory mounted read-only for Antigravity only | Unset |
 
 > [!CAUTION]
-> `runtime.env` is ignored by git, so keep machine-specific settings there. Leave the sandbox on unless you have a specific reason to turn it off.
+> Keep only non-secret settings in `runtime.env`. Supply credentials through the server process environment or a service credential manager.
 
 ## 3. Create your agent team
+
+`./jarvis/start.sh` initializes a fresh vault automatically. The commands below are available for a manual setup.
 
 <p><img src="assets/term-team.svg" alt="Terminal: creating templates, agents and skills" width="100%"></p>
 
@@ -144,16 +148,6 @@ Add the growth specialists and design workflow:
 python3 jarvis/capability_pack.py --install
 ```
 
-Link skills and templates so the tool bridge can find them:
-
-```bash
-ln -sfn "$KRYZEN_VAULT/_DevPilot/Skills" skills
-```
-
-```bash
-ln -sfn "$KRYZEN_VAULT/_DevPilot/Templates" templates
-```
-
 Check the result. This should print `14`:
 
 ```bash
@@ -168,7 +162,17 @@ ls "$KRYZEN_VAULT/_DevPilot/Agents" | wc -l
 ./jarvis/start.sh
 ```
 
-Open **http://127.0.0.1:8770**. You should see the agent mesh, your team laid out as a journey from 0 to 100:
+Open **http://127.0.0.1:8780**. In Chromium or Chrome, use **Install** in the app or the browser menu to install the PWA. The app displays a retry page when its local server is unavailable. Project content, chats and API responses stay out of its offline cache.
+
+### Credentials and networking
+
+Set `OPENAI_API_KEY`, `GEMINI_API_KEY` or `NIM_KEY` in the server process environment for the corresponding provider. Move any legacy key from `_DevPilot/kryzen-runtime.json` before saving settings. Saving removes the old JSON entry.
+
+Shell tools default to an isolated network namespace. To allow Antigravity, sandboxed web browsing or preview ports, provide `JARVIS_ACCESS_TOKEN` through the server process environment and set `KRYZEN_ALLOW_SANDBOX_NETWORK=1`. The browser prompts for HTTP Basic authentication. Use any username and the access token as the password. API clients can send it as a bearer token. Sandbox processes do not inherit the token.
+
+For LAN or Tailscale access, configure the allowed network and host, and serve the app behind HTTPS with authentication enabled. If the optional standalone bridge is used, give that service its own `PC_BRIDGE_TOKEN` in the process environment.
+
+The agent mesh shows project stages from 0 to 100.
 
 <p><img src="assets/screens/01-mesh.png" alt="The agent mesh: planets from 0 to 100" width="100%"></p>
 
@@ -181,7 +185,7 @@ mkdir -p ~/.config/systemd/user
 ```
 
 ```bash
-sed "s#/home/kryazzy/Space/n8n/agent#$PWD#g" jarvis/jarvis.service > ~/.config/systemd/user/jarvis.service
+sed "s#/home/kryazzy/Space/K.R.Y.Z.E.N/agent#$PWD#g" jarvis/jarvis.service > ~/.config/systemd/user/jarvis.service
 ```
 
 ```bash

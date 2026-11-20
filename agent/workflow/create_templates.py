@@ -337,7 +337,7 @@ files["docs/marketing/STRATEGY.md"] = """# Marketing & Go-to-Market Strategy: {{
 | Date | {{DATE}} |
 
 ## Positioning & Value Prop
-- Premium comfort and stylish underwear for modern women.
+- Summarize the audience, unmet need, and product's main value proposition.
 
 ## Launch Channels
 - Instagram / TikTok visual product showcases, local lifestyle communities.
@@ -351,15 +351,16 @@ files["docs/content/COPY_AND_DOCS.md"] = """# Content & Copy: {{TITLE}}
 | Date | {{DATE}} |
 
 ## Landing Page Copy
-- Headline: Everyday Comfort Meets Effortless Style
-- Subheadline: Thoughtfully designed underwear crafted with ultra-soft fabrics for all-day confidence.
-- Call to Action: Shop the Collection
+- Headline: State the primary outcome.
+- Subheadline: Explain how the product helps the intended audience.
+- Call to action: Identify the next step.
 """
 
 for rel_path, content in files.items():
     p = BASE / rel_path
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content)
-    print("Created template file:", rel_path)
+    if not p.exists():
+        p.write_text(content)
+        print("Created template file:", rel_path)
 
 print(f"\nAll {len(files)} template files created in {BASE}")

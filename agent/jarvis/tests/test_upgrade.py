@@ -246,7 +246,7 @@ class AutoResumeTests(unittest.TestCase):
     def _engine(self):
         import engine
         e = engine.Engine.__new__(engine.Engine)
-        e.stop, e.pause_requested = threading.Event(), threading.Event()
+        e.stop, e.pause_requested, e.paused = threading.Event(), threading.Event(), threading.Event()
         e.budget = diet.Budget(100, 0)
         e.events = []
         e.emit = e.events.append
@@ -432,6 +432,7 @@ class MediaTests(unittest.TestCase):
         e = engine.Engine.__new__(engine.Engine)
         e.stop, e.pause_requested = threading.Event(), threading.Event()
         e.emit = lambda ev: None
+        e.paused = threading.Event()
         seen = {}
         def chat(agent, messages, tools):
             seen["user"] = messages[-1]

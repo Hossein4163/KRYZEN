@@ -2,25 +2,24 @@
 // banner whenever the run is paused — by you or by the token budget — with the buttons to continue.
 import {$, api, currentSession, esc, fmtTokens, onEvent, setMode, shortAgent, toast} from "./core.js";
 
-const S = {agents: new Map(), paused: null, running: false, rate: null, auto: null};
+const S = {agents: new Map(), paused: null, running: false, stopping: false, rate: null, auto: null};
 const left = at => Math.max(0, Math.ceil(at - Date.now() / 1000));
 let strip = null, timer = 0;
 
 function mount() {
-  const chat = $("#chat");
-  if (!chat || strip) return;
+  const transcript = $(".chat-transcript");
+  if (!transcript || strip) return;
   strip = document.createElement("div");
   strip.className = "kz-runstatus";
   strip.setAttribute("aria-live", "polite");
-  chat.parentNode.insertBefore(strip, chat);
+  transcript.before(strip);
   strip.addEventListener("click", async e => {
     const b = e.target.closest("button"); if (!b) return;
     const id = currentSession();
     if (b.dataset.act === "resume") {
-      const r = await api("/api/run-control", {id, action: "resume"});
-      if (r.ok === false) toast(r.error || (r.errors || []).join(" "), "err");
+      await window.controlRun?.("resume");
     } else if (b.dataset.act === "stop") {
-      await api("/api/stop", {id});
+      await window.controlRun?.("stop");
     } else if (b.dataset.act === "hold") {
       await api("/api/run-control", {id, action: "hold"});
     } else if (b.dataset.act === "cancel-auto") {
@@ -48,10 +47,14 @@ function render() {
   if (!S.running && !S.paused && !S.auto) { strip.hidden = true; return; }
   strip.hidden = false;
   let banner = "";
-  if (S.paused) {
+  if (S.stopping) {
+    banner = '<div class="kz-paused" role="status"><div><b>Stopping run</b><span>Active work is being cancelled. Completed changes and checkpoints are kept.</span></div></div>';
+  } else if (S.paused) {
     const b = S.paused;
     const auto = b.reason === "budget" && b.autoAt && !b.held ? left(b.autoAt) : null;
-    banner = b.reason === "budget"
+    banner = b.reason === "pending"
+      ? '<div class="kz-paused" role="status"><div><b>Pausing</b><span>Waiting for the current operations to reach a safe point.</span></div><div class="kz-paused-actions"><button class="kz-btn" data-act="resume">Cancel pause</button><button class="kz-btn danger" data-act="stop">Stop</button></div></div>'
+      : b.reason === "budget"
       ? `<div class="kz-paused budget" role="alert"><div><b>⏸ Paused — token budget reached${auto != null ? ` · resuming in ${auto}s` : ""}</b><span>${fmtTokens(b.tokens)} of ${fmtTokens(b.max_tokens)} tokens used in this run. ${b.hardCap ? "The hard cap is reached, so it will not resume by itself." : auto != null ? "It continues automatically with more budget." : "Resume to keep going (allows +50% or your new budget)."}</span></div>
          <div class="kz-paused-actions"><button class="kz-btn primary" data-act="resume">${auto != null ? "Resume now" : "Resume"}</button>${auto != null ? '<button class="kz-btn" data-act="hold">Keep paused</button>' : ""}<button class="kz-btn" data-act="budget">Change budget</button><button class="kz-btn danger" data-act="stop">Stop</button></div></div>`
       : `<div class="kz-paused" role="alert"><div><b>⏸ Paused</b><span>Agents wait at their next safe step. Nothing is lost.</span></div>
@@ -79,7 +82,7 @@ function render() {
   strip.innerHTML = autoBanner + banner + (rows ? `<div class="kz-rs-list">${rows}</div>` : "") + rate + slowNote;
 }
 
-function reset() { S.agents.clear(); S.paused = null; S.rate = null; }
+function reset() { S.agents.clear(); S.paused = null; S.stopping = false; S.rate = null; }
 function resetAll() { reset(); S.auto = null; }
 
 onEvent(ev => {
@@ -101,6 +104,10 @@ onEvent(ev => {
     }
     case "tool_end": set(a, ev.ok ? "reading the result" : `${ev.tool} failed — deciding what to do`, t); break;
     case "approval_request": set(a, `waiting for your review of ${ev.path}`, t); break;
+    case "gate_wait":
+      if (ev.gate) set(a, "waiting for the " + ev.gate + " gate");
+      else S.agents.delete(a);
+      break;
     case "agent_end": S.agents.delete(a); break;
     case "rate_limit": S.rate = {until: (t || Date.now() / 1000) + (ev.wait || 0), limit: ev.limit}; break;
     case "budget":
@@ -113,8 +120,10 @@ onEvent(ev => {
       S.auto = ev.state === "cancelled" ? null : {...ev, at: (t || Date.now() / 1000) + (ev.in || 0)};
       break;
     case "run_state":
-      if (ev.state === "paused" || ev.state === "pause_requested") S.paused = S.paused || {reason: "user"};
+      if (ev.state === "pause_requested") S.paused = S.paused || {reason: "pending"};
+      if (ev.state === "paused" && S.paused?.reason !== "budget") S.paused = {reason: "user"};
       if (ev.state === "running") S.paused = null;
+      if (ev.state === "stopping") { S.stopping = true; S.paused = null; S.auto = null; }
       break;
     case "turn_end": S.running = false; reset(); break;
   }

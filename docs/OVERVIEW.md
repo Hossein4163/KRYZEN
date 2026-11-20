@@ -4,7 +4,7 @@
 
 K.R.Y.Z.E.N is a multi-agent workspace that runs on your own computer. You describe what you want in a chat, an Orchestrator splits the work, and 13 specialist agents research, plan, design, build, test and launch it inside an ordinary project folder.
 
-- **Runs locally:** a Python web app on `127.0.0.1:8770`. It needs no database or pip packages to start, though image features need Pillow.
+- **Runs locally:** a Python web app on `127.0.0.1:8780`. It needs no database or pip packages to start, though image features need Pillow.
 - **Model:** every agent currently runs on `agy/gemini-3.8-flash` through the Antigravity CLI (`agy`).
 - **Resumable:** progress is saved in files, so a run can stop and continue later.
 - **Status:** working, but pre-release and single-user. Read [Known issues](#known-issues) before you use it on anything sensitive.

@@ -4,8 +4,6 @@ from pathlib import Path
 from projectdata import atomic_write
 
 VAULT = Path(os.environ.get("KRYZEN_VAULT") or Path.home() / "Projects" / "devpilot").expanduser()
-if not (VAULT / "_DevPilot").exists() and (Path.home() / "Projects" / "devpilot" / "_DevPilot").exists():
-    VAULT = Path.home() / "Projects" / "devpilot"
 SYS = VAULT / "_DevPilot"
 AGENT_NOTES = SYS / "Agents"
 ARCHIVE = SYS / "Archive"

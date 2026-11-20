@@ -426,7 +426,7 @@ wf = {"id": WORKFLOW_ID, "name": "DevPilot – Agentic Project Builder", "nodes"
       "connections": connections, "pinData": {}, "active": False,
       "settings": {"executionOrder": "v1", "saveManualExecutions": True, "saveExecutionProgress": True,
                    "callerPolicy": "workflowsFromSameOwner"}}
-out = Path(__file__).with_name("ai-dev-agent.json")
+out = SYS / "ai-dev-agent.json"
 atomic_write(out, json.dumps(wf, indent=2, ensure_ascii=False))
 print(f"wrote {out} ({len(nodes)} nodes)")
 
@@ -589,7 +589,7 @@ agent_rows = "\n".join(f"| [[{n}]] | {ROLES[l]} | `{m.split('/')[-1]}` | {mi} | 
 | **Flows** | [[DevPilot Flow.canvas\\|DevPilot Flow]] · [[Project Lifecycle]] |
 | **Agents** | [[Orchestrator]] + {len(AGENTS)} specialists (table below) |
 | **Reference** | [[Tools]] · Skills in `_DevPilot/Skills/` · project skeleton in `_DevPilot/Templates/project/` |
-| **Jarvis** | http://127.0.0.1:8770 — HUD chat + live agent graph (standalone engine, same agents) |
+| **Jarvis** | http://127.0.0.1:8780 — HUD chat + live agent graph (standalone engine, same agents) |
 
 ## Agents
 | Agent | Role | Model | Max steps | Tools |

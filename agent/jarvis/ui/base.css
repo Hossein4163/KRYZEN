@@ -293,7 +293,6 @@ body.studio-mode .studio:has(.plan-layout){min-height:0}
 #graph.mesh-overview .agent-meta,#graph.mesh-overview .stat{display:none}
 .codews{overflow:hidden}
 .codews>.panel{border:0;backdrop-filter:none;background:var(--cw-bg);min-width:0}
-.cw-files h2 .btn{background:transparent;border-radius:3px}
 .cw-root{letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cw-root:before{content:'⌄';padding-right:7px;color:#b6aec8}
 .cw-files .filter:focus{outline-offset:-1px}
@@ -397,13 +396,9 @@ body.studio-mode .studio:has(.plan-layout){min-height:0}
 .msg .md,.msg.user span,.card .md{unicode-bidi:plaintext}
 .msg .md p,.msg .md li,.msg .md h3{unicode-bidi:plaintext;text-align:start}
 .chat-bar{justify-content:space-between;font:600 10.5px/1 var(--mono);letter-spacing:.08em;color:var(--dim)}
-.chat-bar-title{display:flex;align-items:center;gap:6px}
 .chat-toggle-btn,.side-collapse-btn{font-size:11px;cursor:pointer}
 .collapsed-trigger{user-select:none;transition:background 0.15s, color 0.15s}
 .collapsed-trigger .vertical-title{text-orientation:mixed;white-space:nowrap}
-body .main.chat-collapsed .panel.chatp{overflow:hidden;padding:0;display:flex;flex-direction:column;min-width:0}
-body .main.chat-collapsed .panel.chatp > :not(.collapsed-trigger){display:none !important}
-body .main.chat-collapsed .panel.chatp #chatExpandTrigger{display:flex !important}
 body .main.side-collapsed .panel.side{overflow:hidden;padding:0;display:flex;flex-direction:column;min-width:0}
 body .main.side-collapsed .panel.side > :not(.collapsed-trigger){display:none !important}
 body .main.side-collapsed .panel.side #sideExpandTrigger{display:flex !important}
@@ -434,7 +429,6 @@ body .main.side-collapsed .panel.side #sideExpandTrigger{display:flex !important
 .collapsed-trigger{border-radius:0;flex:1}
 #meshRetry[hidden]{display:none}
 .stage .mesh-viewport{min-height:0}
-.side .tabs button{flex-shrink:0;white-space:nowrap}
 .mesh-footer{flex-shrink:0}
 .mesh-bar,.agy-tools{flex-wrap:wrap}
 .agy-tools input{min-width:0;flex:1}
@@ -442,9 +436,9 @@ body .main.side-collapsed .panel.side #sideExpandTrigger{display:flex !important
 @media (min-width:761px){
 .app{min-height:0}
 body .main{height:auto;min-height:0;grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(220px,260px);grid-template-rows:minmax(0,1fr)}
-body .main.chat-collapsed{grid-template-columns:44px minmax(0,1fr) minmax(220px,260px)}
+body .main.chat-collapsed{grid-template-columns:0 minmax(0,1fr) minmax(220px,260px)}
 body .main.side-collapsed{grid-template-columns:minmax(230px,270px) minmax(0,1fr) 44px}
-body .main.chat-collapsed.side-collapsed{grid-template-columns:44px minmax(0,1fr) 44px}
+body .main.chat-collapsed.side-collapsed{grid-template-columns:0 minmax(0,1fr) 44px}
 body .main > .chatp,body .main > .side,body .main > .stage,body.studio-mode .main > .studio{height:auto;min-height:0}
 body .main > .stage{grid-column:2;grid-row:1}
 body .main > .chatp{grid-column:1;grid-row:1}
@@ -457,12 +451,13 @@ body .main > .stage #graph{height:calc(100% - 66px);bottom:66px}
 @media (min-width:761px) and (max-width:1199px){
 body .main{grid-template-columns:240px minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(44px,34%)}
 body .main.side-collapsed{grid-template-columns:240px minmax(0,1fr)}
-body .main.chat-collapsed,body .main.chat-collapsed.side-collapsed{grid-template-columns:44px minmax(0,1fr)}
+body .main.chat-collapsed,body .main.chat-collapsed.side-collapsed{grid-template-columns:0 minmax(0,1fr)}
 body .main.side-collapsed{grid-template-rows:minmax(0,1fr) 44px}
 body .main.side-expanded{grid-template-rows:minmax(0,25%) minmax(0,75%)}
-body .main > .chatp{grid-column:1;grid-row:1}
-body .main > .side{grid-column:1;grid-row:2}
-body .main > .stage,body.studio-mode .main > .studio,body.code-mode .main > .codews,body.control-mode .main > .control{grid-column:2;grid-row:1 / 3}
+body .main > .chatp{grid-column:1;grid-row:1 / 3}
+body .main > .side{grid-column:2;grid-row:2}
+body .main > .stage{grid-column:2;grid-row:1}
+body.studio-mode .main > .studio,body.code-mode .main > .codews,body.control-mode .main > .control{grid-column:2;grid-row:1 / 3}
 body.studio-mode .main > .chatp,body.code-mode .main > .chatp,body.control-mode .main > .chatp{grid-row:1 / 3}
 .codews .cw-files{grid-row:1 / 3;height:auto}
 .codews > .panel,.codews .cw-workbench{min-height:0}
@@ -476,7 +471,7 @@ body .main > .stage{height:760px;min-height:0}
 body .main > .chatp,body.studio-mode .main > .chatp{grid-column:1;grid-row:2;height:400px;min-height:0}
 body .main > .side{grid-column:1;grid-row:3;height:360px;min-height:0}
 body .main.side-expanded > .side{height:600px}
-body .main.chat-collapsed > .chatp,body .main.side-collapsed > .side{height:48px}
+body .main.side-collapsed > .side{height:48px}
 .collapsed-trigger{min-height:44px}
 body.studio-mode .main > .studio{min-height:0}
 .flow-rail{min-width:0}
@@ -495,8 +490,7 @@ body .codews.codews-dock-expanded{grid-template-rows:auto minmax(300px,40vh) min
 .agy-container{grid-template-columns:minmax(0,1fr);grid-template-rows:130px minmax(160px,1fr);height:auto;flex:1}
 .agy-list{border-bottom:1px solid var(--edge)}
 }
-body.studio-mode .main > .panel.side,body.code-mode .main > .panel.side,body.control-mode .main > .panel.side,.side .tabs > span{display:none}
-.side .tabs > .btn{margin-left:auto}
+body.studio-mode .main > .panel.side,body.code-mode .main > .panel.side,body.control-mode .main > .panel.side{display:none}
 .flow-overview .node-copy,.flow-overview .node-kind,.flow-overview .node-link,.flow-overview .node-edit{display:none}
 .flow-overview .flow-node h3{font-size:15px}
 :root{--studio-surface:linear-gradient(180deg,#2d2d30 0%,#222225 20%,#1e1e21 100%);--studio-shadow:inset 0 1px 1px #ffffff25,inset 0 -1px 1px #ffffff0a,0 12px 24px #00000028}
@@ -532,8 +526,6 @@ select.proj:focus{border-color:#8bbcff80}
 .msg .who{color:#b7d4ff;font-size:9px;letter-spacing:.08em}
 .composer textarea{border-radius:16px}
 .send{border-radius:50%;font-size:14px}
-.side .tabs button{font-size:10px;letter-spacing:0;text-transform:none;border-radius:16px;padding:7px 8px}
-.side .tabs button.on{color:#d6e7ff;background:#ffffff11;border-color:#ffffff0f;box-shadow:inset 0 1px 0 #ffffff17}
 .empty{color:var(--dim)}
 .kv{grid-template-columns:minmax(70px,.7fr) minmax(0,1fr);font-size:11px;gap:8px 10px}
 .kv dd{overflow-wrap:anywhere}
@@ -622,7 +614,6 @@ body .main{padding-top:0}
 .mesh-bar .mesh-options button{min-width:75px}
 .mesh-layers>span{display:none}
 .mesh-footer{padding:10px 13px}
-.side .tabs button{min-height:40px;font-size:11px}
 .quick button{min-height:34px}
 .chat-toggle-btn,.side-collapse-btn,.side-expand-btn{min-height:40px;min-width:40px}
 .studio-actions .btn{min-height:40px}
@@ -636,18 +627,7 @@ body .main{padding-top:0}
 @media (prefers-reduced-motion:reduce){
 *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
-.side .tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 29px}
-.side .tabs>button[data-pane]{min-width:0;width:100%;margin:0}
-.side .tabs>button[data-pane="pProject"]{grid-column:1;grid-row:1}
-.side .tabs>button[data-pane="pFiles"]{grid-column:2;grid-row:1}
-.side .tabs>button[data-pane="pLog"]{grid-column:1;grid-row:2}
-.side .tabs>button[data-pane="pAgy"]{grid-column:2;grid-row:2}
-.side .tabs>.btn{grid-column:3;width:29px;height:29px;min-width:29px;min-height:29px;margin:0;padding:0!important;border-radius:50%;justify-self:center}
-.side .tabs>#sideExpandBtn{grid-row:1}
-.side .tabs>#sideCollapseBtn{grid-row:2}
 @media (max-width:760px){
-.side .tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px}
-.side .tabs>.btn{width:40px;height:40px;min-width:40px;min-height:40px}
 }
 @media (min-width:761px) and (max-height:650px){
 .top .brand{min-height:36px}
@@ -663,20 +643,18 @@ body.resizing-panels,body.resizing-panels *{cursor:col-resize!important;user-sel
 body.resizing-panels.resize-rows,body.resizing-panels.resize-rows *{cursor:row-resize!important}
 @media(min-width:1200px){
 body .main{grid-template-columns:var(--chat-size,320px) minmax(0,1fr) var(--side-size,300px)}
-body .main.chat-collapsed{grid-template-columns:44px minmax(0,1fr) var(--side-size,300px)}
+body .main.chat-collapsed{grid-template-columns:0 minmax(0,1fr) var(--side-size,300px)}
 body .main.side-collapsed{grid-template-columns:var(--chat-size,320px) minmax(0,1fr) 44px}
-body .main.chat-collapsed.side-collapsed{grid-template-columns:44px minmax(0,1fr) 44px}
+body .main.chat-collapsed.side-collapsed{grid-template-columns:0 minmax(0,1fr) 44px}
 }
 @media(min-width:761px) and (max-width:1199px){
 body .main,body .main.side-collapsed{grid-template-columns:var(--chat-size,240px) minmax(0,1fr)}
-body .main.chat-collapsed,body .main.chat-collapsed.side-collapsed{grid-template-columns:44px minmax(0,1fr)}
+body .main.chat-collapsed,body .main.chat-collapsed.side-collapsed{grid-template-columns:0 minmax(0,1fr)}
 body .main:not(.side-collapsed):not(.side-expanded){grid-template-rows:minmax(0,1fr) var(--side-height,34%)}
 }
 @media(max-width:760px){
-body .main:not(.chat-collapsed) > .panel.chatp,body.studio-mode .main:not(.chat-collapsed) > .panel.chatp{height:var(--chat-height,400px)}
 body .main:not(.side-collapsed):not(.side-expanded) > .panel.side{height:var(--side-height,360px)}
 }
-.side .tabs>button[data-pane="pExecution"]{grid-column:1 / 3;grid-row:3}
 .execution-pane{padding:14px 11px}
 .execution-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 .execution-heading h3{margin:3px 0 0;font-size:17px}
@@ -720,15 +698,14 @@ body .main:not(.side-collapsed):not(.side-expanded) > .panel.side{height:var(--s
 .execution-dialog{border-radius:18px}
 .execution-dialog .execution-column{width:230px}
 .execution-heading .btn{min-height:44px}
-.side .tabs>button[data-pane="pExecution"]{min-height:40px}
 }
 .execution-dialog .execution-columns{justify-content:center}
 .kz-view{display:none;grid-column:2 / 4;min-width:0;min-height:0;overflow:auto}
-body.home-mode .stage,body.home-mode .side,body.home-mode .studio,body.home-mode .codews,body.home-mode .control,body.trace-mode .stage,body.trace-mode .side,body.trace-mode .studio,body.trace-mode .codews,body.trace-mode .control{display:none !important}
-body.home-mode #homeView,body.trace-mode #traceView{display:block}
+body.home-mode .stage,body.home-mode .side,body.home-mode .studio,body.home-mode .codews,body.home-mode .control,body.trace-mode .stage,body.trace-mode .side,body.trace-mode .studio,body.trace-mode .codews,body.trace-mode .control,body.bots-mode .stage,body.bots-mode .side,body.bots-mode .studio,body.bots-mode .codews,body.bots-mode .control{display:none !important}
+body.home-mode #homeView,body.trace-mode #traceView,body.bots-mode #botsView{display:block}
 @media (min-width:761px) and (max-width:1100px){
 body .main > .kz-view{grid-column:2;grid-row:1 / 3}
-body.home-mode .main > .panel.chatp,body.trace-mode .main > .panel.chatp{grid-row:1 / 3}
+body.home-mode .main > .panel.chatp,body.trace-mode .main > .panel.chatp,body.bots-mode .main > .panel.chatp{grid-row:1 / 3}
 }
 @media (max-width:760px){
 .kz-view{grid-column:auto;min-height:80vh}
@@ -799,13 +776,6 @@ body.home-mode .main > .panel.chatp,body.trace-mode .main > .panel.chatp{grid-ro
 .kz-log-row{grid-template-columns:52px 1fr auto}
 .kz-log-row .a{display:none}
 }
-.kz-palette{position:fixed;inset:0;z-index:60;display:flex;justify-content:center;align-items:flex-start;padding:12vh 16px 16px}
-.kz-palette-box{border-radius:14px;overflow:hidden}
-.kz-palette input{width:100%;box-sizing:border-box;border:0;background:transparent;color:var(--text);outline:none}
-.kz-palette ul{list-style:none;margin:0;overflow:auto}
-.kz-palette li{display:flex;gap:10px;align-items:center;border-radius:8px;cursor:pointer}
-.kz-palette li small{margin-left:auto}
-.kz-palette .group{text-transform:uppercase;cursor:default}
 .kz-dialog{border-radius:16px;padding:0;width:min(920px, calc(100vw - 32px));max-height:calc(100vh - 48px)}
 .kz-dialog header h2{margin:0}
 .kz-dialog footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -926,7 +896,6 @@ body.run-paused .agent-card.working .meta::after{content:"paused";font-size:10.5
 .kz-att{position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;flex:none}
 .kz-att img{width:100%;height:100%;object-fit:cover;display:block}
 .kz-att button{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:12px;line-height:1;cursor:pointer}
-.kz-att-note{font-size:11.5px;color:var(--faint)}
 .panel.kz-drop{outline-offset:-6px}
 .kz-msg-images{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .kz-msg-images img{max-width:140px;max-height:110px;border-radius:8px;object-fit:cover}

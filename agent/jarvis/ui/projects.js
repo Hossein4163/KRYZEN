@@ -7,6 +7,7 @@ let collapsed = false;
 
 function syncRows() {
   const cur = select().value;
+  $("#chatContext").textContent = cur || "General";
   const row = $("#projectList")?.querySelector(`[data-p="${CSS.escape(cur)}"]`);
   for (const b of document.querySelectorAll(".mn-proj")) {
     const on = b === row;
@@ -14,17 +15,37 @@ function syncRows() {
     b.setAttribute("aria-expanded", String(on && !collapsed));
     b.querySelector("i").className = on && !collapsed ? "icon-folder-open" : "icon-folder";
   }
-  if (row) row.closest("li").append(chats());
+  const parent = row?.closest("li");
+  if (parent && chats().parentElement !== parent) parent.append(chats());
   chats().hidden = collapsed || !row;
 }
 
 function renderProjects() {
   const parked = chats();
-  $("#projectsPanel").append(parked); // keep the chat list alive while the rows are rebuilt
-  $("#projectList").innerHTML = [...select().options].map(o =>
-    `<li><div class="mn-proj-row"><button type="button" class="mn-proj" data-p="${esc(o.value)}" title="${esc(o.value)}. Right-click for options."><i class="icon-folder"></i><span>${esc(o.value)}</span></button><button type="button" class="mn-proj-more" data-more="${esc(o.value)}" aria-label="Options for ${esc(o.value)}" aria-haspopup="menu"><i class="icon-ellipsis"></i></button></div></li>`).join("");
+  const query = $("#projectQuery");
+  const projects = [...select().options];
+  $("#projectFilter").hidden = projects.length < 2 && !query.value;
+  const needle = query.value.trim().toLocaleLowerCase();
+  const matches = projects.filter(option => option.value.toLocaleLowerCase().includes(needle));
+  const list = $("#projectList");
+  const focused = list.contains(document.activeElement) ? document.activeElement.dataset : null;
+  $("#projectsPanel").append(parked);
+  list.innerHTML = matches.map(option => {
+    const slug = esc(option.value);
+    return `<li><div class="mn-proj-row"><button type="button" class="mn-proj" data-p="${slug}" title="${slug}" aria-controls="sessions"><i class="icon-folder" aria-hidden="true"></i><span dir="auto">${slug}</span></button><button type="button" class="mn-proj-more" data-more="${slug}" aria-label="Options for ${slug}" aria-haspopup="menu" aria-expanded="false"><i class="icon-ellipsis" aria-hidden="true"></i></button></div></li>`;
+  }).join("");
+  if (!matches.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = projects.length ? "No projects match this filter." : "Use + to open a folder or create a project.";
+    list.append(empty);
+  }
   syncRows();
+  if (focused?.p) list.querySelector(`[data-p="${CSS.escape(focused.p)}"]`)?.focus({preventScroll: true});
+  if (focused?.more) list.querySelector(`[data-more="${CSS.escape(focused.more)}"]`)?.focus({preventScroll: true});
+  if (focused?.session && !parked.hidden) parked.querySelector(`[data-session="${CSS.escape(focused.session)}"]`)?.focus({preventScroll: true});
 }
+$("#projectQuery").addEventListener("input", renderProjects);
 
 $("#projectList").addEventListener("click", e => {
   const more = e.target.closest("[data-more]");
@@ -60,28 +81,37 @@ const MENU = [
   {label: "Copy path", icon: "copy", run: copyPath},
   {label: "Remove from list", icon: "x", danger: true, run: removeProject},
 ];
+let menuTrigger = null;
+
 function openMenu(slug, x, y, origin) {
   closeMenu();
   const m = document.createElement("div");
   m.className = "mn-menu"; m.id = "projectMenu"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", `Options for ${slug}`);
   m.innerHTML = `<div class="mn-menu-title">${esc(slug)}</div>` + MENU.map((it, i) => `<button type="button" role="menuitem" data-i="${i}" class="${it.danger ? "danger" : ""}"><i class="icon-${it.icon}"></i>${it.label}</button>`).join("");
   document.body.append(m);
-  m.style.left = Math.min(x, innerWidth - m.offsetWidth - 8) + "px";
-  m.style.top = Math.min(y, innerHeight - m.offsetHeight - 8) + "px";
+  menuTrigger = origin.matches("[data-more]") ? origin : null;
+  menuTrigger?.setAttribute("aria-expanded", "true");
+  m.style.left = Math.max(8, Math.min(x, innerWidth - m.offsetWidth - 8)) + "px";
+  m.style.top = Math.max(8, Math.min(y, innerHeight - m.offsetHeight - 8)) + "px";
   const items = [...m.querySelectorAll("button")];
   m.onclick = e => { const b = e.target.closest("[data-i]"); if (!b) return; closeMenu(); MENU[+b.dataset.i].run(slug); };
   m.onkeydown = e => {
     const i = items.indexOf(document.activeElement);
     if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length].focus(); }
     if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
-    if (e.key === "Escape") { closeMenu(); origin?.focus(); }
+    if (e.key === "Escape") { e.preventDefault(); closeMenu(); origin.focus({preventScroll: true}); }
     if (e.key === "Tab") closeMenu();
   };
   items[0].focus();
   setTimeout(() => document.addEventListener("pointerdown", outsideMenu), 0);
 }
 function outsideMenu(e) { if (!e.target.closest("#projectMenu")) closeMenu(); }
-function closeMenu() { $("#projectMenu")?.remove(); document.removeEventListener("pointerdown", outsideMenu); }
+function closeMenu() {
+  $("#projectMenu")?.remove();
+  menuTrigger?.setAttribute("aria-expanded", "false");
+  menuTrigger = null;
+  document.removeEventListener("pointerdown", outsideMenu);
+}
 
 async function copyPath(slug) {
   const r = await api("/api/project/folders");
@@ -107,7 +137,7 @@ function askDialog(html, onSubmit) {
 }
 function renameProject(slug) {
   const dlg = askDialog(`<form><h2>Rename project</h2><p>This renames the project in your workspace and keeps its chats.</p>
-    <label class="studio-eyebrow" for="pjName">Name</label><input id="pjName" required maxlength="49" pattern="[a-z0-9][a-z0-9-]{1,48}" value="${esc(slug)}" autocomplete="off">
+    <label class="studio-eyebrow" for="pjName">Name</label><input id="pjName" required maxlength="49" pattern="[a-z0-9][a-z0-9\\-]{1,48}" value="${esc(slug)}" autocomplete="off">
     <p id="pjErr" class="mn-picker-err" role="alert"></p><div class="studio-actions"><button class="btn primary">Rename</button><button type="button" class="btn" data-cancel>Cancel</button></div></form>`,
   async d => {
     const name = d.querySelector("#pjName").value.trim();
@@ -161,7 +191,7 @@ function openPicker() {
   q("#pkList").onclick = e => { const b = e.target.closest("[data-path]"); if (b) go(b.dataset.path); };
   q("#pkUp").onclick = () => cur?.parent && go(cur.parent);
   q("#pkCancel").onclick = () => dlg.close();
-  q("#pkNew").onclick = () => { dlg.close(); window.openNewProject?.(); };
+  q("#pkNew").onclick = () => dlg.close("create");
   q("#pkUse").onclick = async () => {
     if (!cur) return;
     q("#pkUse").disabled = true;
@@ -176,7 +206,12 @@ function openPicker() {
     dlg.close();
     toast(`Project ${r.slug} added`, "ok");
   };
-  dlg.addEventListener("close", () => { dlg.remove(); $("#newProjectBtn")?.focus(); }, {once: true});
+  dlg.addEventListener("close", () => {
+    const create = dlg.returnValue === "create";
+    dlg.remove();
+    $("#newProjectBtn")?.focus({preventScroll: true});
+    if (create) window.openNewProject?.();
+  }, {once: true});
   dlg.showModal();
   go("");
 }

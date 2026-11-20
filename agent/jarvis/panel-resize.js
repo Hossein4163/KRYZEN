@@ -4,11 +4,12 @@
   const main=document.querySelector('.main');
   const panels={chat:document.getElementById('chatPanel'),side:document.getElementById('sidePanel')};
   const storageKey='kryzen.panel-sizes.v1';
-  const defaults={desktop:{chat:320,side:300},tablet:{chat:240,side:0},phone:{chat:400,side:360}};
+  const defaults={desktop:{chat:320,side:300},tablet:{chat:240,side:0},phone:{side:360}};
   let sizes=JSON.parse(JSON.stringify(defaults));
   try {
     const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');
     for(const mode of Object.keys(defaults)) for(const name of Object.keys(panels)) {
+      if (!(name in defaults[mode])) continue;
       const n=saved?.[mode]?.[name];if(Number.isFinite(n)&&n>=0&&n<=1200)sizes[mode][name]=n;
     }
   } catch (_) {}
@@ -32,7 +33,7 @@
     if(layout==='desktop') {
       let chat=clamp(sizes.desktop.chat,200,520),side=clamp(sizes.desktop.side,200,520);
       const chatOn=!main.classList.contains('chat-collapsed'),sideOn=!main.classList.contains('side-collapsed')&&visible(panels.side);
-      const budget=available-gap*2-320-(chatOn?0:44)-(sideOn?0:44);
+      const budget=available-gap*2-320-(sideOn?0:44);
       const total=(chatOn?chat:0)+(sideOn?side:0);
       if(total>budget){const shrink=(total-budget)/((chatOn?1:0)+(sideOn?1:0));if(chatOn)chat=Math.max(200,chat-shrink);if(sideOn)side=Math.max(200,side-shrink);}
       main.style.setProperty('--chat-size',chat+'px');main.style.setProperty('--side-size',side+'px');
@@ -40,7 +41,6 @@
       main.style.setProperty('--chat-size',clamp(sizes.tablet.chat,200,Math.min(520,available-gap-320))+'px');
       const b=bounds('side');main.style.setProperty('--side-height',clamp(sizes.tablet.side||main.clientHeight*.34,b.min,b.max)+'px');
     } else {
-      main.style.setProperty('--chat-height',clamp(sizes.phone.chat,240,Math.max(800,innerHeight*1.3))+'px');
       main.style.setProperty('--side-height',clamp(sizes.phone.side,240,Math.max(800,innerHeight*1.3))+'px');
     }
     position();
@@ -49,7 +49,7 @@
     const layout=mode(),root=main.getBoundingClientRect();
     for(const [name,handle] of Object.entries(handles)) {
       const panel=panels[name],collapsed=main.classList.contains(name==='chat'?'chat-collapsed':'side-collapsed');
-      handle.hidden=collapsed||!visible(panel);
+      handle.hidden=(layout==='phone'&&name==='chat')||collapsed||!visible(panel);
       if(handle.hidden)continue;
       const r=panel.getBoundingClientRect(),b=bounds(name),vertical=b.axis==='x';
       const x=layout==='desktop'&&name==='side'?r.left-root.left-6:r.right-root.left-6;

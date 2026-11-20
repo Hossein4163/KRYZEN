@@ -27,6 +27,10 @@ Every /shell, /fs/write, /agy and /project/init call inside a project is journal
 It runs in-process with the web app; if you start it as a server, bind it to localhost only.
 """
 import html
+import http.client
+import ipaddress
+import socket
+from contextvars import ContextVar
 import json
 import os
 import re
@@ -35,10 +39,11 @@ import shutil
 import subprocess
 import sys
 import signal
+import select
 import threading
 import time
 import urllib.request
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -50,10 +55,9 @@ sys.path.insert(0, str(AGENT_DIR / "jarvis"))
 from projectdata import atomic_write, parse_tasks, revision, continuation
 HOST = os.environ.get("PC_BRIDGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PC_BRIDGE_PORT", "8765"))
-TOKEN_FILE = HERE / ".token"
-TOKEN = os.environ.get("PC_BRIDGE_TOKEN") or (TOKEN_FILE.read_text().strip() if TOKEN_FILE.exists() else "")
+TOKEN = os.environ.get("PC_BRIDGE_TOKEN", "")
 def get_default_workspace():
-    env_ws = os.environ.get("PC_BRIDGE_WORKSPACE")
+    env_ws = os.environ.get("PC_BRIDGE_WORKSPACE") or os.environ.get("KRYZEN_WORKSPACE")
     if env_ws:
         return Path(env_ws).expanduser().resolve()
     space_proj = Path.home() / "Space" / "Projects"
@@ -65,8 +69,6 @@ WORKSPACE = get_default_workspace()
 LINKS_FILE = ".linked-projects.json"
 HIDDEN_FILE = ".hidden-projects.json"
 MAX_OUT = int(os.environ.get("PC_BRIDGE_MAX_OUT", "20000"))
-# agy's --dangerously-skip-permissions is always enabled for autonomous operation
-ALLOW_AGY_ACCEPT_ALL = True
 SKILL_ROOTS = [
     Path.home() / "Projects" / "devpilot" / "_DevPilot" / "Skills",
     AGENT_DIR / "skills",
@@ -81,6 +83,7 @@ JOBS_LOCK = threading.Lock()
 FILES_LOCK = threading.RLock()
 PROJECT_LOCK = threading.RLock()
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,48}$")
+EXISTING_PROJECT = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}")
 
 
 def clip(text, limit=MAX_OUT):
@@ -126,55 +129,86 @@ def resolve(path, base=None):
 HOME = Path.home()
 SANDBOX_CACHE = WORKSPACE / ".sandbox-cache"
 # The Obsidian vault's control folders: agents may read them but never change their own instructions.
-PROTECTED = [WORKSPACE / "_DevPilot", WORKSPACE / ".obsidian"]
+from vaultnotes import SYS as VAULT_SYSTEM
+PROTECTED = list(dict.fromkeys([WORKSPACE / "_DevPilot", WORKSPACE / ".obsidian", VAULT_SYSTEM.resolve()]))
 
 
 def writable(p):
     """Refuse writes inside protected folders (prompts, skills, templates, Obsidian config)."""
+    if p in (WORKSPACE / LINKS_FILE, WORKSPACE / HIDDEN_FILE):
+        raise PermissionError("workspace registration is maintained by the project picker")
     for d in PROTECTED:
         if p == d or d in p.parents:
             raise PermissionError(f"{p} is read-only for agents (edit it in Obsidian)")
     return p
 
 
-def sandboxed(cmd, cwd):
-    """Wrap a shell command in bubblewrap: an empty home with only the workspace writable,
-    toolchains read-only, Docker socket accessible, and no user sockets or removable drives."""
-    SANDBOX_CACHE.mkdir(parents=True, exist_ok=True)
-    argv = ["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",
-            "--tmpfs", str(HOME), "--tmpfs", f"/run/user/{os.getuid()}", "--tmpfs", f"/run/media/{HOME.name}"]
-    for sock in ("/run/docker.sock", "/var/run/docker.sock"):
-        if os.path.exists(sock):
-            argv += ["--bind", sock, sock]
-    for ro in (".local/share/mise", ".local/bin", ".config/mise", ".gitconfig"):
-        if (HOME / ro).exists():
-            argv += ["--ro-bind", str(HOME / ro), str(HOME / ro)]
-    argv += ["--bind", str(WORKSPACE), str(WORKSPACE)]
-    for root in _linked_roots():
-        if root.is_dir():
-            argv += ["--bind", str(root), str(root)]
-    for d in PROTECTED:
-        if d.exists():
-            argv += ["--ro-bind", str(d), str(d)]
-    argv += ["--chdir", str(cwd),
-             "--unshare-pid", "--unshare-ipc", "--die-with-parent", "--new-session",
-             "sh", "-c", cmd]
-    return argv
+def network_enabled():
+    return bool(os.environ.get("JARVIS_ACCESS_TOKEN") and as_bool(os.environ.get("KRYZEN_ALLOW_SANDBOX_NETWORK")))
+
+
+def sandboxed(command, cwd, *, agy=False, readonly_files=(), readonly_project=False):
+    """Run with one writable project and without host service sockets or credentials."""
+    cwd = resolve(cwd)
+    workspace = WORKSPACE.resolve()
+    scope = next((root for root in _linked_roots() if cwd == root or root in cwd.parents), None)
+    if scope is None and workspace in cwd.parents:
+        scope = workspace / cwd.relative_to(workspace).parts[0]
+    argv = ["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
+            "--tmpfs", "/tmp", "--tmpfs", "/run", "--tmpfs", str(HOME)]
+    for name in (".local/share/mise", ".local/bin", ".config/mise"):
+        path = HOME / name
+        if path.exists():
+            argv += ["--ro-bind", str(path), str(path)]
+    agy_home = os.environ.get("KRYZEN_AGY_HOME") if agy else None
+    if agy_home:
+        path = Path(agy_home).expanduser().resolve()
+        if not path.is_dir() or HOME.resolve() not in path.parents:
+            raise ValueError("KRYZEN_AGY_HOME must be a dedicated directory under your home")
+        argv += ["--ro-bind", str(path), str(HOME / ".gemini")]
+    argv += ["--tmpfs", str(workspace)]
+    if not network_enabled():
+        argv.append("--unshare-net")
+    if scope and not any(scope == path or path in scope.parents for path in PROTECTED):
+        argv += ["--ro-bind" if readonly_project else "--bind", str(scope), str(scope)]
+    argv += ["--remount-ro", str(workspace)]
+    for path in PROTECTED:
+        if path.is_dir() and scope and (path == scope or scope in path.parents):
+            argv += ["--ro-bind", str(path), str(path)]
+    for file in readonly_files:
+        argv += ["--ro-bind", str(file), str(file)]
+    args = ["sh", "-c", command] if isinstance(command, str) else command
+    return [*argv, "--chdir", str(cwd), "--unshare-pid", "--unshare-ipc", "--unshare-uts",
+            "--cap-drop", "ALL", "--die-with-parent", "--new-session", "--", *args]
 
 
 PRIVILEGE_ESCALATION = re.compile(r"\b(sudo|pkexec|su|doas)\b", re.IGNORECASE)
+RUN_CANCEL = ContextVar("run_cancel", default=None)
+RUN_READ_ONLY = ContextVar("run_read_only", default=False)
 
 
 def clean_env():
     keep = ("PATH", "LANG", "LC_ALL", "USER", "LOGNAME", "SHELL")
     env = {k: v for k, v in os.environ.items() if k in keep}
     env.update(HOME=str(HOME), NO_COLOR="1", TERM="dumb",
-               XDG_CACHE_HOME=str(SANDBOX_CACHE), npm_config_cache=str(SANDBOX_CACHE / "npm"))
-    if "SUDO_PASS" in os.environ:
-        env["SUDO_PASS"] = os.environ["SUDO_PASS"]
-    if "SUDO_PASSWORD" in os.environ:
-        env["SUDO_PASSWORD"] = os.environ["SUDO_PASSWORD"]
+               XDG_CACHE_HOME="/tmp/kryzen-cache", npm_config_cache="/tmp/kryzen-cache/npm")
     return env
+
+
+def terminate(proc):
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
+def spawn(command, cwd, *, agy=False, readonly_files=(), readonly_project=False,
+          stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+    cwd = resolve(cwd)
+    return subprocess.Popen(sandboxed(command, cwd, agy=agy, readonly_files=readonly_files,
+                                      readonly_project=readonly_project or RUN_READ_ONLY.get()), stdout=stdout,
+                            stderr=stderr, text=True, encoding="utf-8", errors="replace",
+                            stdin=stdin, env=clean_env(), start_new_session=True)
 
 
 def as_bool(v, default=False):
@@ -183,47 +217,60 @@ def as_bool(v, default=False):
     return str(v).lower() in ("1", "true", "yes", "on")
 
 
-def run(argv, cwd, timeout, background, shell=False):
+def run(argv, cwd, timeout, background, shell=False, *, readonly_files=()):
     cwd = resolve(cwd)
-    cwd.mkdir(parents=True, exist_ok=True)
-    env = clean_env()
-    if shell:
-        if isinstance(argv, str) and PRIVILEGE_ESCALATION.search(argv):
-            return {
-                "error": "PermissionApprovalRequired",
-                "approval_required": True,
-                "kind": "command",
-                "command": argv,
-                "cwd": str(cwd),
-                "reason": "Privilege escalation (sudo/pkexec) requires explicit user approval."
-            }
-        argv, shell = sandboxed(argv, cwd), False
+    cancel = RUN_CANCEL.get()
+    if cancel and cancel.is_set():
+        return {"error": "cancelled", "cancelled": True}
+    is_agy = not shell and Path(argv[0]).name == "agy"
     if background:
         job_id = uuid.uuid4().hex[:10]
         log = HERE / "jobs" / f"{job_id}.log"
         log.parent.mkdir(exist_ok=True)
-        with open(log, "w") as fh:
-            proc = subprocess.Popen(argv, cwd=cwd, shell=shell, stdout=fh, stderr=subprocess.STDOUT,
-                                    stdin=subprocess.DEVNULL, env=env, start_new_session=True)
+        with log.open("w") as fh:
+            proc = spawn(argv, cwd, agy=is_agy, stdout=fh, stderr=subprocess.STDOUT)
         with JOBS_LOCK:
-            JOBS[job_id] = {"proc": proc, "log": log, "started": time.time(), "cmd": argv, "cwd": str(cwd)}
+            if cancel and cancel.is_set():
+                terminate(proc)
+                proc.wait()
+                log.unlink(missing_ok=True)
+                return {"error": "cancelled", "cancelled": True}
+            command = [argv[0], "(prompt omitted)"] if is_agy else argv
+            JOBS[job_id] = {"proc": proc, "log": log, "started": time.time(), "cmd": command,
+                            "cwd": str(cwd), "cancel": cancel}
             _save_job(job_id, JOBS[job_id])
         return {"job_id": job_id, "status": "running", "cwd": str(cwd),
                 "hint": "poll /jobs/get with this id"}
-    try:
-        proc = subprocess.Popen(argv, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, stdin=subprocess.DEVNULL, env=env, start_new_session=True)
-        stdout, stderr = proc.communicate(timeout=timeout)
-        return {"exit_code": proc.returncode, "stdout": clip(stdout), "stderr": clip(stderr, 6000),
-                "cwd": str(cwd)}
-    except subprocess.TimeoutExpired as e:
-        try:
-            os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        stdout, stderr = proc.communicate()
-        return {"exit_code": None, "error": f"timed out after {timeout}s (use background=true for long tasks)",
-                "stdout": clip(stdout), "stderr": clip(stderr, 6000)}
+
+    deadline = time.monotonic() + timeout
+    with spawn(argv, cwd, agy=is_agy, readonly_files=readonly_files) as proc:
+        while True:
+            remaining = deadline - time.monotonic()
+            cancelled = bool(cancel and cancel.is_set())
+            if cancelled or remaining <= 0:
+                terminate(proc)
+                stdout, stderr = proc.communicate()
+                error = "cancelled" if cancelled else f"timed out after {timeout}s"
+                return {"exit_code": None, "error": error, "cancelled": cancelled,
+                        "stdout": clip(stdout), "stderr": clip(stderr, 6000)}
+            try:
+                stdout, stderr = proc.communicate(timeout=min(remaining, 0.15) if cancel else remaining)
+                return {"exit_code": proc.returncode, "stdout": clip(stdout), "stderr": clip(stderr, 6000),
+                        "cwd": str(cwd)}
+            except subprocess.TimeoutExpired:
+                continue
+
+
+def git_command(cwd, args, timeout=15):
+    return run(["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args],
+               cwd, timeout, False)
+
+
+def cancel_jobs(cancel):
+    with JOBS_LOCK:
+        for job in JOBS.values():
+            if job.get("cancel") is cancel and job["proc"].poll() is None:
+                terminate(job["proc"])
 
 
 def h_shell(b):
@@ -302,18 +349,11 @@ def h_agy(b):
         argv += ["--model", b["model"]]
     if b.get("effort"):
         argv += ["--effort", b["effort"]]
-    if as_bool(b.get("sandbox"), default=True):
-        argv.append("--sandbox")
-    
-    allow_skip = False
-    try:
-        import runtime_settings
-        allow_skip = runtime_settings.get().get("agy_skip_permissions", False)
-    except Exception:
-        allow_skip = False
-
-    if allow_skip and as_bool(b.get("accept_all"), default=False):
-        argv.append("--dangerously-skip-permissions")
+    argv.append("--sandbox")
+    argv.append("--dangerously-skip-permissions")
+    for key in ("mode", "agent", "model", "effort", "output_format"):
+        if key in b and (not isinstance(b[key], str) or b[key].startswith("-")):
+            raise ValueError(f"invalid Antigravity {key}")
     if as_bool(b.get("continue")):
         argv.append("--continue")
     if as_bool(b.get("new_project")):
@@ -329,6 +369,74 @@ def h_agy(b):
 
 
 _browser_sessions = {}
+_BROWSER_LOCK = threading.Lock()
+_BROWSER_WORKERS = {}
+_BROWSER_WORKER = """
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+chromium = shutil.which("chromium") or shutil.which("google-chrome")
+if chromium:
+    os.environ["AGENT_BROWSER_EXECUTABLE_PATH"] = chromium
+os.environ["AGENT_BROWSER_ARGS"] = "--no-sandbox,--disable-dev-shm-usage"
+for line in sys.stdin:
+    try:
+        args, timeout = json.loads(line)
+        result = subprocess.run(["agent-browser", *args], text=True, encoding="utf-8",
+                                errors="replace", capture_output=True, timeout=timeout)
+        response = {"exit_code": result.returncode, "stdout": result.stdout[:20000],
+                    "stderr": result.stderr[:6000]}
+    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        response = {"error": str(error)}
+    print(json.dumps(response), flush=True)
+"""
+
+
+def run_browser(args, cwd, timeout):
+    cwd = resolve(cwd)
+    key = (cwd, RUN_READ_ONLY.get())
+    deadline = time.monotonic() + timeout
+    cancel = RUN_CANCEL.get()
+    with _BROWSER_LOCK:
+        if cancel and cancel.is_set():
+            return {"error": "cancelled", "cancelled": True}
+        proc = _BROWSER_WORKERS.pop(key, None)
+        if proc and proc.poll() is not None:
+            proc.stdin.close()
+            proc.stdout.close()
+            proc = None
+        if proc is None:
+            if len(_BROWSER_WORKERS) >= 8:
+                oldest = next(iter(_BROWSER_WORKERS))
+                stale = _BROWSER_WORKERS.pop(oldest)
+                terminate(stale)
+                stale.wait()
+                stale.stdin.close()
+                stale.stdout.close()
+            proc = spawn(["python3", "-u", "-c", _BROWSER_WORKER], cwd, stdin=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL)
+        try:
+            proc.stdin.write(json.dumps([args, timeout]) + "\n")
+            proc.stdin.flush()
+            while time.monotonic() < deadline and not (cancel and cancel.is_set()):
+                readable, _, _ = select.select([proc.stdout], [], [], 0.1)
+                if readable:
+                    line = proc.stdout.readline()
+                    if line:
+                        result = json.loads(line)
+                        _BROWSER_WORKERS[key] = proc
+                        return result
+                    break
+        except (OSError, ValueError):
+            pass
+        terminate(proc)
+        proc.wait()
+        proc.stdin.close()
+        proc.stdout.close()
+        return {"error": "cancelled" if cancel and cancel.is_set() else "Browser worker exited or timed out"}
 
 
 def get_browser_config():
@@ -347,9 +455,9 @@ def check_obscura_available(path="/usr/local/bin/obscura"):
     bin_path = shutil.which(path) or path
     if bin_path and os.path.exists(bin_path) and os.access(bin_path, os.X_OK):
         try:
-            res = subprocess.run([bin_path, "-V"], capture_output=True, text=True, timeout=2)
-            if res.returncode == 0:
-                ver = res.stdout.strip()
+            res = run([bin_path, "-V"], None, 3, False)
+            if res.get("exit_code") == 0:
+                ver = res.get("stdout", "").strip()
                 return True, bin_path, ver
         except Exception:
             pass
@@ -360,9 +468,9 @@ def check_agent_browser_available():
     bin_path = shutil.which("agent-browser")
     if bin_path:
         try:
-            res = subprocess.run([bin_path, "--version"], capture_output=True, text=True, timeout=2)
-            if res.returncode == 0:
-                return True, bin_path, res.stdout.strip()
+            res = run([bin_path, "--version"], None, 3, False)
+            if res.get("exit_code") == 0:
+                return True, bin_path, res.get("stdout", "").strip()
         except Exception:
             pass
     return False, bin_path or "", ""
@@ -449,6 +557,17 @@ def h_browser(b):
             out = b.get("out") or "screenshot.png"
             if out.startswith(("/", "~", "..")):
                 resolve(out)
+            if not use_obscura:
+                name = "shot-" + uuid.uuid4().hex[:10]
+                cwd = b.get("cwd")
+                timeout = int(b.get("timeout") or 120)
+                try:
+                    loaded = run_browser(["--session", name, "open", url], cwd, timeout)
+                    if loaded.get("exit_code") != 0:
+                        return loaded
+                    return run_browser(["--session", name, "screenshot", str(out)], cwd, timeout)
+                finally:
+                    run_browser(["--session", name, "close"], cwd, 5)
             cmd = ["fetch", url, "-s", str(out)]
             if stealth:
                 cmd.append("--stealth")
@@ -477,8 +596,10 @@ def h_browser(b):
             sub = clean_args[0].lower()
             if sub == "open" and len(clean_args) >= 2:
                 url = clean_args[1]
-                _browser_sessions[session_id] = {"url": url}
                 res = _run_obscura_cmd(["fetch", url, "--timeout", "15"], b.get("cwd"), 20)
+                if res.get("exit_code") != 0:
+                    return res
+                _browser_sessions[session_id] = {"url": url}
                 return {"ok": True, "output": f"Loaded {url}", "exit_code": 0, "session": session_id}
             elif sub == "set" and len(clean_args) >= 2 and clean_args[1] == "viewport":
                 _browser_sessions.setdefault(session_id, {})["viewport"] = clean_args[2:]
@@ -494,17 +615,16 @@ def h_browser(b):
                             url = a
                             break
                 if not url:
-                    url = "http://127.0.0.1:8770"
+                    url = f"http://127.0.0.1:{os.environ.get('JARVIS_PORT', '8780')}"
                 out_path = Path(out) if not b.get("cwd") else Path(b.get("cwd")) / out
-                out_path.parent.mkdir(parents=True, exist_ok=True)
                 return _run_obscura_cmd(["fetch", url, "-s", str(out)], b.get("cwd"), int(b.get("timeout") or 120))
             elif sub == "eval" and len(clean_args) >= 2:
                 code = clean_args[1]
-                url = _browser_sessions.get(session_id, {}).get("url", "http://127.0.0.1:8770")
+                url = _browser_sessions.get(session_id, {}).get("url", f"http://127.0.0.1:{os.environ.get('JARVIS_PORT', '8780')}")
                 return _run_obscura_cmd(["fetch", url, "-e", code], b.get("cwd"), int(b.get("timeout") or 120))
 
     # Fallback to agent-browser if active or requested
-    return run(["agent-browser", *args], b.get("cwd"), int(b.get("timeout") or 120), False)
+    return run_browser(args, b.get("cwd"), int(b.get("timeout") or 120))
 
 
 def iter_skills():
@@ -545,12 +665,48 @@ def h_skills_read(b):
     return {"error": f"skill '{name}' not found; call /skills/list"}
 
 
+def _fetch_public(url):
+    cancel = RUN_CANCEL.get()
+    for _ in range(6):
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("web fetch requires an HTTP or HTTPS URL without credentials")
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        addresses = socket.getaddrinfo(parsed.hostname, port, type=socket.SOCK_STREAM)
+        resolved = [ipaddress.ip_address(item[4][0]) for item in addresses]
+        if not resolved or any(not ip.is_global or ip.is_multicast or ip.is_reserved for ip in resolved):
+            raise PermissionError("web fetch cannot access private or reserved addresses")
+        factory = http.client.HTTPSConnection if parsed.scheme == "https" else http.client.HTTPConnection
+        connection = factory(parsed.hostname, port, timeout=10)
+        connection._create_connection = lambda address, timeout, source: socket.create_connection(
+            (str(resolved[0]), port), timeout, source)
+        try:
+            path = parsed.path or "/"
+            if parsed.query:
+                path += "?" + parsed.query
+            connection.request("GET", path, headers={"User-Agent": "K.R.Y.Z.E.N research"})
+            with connection.getresponse() as response:
+                if response.status in (301, 302, 303, 307, 308) and response.getheader("Location"):
+                    url = urljoin(url, response.getheader("Location"))
+                    continue
+                if response.status >= 400:
+                    raise RuntimeError(f"Web fetch returned HTTP {response.status}")
+                data = bytearray()
+                while len(data) < 3_000_000:
+                    if cancel and cancel.is_set():
+                        raise InterruptedError("web fetch cancelled")
+                    chunk = response.read1(min(65536, 3_000_000 - len(data)))
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                return data.decode(response.headers.get_content_charset() or "utf-8", errors="replace")
+        finally:
+            connection.close()
+    raise RuntimeError("Web fetch exceeded the redirect limit")
+
+
 def h_fetch(b):
-    if urlparse(str(b.get("url", ""))).scheme.lower() not in ("http", "https"):
-        raise ValueError("web fetch only supports http and https URLs")
-    req = urllib.request.Request(b["url"], headers={"User-Agent": "Mozilla/5.0 (pc-bridge research)"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        raw = r.read(3_000_000).decode(r.headers.get_content_charset() or "utf-8", errors="replace")
+    raw = _fetch_public(str(b.get("url", "")))
     text = re.sub(r"(?is)<(script|style|noscript|svg).*?</\1>", " ", raw)
     title = re.search(r"(?is)<title>(.*?)</title>", raw)
     text = html.unescape(re.sub(r"<[^>]+>", " ", text))
@@ -608,7 +764,7 @@ def _archived_jobs():
     return out
 
 
-TEMPLATE_DIR = AGENT_DIR / "templates" / "project"
+TEMPLATE_DIR = VAULT_SYSTEM / "Templates" / "project"
 INDEX_FILE = "INDEX.md"
 INDEX_HEADER = ("# DevPilot projects\n\n"
                 "| Project | Title | Status | Created | Goal |\n|---|---|---|---|---|\n")
@@ -650,17 +806,22 @@ def _project_init(b):
         created.append(str(dst.relative_to(root)))
     for d in ("src", "public", "tests"):
         (root / d).mkdir(exist_ok=True)
+    git_warning = ""
     if not (root / ".git").exists():
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, env=clean_env())
-        subprocess.run(["git", "add", "-A"], cwd=root, env=clean_env())
-        subprocess.run(["git", "-c", "user.name=DevPilot", "-c", "user.email=devpilot@localhost", "commit", "-qm",
-                        "chore: project skeleton"], cwd=root, env=clean_env())
+        commands = (["init", "-q", "-b", "main"], ["add", "-A"],
+                    ["-c", "user.name=DevPilot", "-c", "user.email=devpilot@localhost",
+                     "commit", "-qm", "chore: project skeleton"])
+        for command in commands:
+            result = git_command(root, command)
+            if result.get("exit_code") != 0:
+                git_warning = result.get("error") or result.get("stderr") or "Could not initialize project Git history"
+                break
     index = WORKSPACE / INDEX_FILE
     rows = index.read_text() if index.exists() else INDEX_HEADER
     if f"| [{slug}](" not in rows:
         rows = rows.rstrip("\n") + f"\n| [{slug}]({slug}/PROJECT.md) | {title} | 🟡 intake | {today} | {goal[:80]} |\n"
         atomic_write(index, rows)
-    return {"project": str(root), "created": created, "kept_existing": kept,
+    return {"project": str(root), "created": created, "kept_existing": kept, "git_warning": git_warning,
             "next": "fill PROJECT.md, then run research into docs/research/BRIEF.md"}
 
 
@@ -696,8 +857,13 @@ def h_project_list(_b):
     dirs = []
     if WORKSPACE.exists():
         for p in WORKSPACE.iterdir():
-            if not p.is_dir() or p.name.startswith((".", "_")):
+            if not p.is_dir() or not EXISTING_PROJECT.fullmatch(p.name):
                 continue
+            if p.is_symlink():
+                try:
+                    writable(resolve(p))
+                except (OSError, ValueError):
+                    continue
             if (p / "PROJECT.md").exists() or p.is_symlink():
                 dirs.append(p.name)
                 if not (p / "PROJECT.md").exists():
@@ -725,8 +891,8 @@ def now_iso():
 def slug_of(body):
     """Which project a request touches, from its slug / path / cwd (None if outside a project)."""
     if body.get("slug"):
-        slug = str(body["slug"]).strip().lower()
-        if not SLUG_RE.fullmatch(slug):
+        slug = str(body["slug"])
+        if not EXISTING_PROJECT.fullmatch(slug):
             raise ValueError("invalid project slug")
         writable(resolve(slug))
         return slug
@@ -857,7 +1023,8 @@ def h_project_resume(b):
     open_tasks = [lines[t["line"] - 1] for t in tasks if not t["done"]]
     jfile = resolve(root / STATE_DIR / "journal.jsonl")
     recent = jfile.read_text().splitlines()[-25:] if jfile.exists() else []
-    git = lambda *a: subprocess.run(["git", *a], cwd=root, capture_output=True, text=True, env=clean_env()).stdout
+    def git(*args):
+        return git_command(root, args).get("stdout", "")
     docs = {}
     for rel in ("docs/research/BRIEF.md", "docs/references/REFERENCES.md", "docs/design/DESIGN.md",
                 "docs/plan/PLAN.md", "docs/qa/REPORT.md"):
@@ -994,7 +1161,12 @@ def h_project_folders(b):
 
 
 def h_project_link(b):
-    """Add a folder as a project. Folders outside the workspace become agent-writable, so only the user's own click reaches this."""
+    """Add a folder as a project after the user chooses it."""
+    with PROJECT_LOCK:
+        return _project_link(b)
+
+
+def _project_link(b):
     home = HOME.resolve()
     target = Path(os.path.expanduser(str(b.get("path") or ""))).resolve()
     if not target.is_dir() or home not in target.parents:
@@ -1003,9 +1175,9 @@ def h_project_link(b):
         raise ValueError("Hidden folders cannot be projects.")
     if target == WORKSPACE or target in WORKSPACE.parents:
         raise ValueError("That folder contains the whole workspace. Choose a project folder inside it.")
-    if any(target == d or d in target.parents for d in PROTECTED):
+    if any(target == d or d in target.parents or target in d.parents for d in PROTECTED):
         raise ValueError("That folder is protected.")
-    if target.parent == WORKSPACE:
+    if target.parent == WORKSPACE and EXISTING_PROJECT.fullmatch(target.name):
         hidden = _hidden_projects()
         if target.name in hidden:
             hidden.discard(target.name)
@@ -1013,7 +1185,10 @@ def h_project_link(b):
         _init_project_spec(target, target.name)
         return {"ok": True, "slug": target.name, "linked": False}
     for child in WORKSPACE.iterdir():
-        if child.is_symlink() and child.resolve() == target:
+        if child.is_symlink() and EXISTING_PROJECT.fullmatch(child.name) and child.resolve() == target:
+            roots = _linked_roots()
+            if WORKSPACE not in target.parents and target not in roots:
+                _write_workspace_json(LINKS_FILE, [str(root) for root in roots] + [str(target)])
             _init_project_spec(target, child.name)
             return {"ok": True, "slug": child.name, "linked": True}
     base = re.sub(r"[^a-z0-9-]+", "-", target.name.lower()).strip("-")[:40]
@@ -1021,11 +1196,16 @@ def h_project_link(b):
     slug, n = base, 2
     while (WORKSPACE / slug).exists() or (WORKSPACE / slug).is_symlink():
         slug, n = f"{base}-{n}", n + 1
-    if WORKSPACE not in target.parents:
-        roots = _linked_roots()
-        if target not in roots:
-            _write_workspace_json(LINKS_FILE, [str(r) for r in roots] + [str(target)])
-    (WORKSPACE / slug).symlink_to(target, target_is_directory=True)
+    link = WORKSPACE / slug
+    link.symlink_to(target, target_is_directory=True)
+    try:
+        if WORKSPACE not in target.parents:
+            roots = _linked_roots()
+            if target not in roots:
+                _write_workspace_json(LINKS_FILE, [str(r) for r in roots] + [str(target)])
+    except OSError:
+        link.unlink()
+        raise
     _init_project_spec(target, slug)
     return {"ok": True, "slug": slug, "linked": True}
 
@@ -1042,20 +1222,30 @@ def _project_entry(slug):
 
 def h_project_remove(b):
     """Take a project off the list. Never deletes project files: a link is unlinked, a folder is only hidden."""
+    with PROJECT_LOCK:
+        return _project_remove(b)
+
+
+def _project_remove(b):
     p = _project_entry(b.get("slug"))
     if p.is_symlink():
         target = p.resolve()
-        p.unlink()
-        still_linked = any(c.is_symlink() and c.resolve() == target for c in WORKSPACE.iterdir())
+        still_linked = any(c != p and c.is_symlink() and c.resolve() == target for c in WORKSPACE.iterdir())
         roots = _linked_roots()
         if target in roots and not still_linked:
             _write_workspace_json(LINKS_FILE, [str(r) for r in roots if r != target])
+        p.unlink()
         return {"ok": True, "unlinked": True}
     _write_workspace_json(HIDDEN_FILE, sorted(_hidden_projects() | {p.name}))
     return {"ok": True, "unlinked": False}
 
 
 def h_project_rename(b):
+    with PROJECT_LOCK:
+        return _project_rename(b)
+
+
+def _project_rename(b):
     p, new = _project_entry(b.get("slug")), str(b.get("name") or "")
     if not SLUG_RE.fullmatch(new):
         raise ValueError("Use 2 to 49 lowercase letters, numbers and dashes.")
@@ -1079,7 +1269,7 @@ def h_cli_agent(b):
     elif cli == "aider":
         argv = ["aider", "--message", prompt, "--yes"]
     else:
-        argv = ["agy", "-p", prompt, "--output-format", b.get("output_format", "text")]
+        argv = ["agy", "-p", prompt, "--output-format", b.get("output_format", "text"), "--sandbox"]
     return run(argv, cwd, int(b.get("timeout") or 1800), as_bool(b.get("background")))
 
 
@@ -1143,7 +1333,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     if not TOKEN:
-        raise SystemExit(f"No token: create {TOKEN_FILE} or set PC_BRIDGE_TOKEN")
+        raise SystemExit("Set PC_BRIDGE_TOKEN in the bridge service environment.")
     WORKSPACE.mkdir(parents=True, exist_ok=True)
     print(f"[pc-bridge] listening on http://{HOST}:{PORT} workspace={WORKSPACE}", flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

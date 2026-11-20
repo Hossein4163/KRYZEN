@@ -8,27 +8,82 @@ import re
 import subprocess
 import sys
 import time
+import threading
 from pathlib import Path
 
 AGENT_DIR = Path(__file__).resolve().parent.parent
 WORKFLOW_DIR = AGENT_DIR / "workflow"
 sys.path.insert(0, str(WORKFLOW_DIR))
 from vaultnotes import AGENT_NOTES, ARCHIVE, COLORS, SYS, note_intro, read_note, write_note  # noqa: E402
+from projectdata import atomic_write
 
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9 -]{2,40}$")
 LABEL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{1,20}$")
 ORCH_LABEL = "Orchestrator"
 
-GATES = {}
+STAGES = (
+    ("start", ""),
+    ("discover", r"research|reference|\bproduct\b|discover"),
+    ("plan", r"architect|planner|plan\b"),
+    ("design", r"design|brand|ux"),
+    ("build", r"build|engineer|frontend|backend|develop"),
+    ("verify", r"\bqa\b|test|review|security|audit"),
+    ("launch", r"devops|production|deploy|release|ops\b"),
+    ("grow", r"seo|market|content|growth|sales|support"),
+)
+GATE_LOCK = threading.RLock()
 
 
-def set_gate(stage_id, locked):
-    GATES[str(stage_id)] = bool(locked)
-    return {"ok": True, "stage": stage_id, "locked": GATES[str(stage_id)]}
+def agent_stages(names, orchestrator):
+    others = [name for name in names if name != orchestrator]
+    result = {orchestrator: "start"}
+    for index, name in enumerate(others):
+        fallback = STAGES[1 + index * (len(STAGES) - 1) // len(others)][0]
+        result[name] = next((stage for stage, pattern in STAGES[1:] if re.search(pattern, name, re.I)), fallback)
+    return result
 
 
-def get_gates():
-    return dict(GATES)
+def _gate_data():
+    try:
+        data = json.loads((SYS / "stage-gates.json").read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def set_gate(stage_id, locked, project=""):
+    if stage_id not in [stage for stage, _ in STAGES[:-1]] or not isinstance(locked, bool):
+        raise ValueError("choose a valid gate and a boolean lock state")
+    with GATE_LOCK:
+        data = _gate_data()
+        data.setdefault(project, {})[stage_id] = locked
+        atomic_write(SYS / "stage-gates.json", json.dumps(data))
+    return {"ok": True, "stage": stage_id, "locked": locked, "project": project}
+
+
+def get_gates(project=""):
+    with GATE_LOCK:
+        return _gate_data().get(project, {})
+
+
+def rename_project_gates(old, new):
+    with GATE_LOCK:
+        data = _gate_data()
+        if old in data:
+            data[new] = data.pop(old)
+            atomic_write(SYS / "stage-gates.json", json.dumps(data))
+
+
+def blocking_gate(project, stage):
+    if not project or not stage or stage == "start":
+        return None
+    gates = get_gates(project)
+    for earlier, _ in STAGES:
+        if earlier == stage:
+            return None
+        if gates.get(earlier):
+            return earlier
+    return None
 
 
 def catalog():

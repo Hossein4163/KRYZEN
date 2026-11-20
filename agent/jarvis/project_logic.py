@@ -9,7 +9,8 @@ import os
 import json
 import re
 import time
-import subprocess
+import shlex
+from urllib.parse import urlsplit
 from pathlib import Path
 
 import codetools
@@ -19,7 +20,7 @@ WORKSPACE = codetools.WORKSPACE
 def get_project_path(slug):
     return Path(codetools._root(slug))
 
-def run_project_tests(slug, framework="auto"):
+def run_project_tests(slug, framework="auto", *, bridge=None):
     """
     Run the project test suite and return structured test metrics.
     """
@@ -27,49 +28,40 @@ def run_project_tests(slug, framework="auto"):
     if not root.exists():
         return {"ok": False, "error": f"Project '{slug}' not found at {root}"}
 
-    # Detect test command
-    cmd = None
-    detected_framework = framework
+    if bridge is None:
+        import pc_bridge
+        bridge = lambda path, body: pc_bridge.ROUTES[path](body)
 
-    pkg_path = root / "package.json"
-    if pkg_path.exists():
+    pkg = root / "package.json"
+    node_script = None
+    if pkg.is_file() and pkg.resolve().is_relative_to(root.resolve()):
         try:
-            with open(pkg_path, "r", encoding="utf-8") as f:
-                pkg = json.load(f)
-            scripts = pkg.get("scripts", {})
-            if "test" in scripts:
-                cmd = "npm run test"
-                detected_framework = "vitest" if "vitest" in scripts.get("test", "") else "jest/npm"
-        except Exception:
+            node_script = json.loads(pkg.read_text()).get("scripts", {}).get("test")
+        except (ValueError, AttributeError):
             pass
 
-    if not cmd:
-        if (root / "pytest.ini").exists() or list(root.glob("test_*.py")):
-            cmd = "pytest -v"
-            detected_framework = "pytest"
-        elif (root / "Cargo.toml").exists():
-            cmd = "cargo test"
-            detected_framework = "cargo"
-        elif (root / "go.mod").exists():
-            cmd = "go test ./..."
-            detected_framework = "go"
-        elif (root / "package.json").exists():
-            cmd = "npm test"
-            detected_framework = "npm"
+    available = {}
+    if isinstance(node_script, str) and node_script.strip():
+        available["npm"] = ["npm", "run", "test"]
+    if any((root / name).is_file() for name in ("pytest.ini", "conftest.py")) or any(root.glob("test_*.py")) or any((root / "tests").glob("test_*.py")):
+        available["pytest"] = ["python3", "-m", "pytest", "-q"]
+    if (root / "Cargo.toml").is_file():
+        available["cargo"] = ["cargo", "test"]
+    if (root / "go.mod").is_file():
+        available["go"] = ["go", "test", "./..."]
 
-    # Execute test
-    start_time = time.time()
+    choice = next(iter(available), None) if framework == "auto" else {"vitest": "npm", "jest": "npm"}.get(framework, framework)
+    if choice not in available:
+        return {"ok": False, "error": "No configured test suite for this project", "framework": framework}
+    cmd = shlex.join(available[choice])
+    detected_framework = ("vitest" if "vitest" in node_script else "jest/npm") if choice == "npm" else choice
+    start_time = time.monotonic()
     try:
-        proc = subprocess.run(
-            cmd,
-            shell=True,
-            cwd=str(root),
-            capture_output=True,
-            text=True,
-            timeout=180
-        )
-        duration = round(time.time() - start_time, 2)
-        output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
+        proc = codetools.run(bridge, slug, cmd, timeout=180)
+        if proc.get("error"):
+            return {"ok": False, "error": proc["error"], "cmd": cmd, "cancelled": proc.get("cancelled", False)}
+        duration = round(time.monotonic() - start_time, 2)
+        output = "\n".join(proc.get(key, "") for key in ("stdout", "stderr") if proc.get(key))
 
         # Parse metrics
         passed = 0
@@ -90,13 +82,9 @@ def run_project_tests(slug, framework="auto"):
             passed = int(m_pytest.group(3) or 0)
             total = passed + failed
 
-        if total == 0 and proc.returncode == 0:
-            passed = 1
-            total = 1
-
         return {
-            "ok": proc.returncode == 0,
-            "exit_code": proc.returncode,
+            "ok": proc.get("exit_code") == 0,
+            "exit_code": proc.get("exit_code"),
             "framework": detected_framework,
             "cmd": cmd,
             "duration": duration,
@@ -105,8 +93,6 @@ def run_project_tests(slug, framework="auto"):
             "failed": failed,
             "total": total
         }
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "error": "Test run timed out after 180s", "cmd": cmd}
     except Exception as e:
         return {"ok": False, "error": str(e), "cmd": cmd}
 
@@ -178,9 +164,15 @@ def save_project_reference(slug, title, url, category="General"):
     if not root.exists():
         return {"ok": False, "error": f"Project '{slug}' not found"}
 
-    devpilot_dir = root / ".devpilot"
-    devpilot_dir.mkdir(parents=True, exist_ok=True)
-    ref_file = devpilot_dir / "references.json"
+    url = url.strip()
+    try:
+        parsed = urlsplit(url)
+        valid = parsed.scheme in ("https", "http") and parsed.hostname and not (parsed.username or parsed.password)
+    except ValueError:
+        valid = False
+    if not valid:
+        return {"ok": False, "error": "Enter an HTTP or HTTPS URL"}
+    ref_file = codetools._within(root.resolve(), ".devpilot/references.json")
 
     data = {"links": []}
     if ref_file.exists():
@@ -197,8 +189,7 @@ def save_project_reference(slug, title, url, category="General"):
         "added_at": time.time()
     })
 
-    with open(ref_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    codetools.atomic_write(ref_file, json.dumps(data, indent=2))
 
     return {"ok": True, "count": len(data["links"])}
 
@@ -226,9 +217,9 @@ def create_project(slug, title="", goal="", template="node"):
     """
     Scaffold a new project in the workspace with proper specs and reference structures.
     """
-    clean_slug = re.sub(r"[^a-zA-Z0-9_\-]", "", slug).strip()
-    if not clean_slug:
-        return {"ok": False, "error": "Invalid project slug"}
+    clean_slug = slug.strip()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,48}", clean_slug):
+        return {"ok": False, "error": "Use 2 to 49 lowercase letters, numbers and dashes"}
 
     root = Path(WORKSPACE) / clean_slug
     if root.exists():
@@ -291,7 +282,6 @@ Overview of {clean_slug} components and data flow.
             "private": True,
             "type": "module",
             "scripts": {
-                "test": "echo '✓ All tests passing' && exit 0",
                 "build": "echo '✓ Build complete'"
             }
         }

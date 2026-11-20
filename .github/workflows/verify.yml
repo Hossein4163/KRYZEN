@@ -1,0 +1,34 @@
+name: Verify K.R.Y.Z.E.N
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install test dependencies
+        run: |
+          if ! command -v bwrap; then
+            cd "$RUNNER_TEMP"
+            apt-get download bubblewrap
+            dpkg-deb -x bubblewrap_*.deb bubblewrap-local
+            echo "$RUNNER_TEMP/bubblewrap-local/usr/bin" >> "$GITHUB_PATH"
+          fi
+          python -m pip install Pillow
+          npm install --global agent-browser@0.41.1
+      - name: Backend regressions
+        run: python -m unittest discover -s agent/jarvis/tests
+      - name: Browser regressions
+        run: python agent/jarvis/tests/run_browser_qa.py

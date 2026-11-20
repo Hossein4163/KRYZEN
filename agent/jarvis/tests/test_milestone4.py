@@ -20,7 +20,11 @@ import server
 
 class Milestone4MeshTests(unittest.TestCase):
     def test_gate_breakers_state(self):
-        mesh.GATES.clear()
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        patcher = patch.object(mesh, "SYS", Path(temp.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         res = mesh.set_gate("plan", True)
         self.assertTrue(res["ok"])
         self.assertEqual(res["stage"], "plan")
@@ -38,12 +42,12 @@ class Milestone4MeshTests(unittest.TestCase):
         content = p.read_text()
 
         # Check required architectural and tactile components
-        self.assertIn("manhattanLink", content)
+        self.assertIn("routePath", content)
         self.assertIn("jr-planet jr-agent", content)
         self.assertIn("data-agent", content)
         self.assertIn("jr-card-bg", content)
-        self.assertIn("jr-card-id", content)
-        self.assertIn("jr-card-tier", content)
+        self.assertIn("jr-stage-box", content)
+        self.assertIn("jr-card-name", content)
         self.assertIn("jr-card-led", content)
         self.assertIn("jr-card-ticker", content)
         self.assertIn("jr-gate-breaker", content)
@@ -97,6 +101,7 @@ class HTTPMeshGatesTests(unittest.TestCase):
 
         self.patches = [
             patch.object(server, "SESSIONS", sessions),
+            patch.object(mesh, "SYS", Path(self.temp.name)),
             patch.object(server, "LIVE", {}),
             patch.object(server, "bridge", mock_bridge),
             patch.object(server.Handler, "log_message", lambda *a: None)
@@ -121,7 +126,7 @@ class HTTPMeshGatesTests(unittest.TestCase):
         self.temp.cleanup()
 
     def request(self, path, body=None, headers=None):
-        h = {"X-Jarvis": "1", "Origin": "http://127.0.0.1:8770", **(headers or {})}
+        h = {"X-Jarvis": "1", **(headers or {})}
         if body is not None:
             h["Content-Type"] = "application/json"
         data = json.dumps(body).encode() if body is not None else None

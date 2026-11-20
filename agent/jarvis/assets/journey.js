@@ -1,31 +1,38 @@
-/* Agent mesh: Industrial-grade Swiss-Modernist Mission Control telemetry.
-   Deterministic 90-degree orthogonal SVG Manhattan circuit-board routing,
-   tactile instrument-cluster agent modules, real-time SSE telemetry packets,
-   stage gate breakers, regression loop tracks, and radar minimap. */
+/* Agent mesh, stage gates, and live execution routes. */
 (() => {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
   const STAGES = [
-    {id: 'start', label: 'Start', pct: 0, pal: ['#ffd98a', '#f7a531', '#d9640f'], sun: true},
-    {id: 'discover', label: 'Discover', pct: 15, match: /research|reference|\bproduct\b|discover/i, pal: ['#d9c7a3', '#a68a5f', '#6d5638']},
-    {id: 'plan', label: 'Plan', pct: 30, match: /architect|planner|plan\b/i, pal: ['#a9cfe0', '#4d86a8', '#23506e']},
-    {id: 'design', label: 'Design', pct: 45, match: /design|brand|ux/i, pal: ['#e8b49d', '#c0694f', '#7c3324'], ring: true},
-    {id: 'build', label: 'Build', pct: 60, match: /build|engineer|frontend|backend|develop/i, pal: ['#c9d6a0', '#7d9455', '#44592f']},
-    {id: 'verify', label: 'Verify', pct: 75, match: /\bqa\b|test|review|security|audit/i, pal: ['#c9c2dc', '#7f75a3', '#463f66']},
-    {id: 'launch', label: 'Launch', pct: 90, match: /devops|production|deploy|release|ops\b/i, pal: ['#a8d8cf', '#3f8f83', '#1e5650']},
-    {id: 'grow', label: 'Grow', pct: 100, match: /seo|market|content|growth|sales|support/i, pal: ['#efd3a8', '#c98f4e', '#7d5426'], ring: true},
+    {id: 'start', label: 'Start', pct: 0, sun: true},
+    {id: 'discover', label: 'Discover', pct: 15, match: /research|reference|\bproduct\b|discover/i},
+    {id: 'plan', label: 'Plan', pct: 30, match: /architect|planner|plan\b/i},
+    {id: 'design', label: 'Design', pct: 45, match: /design|brand|ux/i},
+    {id: 'build', label: 'Build', pct: 60, match: /build|engineer|frontend|backend|develop/i},
+    {id: 'verify', label: 'Verify', pct: 75, match: /\bqa\b|test|review|security|audit/i},
+    {id: 'launch', label: 'Launch', pct: 90, match: /devops|production|deploy|release|ops\b/i},
+    {id: 'grow', label: 'Grow', pct: 100, match: /seo|market|content|growth|sales|support/i},
   ];
-  const AGENT_PALS = [['#cfe0e8', '#6f9bb0', '#35566a'], ['#e7cfc0', '#b57f62', '#6c4531'], ['#d7dcb8', '#8d9a62', '#4e5a33'], ['#dcd2e6', '#8f7fae', '#524570'], ['#e9dcb4', '#b89c55', '#6f5a28'], ['#bfe0da', '#5b9f93', '#2d5f57']];
   
-  // Swiss architectural grid coordinates (flat horizontal stage bus, zero wobble)
-  const COL = 220, PAD = 110, MAIN_Y = 110, ROW0 = 230, ROW = 90, R_MAIN = 36, R_SUB = 24;
+  const CELL_RADIUS = 58, CELL_PITCH = 72, CELL_GAP = 8;
+  const COLUMN_STEP = 1.5 * CELL_PITCH, ROW_STEP = Math.sqrt(3) * CELL_PITCH;
+  const MARGIN = 76, STAGE_Y = 122, FEEDBACK_Y = 42, GATE_RADIUS = 13;
+  const AGENT_BAR_WIDTH = 64, AGENT_BAR_Y = 34;
+  const ROLE_ICONS = {
+    orchestrator: 'network', product: 'box', architect: 'blocks', design: 'palette',
+    research: 'search', reference: 'copy', planner: 'list-todo', build: 'code',
+    qa: 'activity', devops: 'server', production: 'upload', seo: 'waypoints',
+    marketing: 'sparkles', content: 'pencil'
+  };
+  const labelMetrics = document.createElement('canvas').getContext('2d');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
   let host, svg, world, liveLayer, hoverLayer, ruler, fill, info, zoomLabel, minimapSvg, drawerEl;
   let agents = [], nodes = {}, stages = [], onOpen = () => {}, width = 0, height = 0;
   const view = {x: 0, y: 0, z: 1, auto: true};
   const live = new Map(), done = new Set(), calls = {}, gates = {}, steps = {};
-  let drag = null, hovering = null, activeViewMode = 'macro';
+  let agentColors = {};
+  let drag = null, hovering = null, activeViewMode = 'macro', gateProject = '';
+  const pendingGates = new Set();
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const mk = (tag, attrs = {}, parent) => {
@@ -35,79 +42,91 @@
     return n;
   };
   const short = a => (typeof a === 'string' ? a : (a.orchestrator ? 'Orchestrator' : a.name.replace(/ Agent$/, '')));
-  const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 
-  /* ---------- Linear Honeycomb Geometry Helpers ---------- */
-  function hexPoints(r, pointy = true) {
-    const angles = pointy ? [0, 60, 120, 180, 240, 300] : [30, 90, 150, 210, 270, 330];
-    return angles.map(deg => {
-      const rad = (deg - 90) * Math.PI / 180;
-      return `${(r * Math.cos(rad)).toFixed(1)},${(r * Math.sin(rad)).toFixed(1)}`;
-    }).join(' ');
+  function hexagon(radius) {
+    const half = radius / 2, apothem = half * Math.sqrt(3);
+    return [[-half, -apothem], [half, -apothem], [radius, 0], [half, apothem], [-half, apothem], [-radius, 0]];
   }
 
-  function elongatedHexPoints(w = 196, h = 76, s = 18) {
-    const hw = w / 2;
-    const hh = h / 2;
-    return `${(-hw + s).toFixed(1)},${(-hh).toFixed(1)} ${(hw - s).toFixed(1)},${(-hh).toFixed(1)} ${hw.toFixed(1)},0 ${(hw - s).toFixed(1)},${hh.toFixed(1)} ${(-hw + s).toFixed(1)},${hh.toFixed(1)} ${(-hw).toFixed(1)},0`;
+  function fitCellText(text, font) {
+    labelMetrics.font = `${font} ${getComputedStyle(svg).getPropertyValue('--sans').trim()}`;
+    if (labelMetrics.measureText(text).width <= 90) return text;
+    let prefix = '';
+    for (const character of text) {
+      if (labelMetrics.measureText(prefix + character + '…').width > 90) break;
+      prefix += character;
+    }
+    return prefix + '…';
   }
 
-  /* ---------- procedural textures for stage badges ---------- */
-  const textures = new Map();
-  function planetTexture(key, pal, size, sun) {
-    const id = key + size;
-    if (textures.has(id)) return textures.get(id);
-    const c = document.createElement('canvas');
-    c.width = c.height = size;
-    const ctx = c.getContext('2d');
-    const grad = ctx.createLinearGradient(0, 0, size, size);
-    grad.addColorStop(0, pal[0] || '#222');
-    grad.addColorStop(0.5, pal[1] || '#444');
-    grad.addColorStop(1, pal[2] || '#111');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, size, size);
-    const url = c.toDataURL();
-    textures.set(id, url);
-    return url;
+  function openCorner(points, gap) {
+    const [topLeft, corner, right, bottomRight, bottomLeft, left] = points;
+    const awayFromCorner = ([x, y]) => {
+      const dx = x - corner[0], dy = y - corner[1];
+      const fraction = gap / Math.hypot(dx, dy);
+      return [corner[0] + dx * fraction, corner[1] + dy * fraction];
+    };
+    return [awayFromCorner(right), right, bottomRight, bottomLeft, left, topLeft, awayFromCorner(topLeft)].join(' ');
+  }
+
+  function outline(parent, mask, className, radius, gap, x, y) {
+    const vertices = hexagon(radius);
+    const points = vertices.join(' ');
+    mk('polygon', {class: 'jr-node-hit', points, 'aria-hidden': 'true'}, parent);
+    mk('polyline', {class: className, points: openCorner(vertices, gap)}, parent);
+    // Cut wires out of the node interior so the outline needs no background fill.
+    mk('polygon', {points, fill: 'black', transform: `translate(${x} ${y})`}, mask);
+  }
+
+  function setAgentColor(element, agent) {
+    const color = Object.hasOwn(agentColors, agent.color) ? agentColors[agent.color] : '';
+    if (color) element.style.setProperty('--jr-agent-color', color);
+    else element.style.removeProperty('--jr-agent-color');
+  }
+
+  function identityBadge(agent, y = 0) {
+    const name = short(agent).trim();
+    const key = name.toLowerCase();
+    const icon = Object.hasOwn(ROLE_ICONS, key) ? ROLE_ICONS[key] : '';
+    const words = name.split(/[\s-]+/).filter(Boolean);
+    const letters = words.length > 1 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2);
+    return `<svg class="jr-identity-badge" x="-14" y="${y}" width="28" height="28" viewBox="-14 -14 28 28" aria-hidden="true">
+      <polyline points="${openCorner(hexagon(13), 2.5)}"/>
+      <foreignObject x="-10" y="-10" width="20" height="20">
+        <span class="jr-identity-glyph">${icon ? `<i class="icon-${icon}"></i>` : esc(letters.toUpperCase())}</span>
+      </foreignObject>
+    </svg>`;
   }
 
   /* ---------- stage assignment ---------- */
   function stageIndex(agent, i, n) {
     if (agent.orchestrator) return 0;
+    const configured = STAGES.findIndex(stage => stage.id === agent.stage);
+    if (configured > 0) return configured;
     const text = agent.name;
     const hit = STAGES.findIndex(s => s.match && s.match.test(text));
     return hit > 0 ? hit : Math.min(STAGES.length - 1, 1 + Math.floor(i / Math.max(1, n) * (STAGES.length - 1)));
   }
 
-  /* ---------- Deterministic 90-Degree Manhattan Routing ---------- */
-  function manhattanLink(p1, p2) {
-    const [x1, y1] = p1, [x2, y2] = p2;
-    if (Math.abs(y1 - y2) < 2) return `M ${x1} ${y1} H ${x2}`;
-    if (Math.abs(x1 - x2) < 2) return `M ${x1} ${y1} V ${y2}`;
-    const midY = y1 + 32;
-    return `M ${x1} ${y1} V ${midY} H ${x2} V ${y2}`;
+  function routePath(points) {
+    return 'M ' + points.map(({x, y}) => `${x} ${y}`).join(' L ');
   }
 
-  function routeFor(n) {
-    if (!n || n.main) {
-      const d = `M ${stages[0].x} ${MAIN_Y} H ${stages[stages.length - 1].x}`;
-      const rev = `M ${stages[stages.length - 1].x} ${MAIN_Y} H ${stages[0].x}`;
-      return { d, rev, label: 'MAIN BUS' };
-    }
-    const s = n.stage;
-    const midY = MAIN_Y + 36;
-    const d = `M ${stages[0].x} ${MAIN_Y} H ${s.x} V ${midY} H ${n.x} V ${n.y - 36}`;
-    const rev = `M ${n.x} ${n.y - 36} V ${midY} H ${s.x} H ${stages[0].x} V ${MAIN_Y}`;
-    return { d, rev, label: short(n.agent) };
+  function routeFor(node) {
+    const points = !node || node.main ? stages : [...stages.slice(0, node.stage.i + 1), node];
+    return {d: routePath(points), rev: routePath([...points].reverse())};
   }
 
   /* ---------- render main mesh ---------- */
   function render(list, opts = {}) {
     agents = list || [];
     onOpen = opts.open || onOpen;
+    agentColors = opts.colors || agentColors;
     world.textContent = '';
     nodes = {};
-    stages = STAGES.map((s, i) => ({...s, i, x: PAD + i * COL, y: MAIN_Y, agents: []}));
+    stages = STAGES.map((s, i) => ({
+      ...s, i, x: MARGIN + i * COLUMN_STEP, y: STAGE_Y + (i % 2) * ROW_STEP / 2, agents: []
+    }));
 
     const others = agents.filter(a => !a.orchestrator);
     const orch = agents.find(a => a.orchestrator) || agents[0];
@@ -117,63 +136,46 @@
       if (a !== orch) stages[stageIndex(a, others.indexOf(a), others.length)].agents.push(a);
     });
 
-    const rows = Math.max(1, ...stages.map(s => s.agents.length));
-    width = PAD * 2 + COL * (stages.length - 1);
-    height = ROW0 + rows * ROW + 30;
+    width = stages.at(-1).x + MARGIN;
+    height = Math.max(...stages.map(stage => stage.y + stage.agents.length * ROW_STEP)) + MARGIN;
 
-    // Architectural Column Grid & Header Rulers
-    const grid = mk('g', {class: 'jr-grid'}, world);
-    stages.forEach((s, i) => {
-      if (i) mk('path', {d: `M ${s.x - COL / 2} 0 V ${height}`}, grid);
-      // Persistent Column Status Header
-      const colHeader = mk('text', {
-        x: s.x, y: 34,
-        'text-anchor': 'middle',
-        fill: '#555',
-        'font-family': "'JetBrains Mono',monospace",
-        'font-size': '10',
-        'letter-spacing': '0.08em'
-      }, grid);
-      colHeader.textContent = `COL ${String(i).padStart(2, '0')} // ${s.id.toUpperCase()}`;
-    });
-    mk('path', {class: 'jr-rule', d: `M 0 ${MAIN_Y} H ${width}`}, grid);
-    for (let r = 0; r < rows; r++) {
-      mk('path', {d: `M 0 ${ROW0 + r * ROW} H ${width}`, stroke: '#161616'}, grid);
-    }
+    const mask = mk('mask', {
+      id: 'jr-wire-mask', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width, height
+    }, mk('defs', {}, world));
+    mk('rect', {width, height, fill: 'white'}, mask);
+    const wireMask = {mask: 'url(#jr-wire-mask)'};
+    const links = mk('g', {class: 'jr-links', ...wireMask}, world);
+    const annotations = mk('g', {}, world);
 
-    const links = mk('g', {class: 'jr-links'}, world);
-
-    // Main Orthogonal Stage Bus
-    const mainBusD = `M ${stages[0].x} ${MAIN_Y} H ${stages[stages.length - 1].x}`;
+    const mainBusD = routePath(stages);
     mk('path', {class: 'jr-main-bus', d: mainBusD}, links);
     mk('path', {class: 'jr-bus-flow', d: mainBusD}, links);
 
-    // Stage Gate Breakers placed on orthogonal trunk between stages
+    // Gates sit in the gap between neighboring stage cells.
     for (let i = 0; i < stages.length - 1; i++) {
       const s1 = stages[i], s2 = stages[i + 1];
-      const gx = (s1.x + s2.x) / 2;
+      const gx = (s1.x + s2.x) / 2, gy = (s1.y + s2.y) / 2;
       const gateG = mk('g', {
         class: 'jr-gate-breaker' + (gates[s1.id] ? ' locked' : ''),
-        transform: `translate(${gx} ${MAIN_Y})`,
-        'data-gate': s1.id
-      }, links);
-      mk('polygon', {
-        points: hexPoints(15, true),
-        fill: '#0E0E0E',
-        stroke: gates[s1.id] ? '#E60000' : '#333',
-        'stroke-width': 1.5,
-        class: 'jr-gate-box jr-honey-gate'
-      }, gateG);
-      const pin = mk('polygon', {
-        points: hexPoints(7, true),
-        fill: gates[s1.id] ? '#E60000' : '#444',
-        class: 'jr-gate-pin'
-      }, gateG);
-      const lab = mk('text', {x: 0, y: 22, 'text-anchor': 'middle', fill: gates[s1.id] ? '#E60000' : '#666', 'font-family': "'JetBrains Mono',monospace", 'font-size': '8', 'font-weight': '700'}, gateG);
+        transform: `translate(${gx} ${gy})`,
+        'data-gate': s1.id,
+        role: 'button',
+        tabindex: gateProject ? 0 : -1,
+        'aria-disabled': String(!gateProject),
+        'aria-pressed': String(Boolean(gates[s1.id])),
+        'aria-label': 'Hold execution after ' + s1.label
+      }, annotations);
+      outline(gateG, mask, 'jr-gate-box', GATE_RADIUS, 2.5, gx, gy);
+      const lab = mk('text', {class: 'jr-gate-label'}, gateG);
       lab.textContent = gates[s1.id] ? 'HOLD' : 'GATE';
-      gateG.onclick = e => {
-        e.stopPropagation();
-        toggleGate(s1.id, gateG, pin, lab);
+      const toggle = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleGate(s1.id);
+      };
+      gateG.onclick = toggle;
+      gateG.onkeydown = event => {
+        if (event.key === 'Enter' || event.key === ' ') toggle(event);
       };
     }
 
@@ -181,36 +183,34 @@
     const verifyStage = stages.find(s => s.id === 'verify') || stages[5];
     const buildStage = stages.find(s => s.id === 'build') || stages[4];
     if (verifyStage && buildStage) {
-      const loopY = height - 20;
-      const loopPath = `M ${verifyStage.x} ${MAIN_Y + 36} V ${loopY} H ${buildStage.x} V ${MAIN_Y + 36}`;
+      const loopPath = routePath([
+        verifyStage, {x: verifyStage.x, y: FEEDBACK_Y + 14}, {x: verifyStage.x - 14, y: FEEDBACK_Y},
+        {x: buildStage.x + 14, y: FEEDBACK_Y}, {x: buildStage.x, y: FEEDBACK_Y + 14}, buildStage
+      ]);
       const loopG = mk('g', {class: 'jr-loop-track', id: 'jrLoopTrack'}, links);
       mk('path', {d: loopPath, class: 'jr-loop-wire'}, loopG);
-      const badgeG = mk('g', {transform: `translate(${(verifyStage.x + buildStage.x) / 2} ${loopY})`}, loopG);
-      mk('rect', {x: -50, y: -9, width: 100, height: 18, fill: '#111', stroke: '#333', 'stroke-width': 1}, badgeG);
-      const loopTxt = mk('text', {x: 0, y: 4, 'text-anchor': 'middle', fill: '#777', 'font-family': "'JetBrains Mono',monospace", 'font-size': '9', 'font-weight': '700'}, badgeG);
-      loopTxt.textContent = 'FEEDBACK CIRCUIT';
+      const badgeX = (verifyStage.x + buildStage.x) / 2;
+      const badge = mk('g', {transform: `translate(${badgeX} ${FEEDBACK_Y})`}, annotations);
+      outline(badge, mask, 'jr-loop-label-box', 31, 4, badgeX, FEEDBACK_Y);
+      const loopTxt = mk('text', {class: 'jr-loop-label'}, badge);
+      loopTxt.textContent = 'Feedback';
       nodes._loopTrack = {el: loopG, txt: loopTxt, path: loopPath};
     }
 
-    liveLayer = mk('g', {class: 'jr-live'}, world);
-    hoverLayer = mk('g', {class: 'jr-hover'}, world);
+    liveLayer = mk('g', {class: 'jr-live', ...wireMask}, world);
+    hoverLayer = mk('g', {class: 'jr-hover', ...wireMask}, world);
 
     const planets = mk('g', {class: 'jr-planets'}, world);
 
-    // Render Stage Nodes and Agent Instrument Clusters
-    stages.forEach(s => {
-      s.agents.forEach((a, r) => {
-        const x = s.x;
-        const y = ROW0 + r * ROW;
-        const n = nodes[a.name] = {agent: a, stage: s, x, y};
-        const p1 = [s.x, MAIN_Y];
-        const p2 = [x, y - 36];
-        n.linkD = manhattanLink(p1, p2);
-        mk('path', {class: 'jr-sub-link jr-manhattan', d: n.linkD, 'data-agent': a.name}, links);
-        mk('rect', {class: 'jr-junction', x: s.x - 2, y: MAIN_Y + 30, width: 4, height: 4}, links);
-        drawAgent(planets, n);
+    stages.forEach(stage => {
+      let previous = stage;
+      drawStage(planets, stage, orch, mask);
+      stage.agents.forEach((agent, row) => {
+        const node = nodes[agent.name] = {agent, stage, x: stage.x, y: stage.y + (row + 1) * ROW_STEP};
+        mk('path', {class: 'jr-sub-link jr-wire', d: routePath([previous, node]), 'data-agent': agent.name}, links);
+        drawAgent(planets, node, mask);
+        previous = node;
       });
-      drawStage(planets, s, orch);
     });
 
     if (orch) {
@@ -234,9 +234,7 @@
     fit();
   }
 
-  /* ---------- Stage Honeycomb Hub Drawing ---------- */
-  function drawStage(parent, s, orch) {
-    const r = R_MAIN + 6; // 42px radius for regular hexagon
+  function drawStage(parent, s, orch, mask) {
     const g = mk('g', {
       class: 'jr-planet jr-stage' + (s.sun ? ' jr-sun' : ''),
       transform: `translate(${s.x} ${s.y})`,
@@ -246,159 +244,45 @@
       'data-stage': s.id
     }, parent);
 
-    // Honeycomb Hexagonal Outer Chassis
-    mk('polygon', {
-      class: 'jr-stage-box jr-honey-stage-hex',
-      points: hexPoints(r, true),
-      fill: '#0C0C0C',
-      stroke: s.sun ? '#E60000' : '#2A2A2A',
-      'stroke-width': 2
-    }, g);
-
-    // Honeycomb Inner Concentric Ring
-    mk('polygon', {
-      class: 'jr-honey-inner-facet',
-      points: hexPoints(r - 6, true),
-      fill: 'none',
-      stroke: s.sun ? 'rgba(230,0,0,0.4)' : 'rgba(255,255,255,0.08)',
-      'stroke-width': 1
-    }, g);
-
-    // Center Stage Texture clipped to Hexagonal Honeycomb facet
-    const defs = svg.querySelector('defs') || mk('defs', {}, svg);
-    const clipId = `jr-stage-clip-${s.id}`;
-    let cp = defs.querySelector('#' + clipId);
-    if (!cp) {
-      cp = mk('clipPath', {id: clipId}, defs);
-      mk('polygon', {points: hexPoints(r - 8, true)}, cp);
-    }
-
-    mk('image', {
-      href: planetTexture(s.id, s.pal, 72, s.sun),
-      x: -r + 8, y: -r + 8,
-      width: (r - 8) * 2, height: (r - 8) * 2,
-      'clip-path': `url(#${clipId})`
-    }, g);
-
-    // Persistent Stage Header Rulers & Labels
-    const t = mk('text', {
-      class: 'jr-stage-name',
-      x: 0, y: -(r + 14),
-      'text-anchor': 'middle',
-      fill: '#FFF',
-      'font-family': "'Archivo', sans-serif",
-      'font-size': '13',
-      'font-weight': '800',
-      'letter-spacing': '0.04em'
-    }, g);
-    t.textContent = `${String(s.i).padStart(2, '0')} // ${s.label.toUpperCase()}`;
-
-    const pct = mk('text', {
-      class: 'jr-stage-pct',
-      x: 0, y: r + 18,
-      'text-anchor': 'middle',
-      fill: '#E60000',
-      'font-family': "'JetBrains Mono', monospace",
-      'font-size': '10',
-      'font-weight': '700'
-    }, g);
-    pct.textContent = `[${s.pct}%]`;
+    outline(g, mask, 'jr-stage-box', CELL_RADIUS, CELL_GAP, s.x, s.y);
+    const label = mk('text', {class: 'jr-stage-name', x: 0, y: -8, 'text-anchor': 'middle'}, g);
+    label.textContent = s.label;
+    const percent = mk('text', {class: 'jr-stage-pct', x: 0, y: 8, 'text-anchor': 'middle'}, g);
+    percent.textContent = s.pct + '%';
 
     s.el = g;
     wire(g, () => ({stage: s, agent: s.sun ? orch : null}), s.sun && orch ? () => openAgentInspector(orch, nodes[orch.name]) : null);
   }
 
-  /* ---------- Linear Honeycomb Agent Module Drawing ---------- */
-  function drawAgent(parent, n) {
+  function drawAgent(parent, n, mask) {
     const a = n.agent;
-    const h = hash(a.name);
-    const tier = a.orchestrator ? 'REASONING' : (h % 3 === 0 ? 'REASONING' : h % 3 === 1 ? 'FAST' : 'COMPACT');
-    const codeIdx = String(n.stage.i).padStart(2, '0');
-    const shortId = short(a).slice(0, 7).toUpperCase();
-
     const g = mk('g', {
       class: 'jr-planet jr-agent',
       transform: `translate(${n.x} ${n.y})`,
       tabindex: 0,
       role: 'button',
-      'aria-label': `${short(a)}. Open inspector.`,
+      'aria-label': [short(a), a.role, 'Open inspector'].filter(Boolean).join('. '),
       'data-agent': a.name
     }, parent);
 
-    // Precision Elongated Honeycomb Chassis
-    // 196x76px with 18px horizontal apex chamfers
-    const bg = mk('polygon', {
-      class: 'jr-card-bg jr-honey-cell',
-      points: elongatedHexPoints(196, 76, 18),
-      fill: '#0C0C0C',
-      stroke: '#262626',
-      'stroke-width': 2
-    }, g);
+    setAgentColor(g, a);
+    outline(g, mask, 'jr-card-bg', CELL_RADIUS, CELL_GAP, n.x, n.y);
+    g.insertAdjacentHTML('beforeend', identityBadge(a, -46));
+    mk('polyline', {class: 'jr-card-led', points: openCorner(hexagon(4), 1), transform: 'translate(32 -28)'}, g);
 
-    // Subtle inner honeycomb border
-    mk('polygon', {
-      class: 'jr-honey-cell-inner',
-      points: elongatedHexPoints(188, 68, 16),
-      fill: 'none',
-      stroke: 'rgba(255,255,255,0.04)',
-      'stroke-width': 1
-    }, g);
+    const title = mk('text', {class: 'jr-card-name', x: 0, y: -3}, g);
+    title.textContent = fitCellText(short(a), '600 14px');
 
-    // Left and Right Bus Docking Ports (Inbound / Outbound)
-    const inPort = mk('polygon', {
-      class: 'jr-honey-port jr-port-in',
-      points: hexPoints(5, false),
-      transform: 'translate(-98 0)',
-      fill: '#181818',
-      stroke: '#444',
-      'stroke-width': 1
-    }, g);
-    const outPort = mk('polygon', {
-      class: 'jr-honey-port jr-port-out',
-      points: hexPoints(5, false),
-      transform: 'translate(98 0)',
-      fill: '#181818',
-      stroke: '#444',
-      'stroke-width': 1
-    }, g);
-
-    // Horizontal Section Divider: Separating Crown Apex from Core Nucleus
-    mk('line', {x1: -80, y1: -14, x2: 80, y2: -14, class: 'jr-card-div'}, g);
-
-    // PART 01 // CROWN APEX: Stage Code + Callsign + Model Tier + Hex LED
-    const idText = mk('text', {class: 'jr-card-id', x: -74, y: -23}, g);
-    idText.textContent = `${codeIdx} // ${shortId}`;
-
-    const tierText = mk('text', {class: 'jr-card-tier', x: 20, y: -23}, g);
-    tierText.textContent = tier;
-
-    // Hexagonal Status LED (ال‌ای‌دی شش‌ضلعی)
-    const ledG = mk('g', {transform: 'translate(68 -27)'}, g);
-    const led = mk('polygon', {
-      class: 'jr-card-led jr-honey-led',
-      points: hexPoints(5, true),
-      fill: '#333',
-      stroke: '#222',
-      'stroke-width': 1
-    }, ledG);
-    n.ledEl = led;
-
-    // PART 02 // CORE NUCLEUS: Live Streaming Ticker & Agent Callsign
-    const ticker = mk('text', {class: 'jr-card-ticker', x: -74, y: 6}, g);
-    ticker.textContent = short(a);
-    n.tickerEl = ticker;
-
-    // PART 04 // TELEMETRY COMB: Step Budget Bar & Token Burn Rate
-    mk('rect', {class: 'jr-bar-bg', x: -74, y: 16, width: 148, height: 4}, g);
-    const bar = mk('rect', {class: 'jr-bar-fill', x: -74, y: 16, width: 28, height: 4}, g);
-    n.barEl = bar;
-
-    // PART 03 // FACET MATRIX: Tools & Skills Summary
-    const tools = (a.tools || []).filter(t => t.kind !== 'agent').length;
+    const tools = (a.tools || []).filter(tool => tool.kind !== 'agent').length;
     const skills = (a.skills || []).length;
-    const subMeta = mk('text', {class: 'jr-card-sub', x: -74, y: 28}, g);
-    subMeta.textContent = `${tools} tools · ${skills} skills`;
-    n.callsEl = subMeta;
+    const metadata = mk('text', {class: 'jr-card-sub', x: 0, y: 13}, g);
+    mk('tspan', {class: 'jr-m-tools'}, metadata).textContent = `${tools} tools`;
+    mk('tspan', {class: 'jr-m-separator'}, metadata).textContent = ' · ';
+    n.metricEl = mk('tspan', {class: 'jr-m-skills'}, metadata);
+    n.metricEl.textContent = `${skills} skills`;
+    n.tickerEl = mk('text', {class: 'jr-card-ticker', x: 0, y: 22}, g);
+
+    n.barEl = mk('rect', {class: 'jr-bar-fill', x: -AGENT_BAR_WIDTH / 2, y: AGENT_BAR_Y, width: 0, height: 2, rx: 1}, g);
 
     n.el = g;
     wire(g, () => ({stage: n.stage, agent: a, node: n}), () => openAgentInspector(a, n));
@@ -432,18 +316,19 @@
   }
 
   function dot(parent, d, cls, dur, begin, once) {
-    const c = mk('rect', {class: cls, x: -4, y: -4, width: 8, height: 8, rx: 0}, parent);
+    const c = mk('polygon', {class: cls, points: hexagon(4).join(' ')}, parent);
     const anim = mk('animateMotion', {path: d, dur: dur + 's', begin, repeatCount: once ? 1 : 'indefinite', fill: 'remove'}, c);
     return {c, anim};
   }
 
   function packet(parent, d, cls, labelText) {
     const c = mk('g', {class: 'jr-packet'}, parent);
-    mk('rect', {class: cls, x: -5, y: -5, width: 10, height: 10, rx: 0, fill: '#E60000', stroke: '#FFF', 'stroke-width': 1.5}, c);
+    mk('polygon', {class: cls, points: hexagon(5).join(' '), stroke: '#FFF', 'stroke-width': 1.5}, c);
     if (labelText) {
       const gLab = mk('g', {transform: 'translate(10 -6)'}, c);
-      mk('rect', {x: 0, y: -9, width: labelText.length * 7 + 10, height: 16, fill: '#0A0A0A', stroke: '#E60000', 'stroke-width': 1}, gLab);
-      const txt = mk('text', {x: 5, y: 3, fill: '#FFF', 'font-family': "'JetBrains Mono',monospace", 'font-size': '10', 'font-weight': '700'}, gLab);
+      const labelWidth = labelText.length * 7 + 10;
+      mk('rect', {x: 0, y: -9, width: labelWidth, height: 16, class: 'jr-packet-label'}, gLab);
+      const txt = mk('text', {x: labelWidth / 2, y: -1, class: 'jr-packet-text'}, gLab);
       txt.textContent = labelText;
     }
     const anim = mk('animateMotion', {path: d, dur: '1.2s', begin: '0s', repeatCount: 1, fill: 'remove'}, c);
@@ -480,27 +365,25 @@
   function showInfo(t) {
     if (!t) {
       info.className = 'jr-info jr-hint';
-      info.innerHTML = '<span><i class="jr-key jr-key-req"></i>Request</span><span><i class="jr-key jr-key-res"></i>Response</span><span>Linear Honeycomb Mesh // Click any agent node for Cell Anatomy</span>';
+      info.innerHTML = '<span><i class="jr-key jr-key-req"></i>Request</span><span><i class="jr-key jr-key-res"></i>Response</span>';
       return;
     }
     const orch = agents.find(a => a.orchestrator);
     const from = orch ? short(orch) : 'Orchestrator';
     let rows = '', title = '', sub = '';
     if (t.agent && !t.agent.orchestrator || (t.agent && t.node)) {
-      const a = t.agent, next = stages[t.stage.i + 1];
+      const a = t.agent;
       title = short(a);
       sub = `${t.stage.label} · ${t.stage.pct}%`;
-      rows = `<tr><th class="jr-th-req">Request</th><td>${esc(from)} → ${esc(short(a))}</td></tr>
+      rows = `${a.role ? `<tr><th>Role</th><td>${esc(a.role)}</td></tr>` : ''}
+        <tr><th class="jr-th-req">Request</th><td>${esc(from)} → ${esc(short(a))}</td></tr>
         <tr><th class="jr-th-res">Response</th><td>${esc(short(a))} → ${esc(from)}</td></tr>
-        <tr><th>Cell Form</th><td><span class="jr-honey-tag">Linear Hexagon</span></td></tr>
         <tr><th>Stage Gate</th><td>${gates[t.stage.id] ? 'LOCKED (Pulsing hold)' : 'OPEN'}</td></tr>
-        <tr><th>Tools</th><td>${(a.tools || []).map(x => esc(x.title || x.name)).join(', ') || '—'}</td></tr>
-        <tr><th>Anatomy</th><td><div class="jr-honey-mini-parts"><span title="Part 1: Crown Apex">[01 Apex]</span><span title="Part 2: Core Nucleus">[02 Nucleus]</span><span title="Part 3: Facet Matrix">[03 Facets]</span><span title="Part 4: Telemetry Comb">[04 Comb]</span><span title="Part 5: Bus Ports">[05 Ports]</span></div></td></tr>`;
+        <tr><th>Tools</th><td>${(a.tools || []).map(x => esc(x.title || x.name)).join(', ') || '—'}</td></tr>`;
     } else {
       title = t.stage.label;
       sub = `${t.stage.pct}% of journey`;
       rows = `<tr><th class="jr-th-req">Gate</th><td>${gates[t.stage.id] ? 'LOCKED' : 'OPEN'}</td></tr>
-        <tr><th>Hub Form</th><td><span class="jr-honey-tag">Honeycomb Hub</span></td></tr>
         <tr><th>Agents</th><td>${t.stage.agents.map(short).join(', ') || 'None'}</td></tr>`;
     }
     info.className = 'jr-info';
@@ -508,20 +391,34 @@
   }
 
   /* ---------- Stage Gate Breakers ---------- */
-  function toggleGate(stageId, gateG, pin, lab) {
-    gates[stageId] = !gates[stageId];
-    const isLocked = gates[stageId];
-    gateG.classList.toggle('locked', isLocked);
-    pin.setAttribute('fill', isLocked ? '#E60000' : '#444');
-    lab.textContent = isLocked ? 'HOLD' : 'GATE';
-    lab.setAttribute('fill', isLocked ? '#E60000' : '#666');
+  function setGates(project, values) {
+    gateProject = project;
+    for (const stage of STAGES) gates[stage.id] = Boolean(values?.[stage.id]);
+    for (const node of host?.querySelectorAll('[data-gate]') || []) {
+      const locked = gates[node.dataset.gate];
+      node.classList.toggle('locked', locked);
+      node.setAttribute('aria-pressed', String(locked));
+      node.setAttribute('aria-disabled', String(!gateProject));
+      node.setAttribute('tabindex', gateProject ? '0' : '-1');
+      const label = node.querySelector('text');
+      label.textContent = locked ? 'HOLD' : 'GATE';
+    }
+  }
 
-    window.dispatchEvent(new CustomEvent('kryzen:gate_toggle', {
-      detail: { stage: stageId, locked: isLocked }
-    }));
-
-    if (window.toast) {
-      window.toast(isLocked ? `⚠ Stage Gate [${stageId.toUpperCase()}] LOCKED. Pipeline will hold before entry.` : `✓ Stage Gate [${stageId.toUpperCase()}] RELEASED.`, isLocked ? 'warn' : 'ok');
+  async function toggleGate(stage) {
+    if (!gateProject || pendingGates.has(stage)) return;
+    const project = gateProject;
+    pendingGates.add(stage);
+    try {
+      const result = await window.setStageGate(project, stage, !gates[stage]);
+      if (project !== gateProject) return;
+      if (!result.ok) throw new Error(result.error || 'Could not update the stage gate');
+      setGates(project, {...gates, [stage]: result.locked});
+      window.toast?.(result.locked ? 'Stage held after ' + stage : 'Stage released after ' + stage, 'ok');
+    } catch (error) {
+      window.toast?.(error.message, 'err');
+    } finally {
+      pendingGates.delete(stage);
     }
   }
 
@@ -552,10 +449,16 @@
     drawerEl.classList.add('open');
 
     const a = agent;
+    setAgentColor(drawerEl, a);
     const tools = (a.tools || []).map(t => t.title || t.name);
     const skills = a.skills || [];
-    const h = hash(a.name);
-    const tier = a.orchestrator ? 'REASONING' : (h % 3 === 0 ? 'REASONING' : h % 3 === 1 ? 'FAST' : 'COMPACT');
+    const parts = [
+      {name: 'Name', detail: short(a), x: -43, y: -24},
+      {name: 'Status', detail: 'The outline changes while the agent runs or finishes.', x: 44, y: -36},
+      {name: 'Tools and skills', detail: `${tools.length} tools · ${skills.length} skills`, x: -46, y: 21},
+      {name: 'Step progress', detail: 'The line grows as the agent advances through its steps.', x: -38, y: 43},
+      {name: 'Route', detail: 'The connector shows requests and responses between the stage and the agent.', x: 16, y: -59},
+    ];
 
     let currentTab = initialTab || 'config';
 
@@ -563,9 +466,12 @@
       drawerEl.innerHTML = `
         <button type="button" class="jr-drawer-tab" id="jrDrawerTab" title="Collapse inspector panel" aria-label="Collapse inspector">›</button>
         <div class="jr-drawer-head">
-          <div class="jr-drawer-title-wrap">
-            <span class="jr-drawer-badge">LINEAR HONEYCOMB NODE</span>
-            <h3>0${node?.stage?.i || 0} // ${esc(short(a)).toUpperCase()}</h3>
+          <div class="jr-drawer-identity">
+            ${identityBadge(a)}
+            <div class="jr-drawer-title-wrap">
+              <h3>${esc(short(a))}</h3>
+              ${a.role ? `<p class="jr-drawer-role">${esc(a.role)}</p>` : ''}
+            </div>
           </div>
           <div class="jr-drawer-actions">
             <button type="button" class="jr-drawer-close" id="jrDrawerClose" title="Hide inspector (Esc)" aria-label="Close inspector">
@@ -603,179 +509,38 @@
             <div class="jr-drawer-field">
               <label>SANDBOXED TOOLS (${tools.length})</label>
               <div style="display:flex;gap:4px;flex-wrap:wrap">
-                ${tools.map(t => `<span style="background:#161616;border:1px solid #333;padding:2px 6px;font-size:10px">${esc(t)}</span>`).join('') || '<span style="color:#666">No direct tools</span>'}
+                ${tools.map(t => `<span class="jr-field-chip">${esc(t)}</span>`).join('') || '<span style="color:#666">No direct tools</span>'}
               </div>
             </div>
             <div class="jr-drawer-field">
               <label>LOADED SKILLS (${skills.length})</label>
               <div style="display:flex;gap:4px;flex-wrap:wrap">
-                ${skills.map(s => `<span style="background:#1a1414;border:1px solid #522;color:#ff8888;padding:2px 6px;font-size:10px">${esc(s)}</span>`).join('') || '<span style="color:#666">No custom skills</span>'}
+                ${skills.map(s => `<span class="jr-field-chip">${esc(s)}</span>`).join('') || '<span style="color:#666">No custom skills</span>'}
               </div>
             </div>
-            <div class="jr-honey-anatomy-teaser">
-              <div class="jr-teaser-head">
-                <i class="jr-hex-icon">⬢</i>
-                <span>HONEYCOMB CELL STRUCTURE</span>
-              </div>
-              <p>این نود با قالب شش‌ضلعی پیوسته (Linear Honeycomb Cell) شامل ۵ بخش ساختاری (تاج، هسته، ماتریس، شانه و پورت‌ها) مهندسی شده است.</p>
-              <button type="button" class="btn" id="jrViewAnatomyBtn" style="background:#181818;border:1px solid #333;color:#fff;font-size:10px;padding:4px 8px;cursor:pointer">مشاهده تشریح کامل ۵ بخش سلول →</button>
-            </div>
-            <div style="margin-top:auto;display:flex;gap:8px">
-              <button type="button" class="btn primary" id="jrEditAgentBtn" style="background:#E60000;border:none;flex:1;font-size:11px;padding:6px">Open Editor</button>
+            <div class="jr-drawer-links">
+              <button type="button" class="btn" id="jrViewAnatomyBtn">View node anatomy</button>
+              <button type="button" class="btn" id="jrEditAgentBtn">Open editor</button>
             </div>
           ` : `
-            <!-- Full Interactive Honeycomb Cell Anatomy Section -->
-            <div class="jr-honey-anatomy-box">
-              <div class="jr-honey-anatomy-header">
-                <div class="jr-honey-title-wrap">
-                  <span class="jr-honey-badge">HONEYCOMB SPECIFICATION</span>
-                  <h4>ANATOMY OF CELL // 6-FACET SPEC</h4>
-                </div>
-                <span class="jr-honey-tag">LINEAR 6-FACET</span>
-              </div>
-
-              <!-- Interactive SVG Schematic of the Honeycomb Cell -->
-              <div class="jr-honey-schematic-wrap">
-                <svg viewBox="-115 -52 230 104" class="jr-honey-schematic" id="jrAnatomySvg">
-                  <!-- Honeycomb Cell Base Polygon -->
-                  <polygon points="-80,-38 80,-38 98,0 80,38 -80,38 -98,0" class="jr-anat-cell" />
-                  <polygon points="-75,-34 75,-34 92,0 75,34 -75,34 -92,0" class="jr-anat-cell-inner" />
-
-                  <!-- Part 5: Inbound & Outbound Bus Docking Ports -->
-                  <polygon points="2.5,-4.3 5,0 2.5,4.3 -2.5,4.3 -5,0 -2.5,-4.3" transform="translate(-98 0)" class="jr-anat-port port-in" id="jrAnatPortIn" />
-                  <polygon points="2.5,-4.3 5,0 2.5,4.3 -2.5,4.3 -5,0 -2.5,-4.3" transform="translate(98 0)" class="jr-anat-port port-out" id="jrAnatPortOut" />
-
-                  <!-- Part 1 & 2 divider -->
-                  <line x1="-75" y1="-14" x2="75" y2="-14" class="jr-anat-div" />
-
-                  <!-- Part 1: Hexagonal LED -->
-                  <polygon points="0,-4.5 3.9,-2.2 3.9,2.2 0,4.5 -3.9,2.2 -3.9,-2.2" transform="translate(68 -26)" class="jr-anat-led" />
-
-                  <!-- Text annotations -->
-                  <text x="-70" y="-22" class="jr-anat-txt-crown">0${node?.stage?.i || 0} // ${esc(short(a)).slice(0, 7).toUpperCase()}</text>
-                  <text x="14" y="-22" class="jr-anat-txt-tier">${tier}</text>
-                  <text x="-70" y="6" class="jr-anat-txt-core">${esc(short(a))}</text>
-                  <rect x="-70" y="16" width="140" height="4" class="jr-anat-bar-bg" />
-                  <rect x="-70" y="16" width="38" height="4" class="jr-anat-bar-fill" />
-                  <text x="-70" y="28" class="jr-anat-txt-facets">${tools.length} tools · ${skills.length} skills</text>
-
-                  <!-- Callout Pins pointing to the 5 compartments -->
-                  <g class="jr-anat-pin" data-part="1" transform="translate(-40 -45)">
-                    <rect x="-12" y="-7" width="24" height="14" class="jr-pin-box" />
-                    <text x="0" y="3" text-anchor="middle" class="jr-pin-txt">[1]</text>
-                    <line x1="0" y1="7" x2="0" y2="18" class="jr-pin-lead" />
-                  </g>
-                  <g class="jr-anat-pin" data-part="2" transform="translate(0 3)">
-                    <rect x="-12" y="-7" width="24" height="14" class="jr-pin-box" />
-                    <text x="0" y="3" text-anchor="middle" class="jr-pin-txt">[2]</text>
-                  </g>
-                  <g class="jr-anat-pin" data-part="3" transform="translate(20 45)">
-                    <line x1="0" y1="-7" x2="0" y2="-16" class="jr-pin-lead" />
-                    <rect x="-12" y="-7" width="24" height="14" class="jr-pin-box" />
-                    <text x="0" y="3" text-anchor="middle" class="jr-pin-txt">[3]</text>
-                  </g>
-                  <g class="jr-anat-pin" data-part="4" transform="translate(-45 45)">
-                    <line x1="0" y1="-7" x2="0" y2="-24" class="jr-pin-lead" />
-                    <rect x="-12" y="-7" width="24" height="14" class="jr-pin-box" />
-                    <text x="0" y="3" text-anchor="middle" class="jr-pin-txt">[4]</text>
-                  </g>
-                  <g class="jr-anat-pin" data-part="5" transform="translate(-102 -18)">
-                    <rect x="-12" y="-7" width="24" height="14" class="jr-pin-box" />
-                    <text x="0" y="3" text-anchor="middle" class="jr-pin-txt">[5]</text>
-                    <line x1="0" y1="7" x2="4" y2="14" class="jr-pin-lead" />
-                  </g>
-                </svg>
-              </div>
-
-              <!-- 5 Structural Parts of the Honeycomb Module -->
-              <div class="jr-honey-parts-list">
-                <!-- Part 1 -->
-                <div class="jr-honey-part-card" id="jrAnatPart1">
-                  <div class="jr-part-head">
-                    <span class="jr-part-num">[01]</span>
-                    <div class="jr-part-title">
-                      <b>CROWN APEX</b>
-                      <span class="jr-part-fa">تاج فوقانی سلول</span>
-                    </div>
-                    <span class="jr-part-status">ACTIVE</span>
-                  </div>
-                  <p class="jr-part-desc">هدر ساختاری شامل مختصات مرحله (Stage Coordinate)، برچسب طبقه‌بندی مدل هوش مصنوعی (Reasoning / Fast / Compact) و نشانگر شش‌ضلعی وضعیت سلامت و پالس ایجنت (Hexagonal Status LED).</p>
-                  <div class="jr-part-metrics">
-                    <span><b>STAGE:</b> 0${node?.stage?.i || 0} // ${node?.stage?.label?.toUpperCase()}</span>
-                    <span><b>TIER:</b> ${tier}</span>
-                    <span><b>LED:</b> HEXAGONAL BEACON</span>
-                  </div>
-                </div>
-
-                <!-- Part 2 -->
-                <div class="jr-honey-part-card" id="jrAnatPart2">
-                  <div class="jr-part-head">
-                    <span class="jr-part-num">[02]</span>
-                    <div class="jr-part-title">
-                      <b>CORE NUCLEUS</b>
-                      <span class="jr-part-fa">هسته‌ی پردازشی و هویت ایجنت</span>
-                    </div>
-                    <span class="jr-part-status">RUNNING</span>
-                  </div>
-                  <p class="jr-part-desc">مغز و هسته مرکزی پردازش؛ نمایشگر هویت تخصصی ایجنت، دستورالعمل‌های محول‌شده‌ی سیستم، و متن متحرک لحظه‌ای (Live Streaming Ticker) از اجرای تسک‌ها و ابزارها.</p>
-                  <div class="jr-part-metrics">
-                    <span><b>IDENTITY:</b> ${esc(short(a))}</span>
-                    <span><b>ROLE:</b> AUTONOMOUS SPECIALIST</span>
-                  </div>
-                </div>
-
-                <!-- Part 3 -->
-                <div class="jr-honey-part-card" id="jrAnatPart3">
-                  <div class="jr-part-head">
-                    <span class="jr-part-num">[03]</span>
-                    <div class="jr-part-title">
-                      <b>FACET MATRIX</b>
-                      <span class="jr-part-fa">ماتریس خانه‌های ابزار و مهارت</span>
-                    </div>
-                    <span class="jr-part-status">${tools.length}T / ${skills.length}S</span>
-                  </div>
-                  <p class="jr-part-desc">خانه‌های لانه‌زنبوری مهارت‌ها و ابزارهای سندباکس شده در محیط Bubblewrap؛ هر خانه شامل ابزارهای سیستمی و مهارت‌های بارگذاری شده برای انجام عملیات اجرایی است.</p>
-                  <div class="jr-part-badges">
-                    ${tools.slice(0, 8).map(t => `<span class="jr-facet-chip"><i class="jr-hex-dot"></i>${esc(t)}</span>`).join('') || '<span style="color:#666">No direct tools</span>'}
-                    ${skills.slice(0, 6).map(s => `<span class="jr-facet-chip skill"><i class="jr-hex-dot"></i>${esc(s)}</span>`).join('')}
-                  </div>
-                </div>
-
-                <!-- Part 4 -->
-                <div class="jr-honey-part-card" id="jrAnatPart4">
-                  <div class="jr-part-head">
-                    <span class="jr-part-num">[04]</span>
-                    <div class="jr-part-title">
-                      <b>TELEMETRY COMB</b>
-                      <span class="jr-part-fa">شانه تله‌متری و پایش مصرف توکن</span>
-                    </div>
-                    <span class="jr-part-status">LIVE GAUGES</span>
-                  </div>
-                  <p class="jr-part-desc">نوار تله‌متری دقیق 4 پیکسلی در کف سلول؛ پایش گام‌به‌گام مصرف توکن، آهنگ فراخوانی توابع، زمان پاسخ‌دهی و پایش مدارهای بازخورد خطایابی (Regression Circuit Monitoring).</p>
-                  <div class="jr-part-metrics">
-                    <span><b>GAUGE:</b> STEP CONSUMPTION BAR</span>
-                    <span><b>TELEMETRY:</b> REAL-TIME SSE PACKETS</span>
-                  </div>
-                </div>
-
-                <!-- Part 5 -->
-                <div class="jr-honey-part-card" id="jrAnatPart5">
-                  <div class="jr-part-head">
-                    <span class="jr-part-num">[05]</span>
-                    <div class="jr-part-title">
-                      <b>BUS DOCKING PORTS</b>
-                      <span class="jr-part-fa">پورت‌های کوپلینگ باس داده</span>
-                    </div>
-                    <span class="jr-part-status">MANHATTAN 90°</span>
-                  </div>
-                  <p class="jr-part-desc">رأس‌های شش‌ضلعی چپ و راست سلول جهت اتصال مستقیم به خطوط باس متعامد 90 درجه منهتن. رأس سمت چپ ورودی بسته‌های فرمان از ارکستریتور و رأس سمت راست خروجی دلیوری محصولات کار به مراحل بعدی است.</p>
-                  <div class="jr-part-metrics">
-                    <span><b>INBOUND:</b> LEFT APEX (-98, 0)</span>
-                    <span><b>OUTBOUND:</b> RIGHT APEX (98, 0)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <svg viewBox="-76 -72 152 144" class="jr-anatomy" id="jrAnatomySvg" aria-label="Anatomy of an outlined agent node">
+              <polyline points="${openCorner(hexagon(CELL_RADIUS), CELL_GAP)}" class="jr-card-bg"/>
+              <path d="M 0 -65 V ${-CELL_RADIUS * Math.sqrt(3) / 2} M 0 ${CELL_RADIUS * Math.sqrt(3) / 2} V 65" class="jr-wire"/>
+              ${identityBadge(a, -46)}
+              <text x="0" y="-3" class="jr-card-name">${esc(fitCellText(short(a), '600 14px'))}</text>
+              <text x="0" y="13" class="jr-card-sub">${(a.tools || []).filter(tool => tool.kind !== 'agent').length} tools · ${skills.length} skills</text>
+              <polyline points="${openCorner(hexagon(4), 1)}" transform="translate(32 -28)" class="jr-card-led"/>
+              <path d="M ${-AGENT_BAR_WIDTH / 2} ${AGENT_BAR_Y} H 10" class="jr-anatomy-progress"/>
+              ${parts.map((part, i) => `<g class="jr-anat-pin" role="button" tabindex="0" data-part="${i + 1}"
+                aria-label="${part.name}" transform="translate(${part.x} ${part.y})">
+                <polygon class="jr-node-hit" points="${hexagon(8).join(' ')}"/>
+                <polyline points="${openCorner(hexagon(8), 1.5)}"/>
+                <text>${i + 1}</text>
+              </g>`).join('')}
+            </svg>
+            <ol class="jr-anatomy-parts">
+              ${parts.map((part, i) => `<li id="jrAnatPart${i + 1}"><strong>${part.name}</strong><span>${esc(part.detail)}</span></li>`).join('')}
+            </ol>
           `}
         </div>
       `;
@@ -819,7 +584,7 @@
 
       // Interactive pins in SVG schematic
       drawerEl.querySelectorAll('.jr-anat-pin').forEach(pin => {
-        pin.addEventListener('click', () => {
+        const reveal = () => {
           const partNum = pin.dataset.part;
           const targetCard = drawerEl.querySelector(`#jrAnatPart${partNum}`);
           if (targetCard) {
@@ -827,6 +592,12 @@
             targetCard.classList.add('highlight');
             setTimeout(() => targetCard.classList.remove('highlight'), 1500);
           }
+        };
+        pin.addEventListener('click', reveal);
+        pin.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          reveal();
         });
       });
     }
@@ -836,48 +607,37 @@
 
   /* ---------- Wireframe Minimap ---------- */
   function renderMinimap() {
-    if (!minimapSvg) return;
+    if (!minimapSvg || !width) return;
     minimapSvg.innerHTML = '';
-    const mw = 140, mh = 60;
-    const sx = mw / (width || 1), sy = mh / (height || 1);
-
-    stages.forEach(s => {
-      // Hexagonal stage marker in minimap
-      mk('polygon', {
-        points: hexPoints(4, true),
-        transform: `translate(${s.x * sx} ${s.y * sy})`,
-        fill: s.sun ? '#E60000' : '#444'
-      }, minimapSvg);
-      s.agents.forEach((a, r) => {
-        // Hexagonal agent card marker in minimap
-        mk('polygon', {
-          points: elongatedHexPoints(10, 5, 2),
-          transform: `translate(${s.x * sx} ${(ROW0 + r * ROW) * sy})`,
-          fill: '#222', stroke: '#444', 'stroke-width': 0.5
+    minimapSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    const points = openCorner(hexagon(CELL_RADIUS), CELL_GAP);
+    for (const stage of stages) {
+      for (const cell of [stage, ...stage.agents.map(agent => nodes[agent.name])]) {
+        const marker = mk('polyline', {
+          points, transform: `translate(${cell.x} ${cell.y})`,
+          class: cell.sun ? 'jr-mini-start' : 'jr-mini-node'
         }, minimapSvg);
-      });
-    });
+        if (cell.agent) setAgentColor(marker, cell.agent);
+      }
+    }
 
-    // Viewport Radar Frame
-    const vx = Math.max(0, -view.x / view.z * sx);
-    const vy = Math.max(0, -view.y / view.z * sy);
-    const vw = Math.min(mw, (svg.clientWidth / view.z) * sx);
-    const vh = Math.min(mh, (svg.clientHeight / view.z) * sy);
-
+    const left = Math.max(0, -view.x / view.z), top = Math.max(0, -view.y / view.z);
+    const right = Math.min(width, (svg.clientWidth - view.x) / view.z);
+    const bottom = Math.min(height, (svg.clientHeight - view.y) / view.z);
     mk('rect', {
-      class: 'jr-minimap-viewport',
-      x: vx, y: vy, width: vw, height: vh
+      class: 'jr-minimap-viewport', x: left, y: top,
+      width: Math.max(0, right - left), height: Math.max(0, bottom - top)
     }, minimapSvg);
   }
 
   /* ---------- 0 to 100 ruler ---------- */
   function renderRuler() {
     ruler.innerHTML = `<div class="jr-fill" id="jrFill"></div>` +
-      stages.map(s => `<button type="button" class="jr-cell" data-i="${s.i}" title="Go to ${esc(s.label)}"><b>${s.pct}</b><span>${esc(s.label)}</span></button>`).join('');
+      stages.map(s => `<button type="button" class="jr-cell" data-i="${s.i}" title="Go to ${esc(s.label)}"><b>${esc(s.label)}</b><span>${s.pct}%</span></button>`).join('');
     fill = ruler.querySelector('#jrFill');
     ruler.querySelectorAll('.jr-cell').forEach(b => {
       const s = stages[+b.dataset.i];
-      b.onclick = () => center(s.x);
+      b.onclick = () => center(s.x, s.y);
       b.onpointerenter = () => hover({stage: s, agent: s.sun ? agents.find(a => a.orchestrator) : null});
       b.onpointerleave = () => hover(null);
     });
@@ -894,7 +654,11 @@
     const running = [...live.keys()].length > 0;
     fill.style.width = top < 0 ? '0' : `${(top + 1) / stages.length * 100}%`;
     fill.classList.toggle('run', running);
-    ruler.querySelectorAll('.jr-cell').forEach((b, i) => b.classList.toggle('reached', i <= top));
+    ruler.querySelectorAll('.jr-cell').forEach((b, i) => {
+      b.classList.toggle('reached', i <= top);
+      if (i === Math.max(0, top)) b.setAttribute('aria-current', 'step');
+      else b.removeAttribute('aria-current');
+    });
   }
 
   /* ---------- camera ---------- */
@@ -928,9 +692,10 @@
     if (!svg?.clientWidth || !width) return;
     const w = svg.clientWidth, h = svg.clientHeight;
     view.auto = !whole;
-    view.z = whole ? Math.min(w / width, h / height, 1.4) : Math.max(.62, Math.min(h / height, 1.1));
-    if (w / width > view.z) view.z = Math.min(w / width, 1.4);
-    view.x = 0; view.y = 0;
+    const scale = Math.min(w / width, h / height, 1.4);
+    view.z = whole ? scale : Math.max(.62, scale);
+    view.x = Math.max(0, (w - width * view.z) / 2);
+    view.y = Math.max(0, (h - height * view.z) / 2);
     clampView();
   }
 
@@ -942,8 +707,9 @@
     clampView();
   }
 
-  function center(wx) {
+  function center(wx, wy) {
     view.x = svg.clientWidth / 2 - wx * view.z;
+    view.y = svg.clientHeight / 2 - wy * view.z;
     view.auto = false;
     clampView();
   }
@@ -955,14 +721,15 @@
       done.delete(name);
       n?.el?.classList.remove('done');
       n?.el?.classList.add('active');
-      if (n?.ledEl) n.ledEl.setAttribute('fill', '#E60000');
+      n?.barEl?.setAttribute('width', '0');
+      if (n?.tickerEl) n.tickerEl.textContent = '';
       if (!live.has(name) && n) live.set(name, drawRoutes(liveLayer, [routeFor(n)], 'live'));
     } else {
       live.get(name)?.remove();
       live.delete(name);
       n?.el?.classList.remove('active');
       n?.el?.classList.add('done');
-      if (n?.ledEl) n.ledEl.setAttribute('fill', '#00E676');
+      if (n?.tickerEl) n.tickerEl.textContent = '';
       done.add(name);
     }
     updateFill();
@@ -979,9 +746,9 @@
   function setCalls(name, count) {
     calls[name] = count;
     const n = nodes[name];
-    if (n?.callsEl) {
-      const tools = (n.agent.tools || []).filter(t => t.kind !== 'agent').length;
-      n.callsEl.textContent = `${tools} tools · ${count} calls`;
+    if (n?.metricEl) {
+      n.metricEl.classList.remove('jr-m-skills');
+      n.metricEl.textContent = `${count} calls`;
     }
   }
 
@@ -989,7 +756,7 @@
     steps[name] = {step, max};
     const n = nodes[name];
     if (n?.barEl && max > 0) {
-      const pct = Math.min(168, Math.max(10, (step / max) * 168));
+      const pct = Math.max(0, Math.min(1, step / max)) * AGENT_BAR_WIDTH;
       n.barEl.setAttribute('width', String(pct));
     }
   }
@@ -997,7 +764,7 @@
   function setLiveTicker(name, text) {
     const n = nodes[name];
     if (n?.tickerEl) {
-      n.tickerEl.textContent = text.slice(0, 22);
+      n.tickerEl.textContent = fitCellText(text, '11px');
     }
   }
 
@@ -1013,12 +780,16 @@
     done.forEach(name => {
       const n = nodes[name];
       n?.el?.classList.remove('done');
-      if (n?.ledEl) n.ledEl.setAttribute('fill', '#333');
+      n?.barEl?.setAttribute('width', '0');
+      if (n?.callsEl) {
+        const tools = (n.agent.tools || []).filter(tool => tool.kind !== 'agent').length;
+        n.callsEl.textContent = `${tools} tools · ${(n.agent.skills || []).length} skills`;
+      }
     });
     done.clear();
     if (nodes._loopTrack) {
       nodes._loopTrack.el.classList.remove('active');
-      nodes._loopTrack.txt.textContent = 'FEEDBACK CIRCUIT';
+      nodes._loopTrack.txt.textContent = 'Feedback';
     }
     updateFill();
   }
@@ -1027,21 +798,22 @@
   function init(root) {
     host = root;
     host.innerHTML = `
-      <div class="jr-ruler" id="jrRuler" role="group" aria-label="Journey from 0 to 100"></div>
-      <svg class="jr-svg" id="jrSvg" aria-label="Agent mesh"><g id="jrWorld"></g></svg>
-      <div class="jr-info" id="jrInfo" aria-live="polite"></div>
-      <div class="jr-minimap-wrap" id="jrMinimapWrap">
-        <div class="jr-minimap-modes">
-          <button class="btn on" data-mode="macro">[1] Macro</button>
-          <button class="btn" data-mode="telemetry">[2] Telemetry</button>
-          <button class="btn" data-mode="diff">[3] Handoff</button>
+      <div class="jr-canvas">
+        <svg class="jr-svg" id="jrSvg" aria-label="Agent mesh"><g id="jrWorld"></g></svg>
+        <div class="jr-info" id="jrInfo" aria-live="polite"></div>
+        <div class="jr-minimap-wrap" id="jrMinimapWrap">
+          <div class="jr-minimap-modes">
+            <button type="button" class="btn on" data-mode="macro" aria-pressed="true">Overview</button>
+            <button type="button" class="btn" data-mode="telemetry" aria-pressed="false">Telemetry</button>
+            <button type="button" class="btn" data-mode="diff" aria-pressed="false">Handoff</button>
+          </div>
+          <svg class="jr-minimap" id="jrMinimap"></svg>
         </div>
-        <svg class="jr-minimap" id="jrMinimap"></svg>
+        <div class="jr-agent-drawer hidden" id="jrAgentDrawer" style="display:none" hidden></div>
       </div>
-      <div class="jr-agent-drawer hidden" id="jrAgentDrawer" style="display:none" hidden></div>
     `;
 
-    ruler = host.querySelector('#jrRuler');
+    ruler = document.getElementById('jrRuler');
     svg = host.querySelector('#jrSvg');
     world = host.querySelector('#jrWorld');
     info = host.querySelector('#jrInfo');
@@ -1078,8 +850,10 @@
     // Minimap View Modes
     host.querySelectorAll('.jr-minimap-modes button').forEach(btn => {
       btn.onclick = () => {
-        host.querySelectorAll('.jr-minimap-modes button').forEach(b => b.classList.remove('on'));
-        btn.classList.add('on');
+        host.querySelectorAll('.jr-minimap-modes button').forEach(button => {
+          button.classList.toggle('on', button === btn);
+          button.setAttribute('aria-pressed', String(button === btn));
+        });
         activeViewMode = btn.dataset.mode;
         if (activeViewMode === 'macro') fit(true);
         else if (activeViewMode === 'telemetry') zoomTo(1.3);
@@ -1090,8 +864,8 @@
       };
     });
 
-    document.querySelectorAll('.mesh-bar [data-layer]').forEach(b => b.onclick = () => {
-      const on = b.classList.toggle('on');
+    document.querySelectorAll('.mesh-layer-controls [data-layer]').forEach(b => b.onclick = () => {
+      const on = b.getAttribute('aria-pressed') !== 'true';
       b.setAttribute('aria-pressed', String(on));
       svg.classList.toggle('no-' + b.dataset.layer, !on);
     });
@@ -1178,14 +952,10 @@
     // Minimap quick-jump navigation
     if (minimapSvg) {
       minimapSvg.addEventListener('pointerdown', e => {
-        const r = minimapSvg.getBoundingClientRect();
-        const mw = 140, mh = 60;
-        const mx = (e.clientX - r.left) / mw;
-        const my = (e.clientY - r.top) / mh;
-        view.x = svg.clientWidth / 2 - mx * width * view.z;
-        view.y = svg.clientHeight / 2 - my * height * view.z;
-        view.auto = false;
-        clampView();
+        const matrix = minimapSvg.getScreenCTM();
+        if (!matrix) return;
+        const {x, y} = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse());
+        center(Math.max(0, Math.min(width, x)), Math.max(0, Math.min(height, y)));
       });
     }
 
@@ -1220,6 +990,7 @@
     setCalls,
     setStep,
     setLiveTicker,
+    setGates,
     onRetry,
     resetRun,
     fit,

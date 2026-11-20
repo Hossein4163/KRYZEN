@@ -179,7 +179,7 @@ class HTTPVibeTests(unittest.TestCase):
         self.temp.cleanup()
 
     def request(self, path, body=None, headers=None):
-        h = {"X-Jarvis": "1", "Origin": "http://127.0.0.1:8770", **(headers or {})}
+        h = {"X-Jarvis": "1", **(headers or {})}
         if body is not None:
             h["Content-Type"] = "application/json"
         data = json.dumps(body).encode() if body is not None else None

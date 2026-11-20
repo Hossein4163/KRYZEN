@@ -2,7 +2,6 @@
 import copy
 import json
 from pathlib import Path
-import shutil
 import sys
 import tempfile
 import unittest
@@ -15,6 +14,7 @@ import mesh
 import studio
 from projectdata import continuation, parse_tasks, revision
 from test_reliability import pc
+from vaultnotes import write_note
 
 
 class ContinuationTests(unittest.TestCase):
@@ -53,8 +53,7 @@ class ContinuationTests(unittest.TestCase):
             jobs = {"mine":{"proc":Process(),"cmd":["build"],"cwd":str(project/"src"),"started":1},
                     "other":{"proc":Process(),"cmd":["other"],"cwd":str(root/"another-project"),"started":2}}
             with patch.object(pc,"WORKSPACE",root), patch.object(pc,"PROTECTED",[]), patch.object(pc,"JOBS",jobs), \
-                 patch.object(pc,"_archived_jobs",return_value={}), patch.object(pc.subprocess,"run") as run:
-                run.return_value.stdout = ""
+                 patch.object(pc,"_archived_jobs",return_value={}), patch.object(pc,"git_command",return_value={"stdout": ""}):
                 result = pc.h_project_resume({"slug":"test-project"})
             self.assertEqual(result["continuation"]["running_job_ids"], ["mine"])
 
@@ -84,13 +83,20 @@ class ProjectCreationTests(unittest.TestCase):
 
 
 class CapabilityPackTests(unittest.TestCase):
+    def seed_base_team(self, notes):
+        for order, label in enumerate(("Orchestrator", "Research", "Reference", "Planner", "Build", "QA")):
+            name = "DevPilot Orchestrator" if label == "Orchestrator" else label + " Agent"
+            file = "Orchestrator.md" if label == "Orchestrator" else name + ".md"
+            write_note(notes / file, {"agent": name, "label": label, "order": order, "color": "gray",
+                                     "model": "agy/auto", "max_iterations": 10, "role": label,
+                                     "tools": ["think"], "skills": []}, name, "",
+                       [("Prompt", f"Work as {label}"), ("Description", label)])
+
     def test_install_preserves_customizations_and_is_repeatable(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             notes = root/"Agents"
-            shutil.copytree(mesh.AGENT_NOTES,notes)
-            for label,*_ in capability_pack.ROLES:
-                (notes/(label+" Agent.md")).unlink(missing_ok=True)
+            self.seed_base_team(notes)
             (root/"Flows").mkdir()
             canvas = {"nodes":[{"id":"custom","type":"text","x":10,"y":20,"width":200,"height":100,"text":"Keep my instructions","custom":True},
                               {"id":"lead","type":"file","file":"_DevPilot/Agents/Orchestrator.md","x":0,"y":200,"width":200,"height":100}],"edges":[],"extension":"preserve"}
@@ -112,9 +118,7 @@ class CapabilityPackTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             notes = root/"Agents"
-            shutil.copytree(mesh.AGENT_NOTES,notes)
-            for label,*_ in capability_pack.ROLES:
-                (notes/(label+" Agent.md")).unlink(missing_ok=True)
+            self.seed_base_team(notes)
             original = {path.name:path.read_bytes() for path in notes.glob("*.md")}
             with patch.object(mesh,"SYS",root),patch.object(mesh,"AGENT_NOTES",notes),patch.object(mesh,"rebuild",return_value={"ok":False,"output":"broken"}):
                 with self.assertRaises(RuntimeError): capability_pack.install()

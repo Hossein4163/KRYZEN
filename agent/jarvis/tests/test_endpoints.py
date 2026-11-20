@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import codetools
+import runtime_settings
+from engine import pc_bridge
 import server
 
 
@@ -28,6 +30,10 @@ class ApiEndpointsTests(unittest.TestCase):
 
         self.orig_workspace = codetools.WORKSPACE
         codetools.WORKSPACE = str(self.workspace)
+        for patcher in (patch.object(pc_bridge, "WORKSPACE", self.workspace),
+                        patch.object(runtime_settings, "FILE", self.workspace / "runtime.json")):
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def tearDown(self):
         codetools.WORKSPACE = self.orig_workspace
@@ -71,7 +77,8 @@ class ApiEndpointsTests(unittest.TestCase):
         self.assertEqual(st2.get("current_branch"), "agent/test-feat")
 
         # Merge approval
-        m_res = codetools.merge_change_branch(self.slug, "agent/test-feat", approve=True)
+        verified = codetools.verify_change_branch(self.slug, lambda: {"ok": True})
+        m_res = codetools.merge_change_branch(self.slug, "agent/test-feat", approve=True, commit=verified["verified_commit"])
         self.assertTrue(m_res.get("ok"))
         self.assertTrue(m_res.get("merged"))
 

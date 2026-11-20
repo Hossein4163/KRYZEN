@@ -9,7 +9,7 @@
   await wait(()=>!runBusy&&!sending,'Parallel fixture did not finish');
   await jarvisExecution.refresh();
   check(jarvisExecution.state.nodes.length===3,'Saved graph lost task nodes');
-  check(jarvisExecution.state.nodes.every(n=>['completed','reused'].includes(n.state)),'Task graph did not complete');
+  check(jarvisExecution.state.nodes.every(n=>['completed','reused'].includes(n.state)), 'Task graph did not complete: ' + JSON.stringify(jarvisExecution.state.nodes));
   check(q('#pExecution').classList.contains('on'),'Live graph did not open the Tasks pane');
   const first=await api('/api/execution?slug=example-project');
   const records=Object.values(first.tasks);

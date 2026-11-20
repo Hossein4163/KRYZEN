@@ -3,36 +3,49 @@
 import {$, api, ago, currentProject, esc, onEvent, shortAgent, toast} from "./core.js";
 
 // ------------------------------------------------------------------ composer attachments
-const attached = [];   // [{id, url, w, h}]
-let strip = null;
+const attached = [];
+let strip = null, uploading = 0;
 
 function renderStrip() {
   if (!strip) return;
   strip.hidden = !attached.length;
-  strip.innerHTML = attached.map((a, i) => `<span class="kz-att"><img src="${esc(a.url)}" alt="Attached image ${i + 1}">
-    <button type="button" data-rm="${i}" aria-label="Remove image ${i + 1}">×</button></span>`).join("") +
-    (attached.length ? `<span class="kz-att-note">${attached.length} image${attached.length > 1 ? "s" : ""} will be sent with your message</span>` : "");
+  strip.innerHTML = attached.map((image, i) => `<span class="kz-att"><img src="${esc(image.url)}" alt="Attached image ${i + 1}">
+    <button type="button" data-rm="${i}" aria-label="Remove image ${i + 1}"><i class="icon-x" aria-hidden="true"></i></button></span>`).join("");
+  $("#attachmentStatus").textContent = uploading ? (uploading === 1 ? "Uploading image…" : `Uploading ${uploading} images…`) : "";
+  window.dispatchEvent(new Event("kryzen:attachment-state"));
 }
 
-export async function attachData(dataUrl) {
-  if (attached.length >= 6) return toast("Up to 6 images per message", "err");
-  const r = await api("/api/upload-image", {data: dataUrl});
-  if (!r.ok) return toast(r.error || "Could not attach the image", "err");
-  attached.push({id: r.id, url: r.url, w: r.width, h: r.height}); renderStrip();
+async function uploadImage(payload) {
+  if (attached.length + uploading >= 6) {
+    toast("Up to 6 images per message", "err");
+    return false;
+  }
+  uploading++;
+  renderStrip();
+  try {
+    const result = await api("/api/upload-image", payload);
+    if (!result.ok) {
+      toast(result.error || "Could not attach the image", "err");
+      return false;
+    }
+    if (!attached.some(image => image.id === result.id)) attached.push({id: result.id, url: result.url});
+    return true;
+  } finally {
+    uploading--;
+    renderStrip();
+  }
 }
+export function attachData(data) { return uploadImage({data}); }
 export async function attachProjectImage(slug, path) {
-  if (attached.length >= 6) return toast("Up to 6 images per message", "err");
-  const r = await api("/api/upload-image", {slug, path});
-  if (!r.ok) return toast(r.error || "Could not attach the image", "err");
-  attached.push({id: r.id, url: r.url, w: r.width, h: r.height}); renderStrip();
-  toast("Image attached to your next message", "ok");
+  if (await uploadImage({slug, path}) && !strip?.getClientRects().length) toast("Image attached to your next message", "ok");
 }
 const readFile = file => new Promise((ok, bad) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = bad; fr.readAsDataURL(file); });
 async function attachFiles(files) {
   for (const f of files) {
     if (!f.type.startsWith("image/")) { toast(`${f.name} is not an image`, "err"); continue; }
     if (f.size > 12e6) { toast(`${f.name} is larger than 12 MB`, "err"); continue; }
-    await attachData(await readFile(f));
+    try { await attachData(await readFile(f)); }
+    catch (error) { toast(`Could not read ${f.name}: ${error.message || "read failed"}`, "err"); }
   }
 }
 
@@ -49,24 +62,30 @@ export async function shareScreen() {
     const c = document.createElement("canvas");
     c.width = video.videoWidth; c.height = video.videoHeight;
     c.getContext("2d").drawImage(video, 0, 0);
-    await attachData(c.toDataURL("image/png"));
-    toast("Screen captured and attached", "ok");
+    if (await attachData(c.toDataURL("image/png"))) toast("Screen captured and attached", "ok");
   } finally { stream.getTracks().forEach(t => t.stop()); }
 }
 
 function mountComposer() {
   const form = $("#form"), input = $("#input");
   if (!form || form.querySelector(".kz-compose-tools")) return;
-  strip = document.createElement("div"); strip.className = "kz-att-strip"; strip.hidden = true;
-  form.parentNode.insertBefore(strip, form);
-  strip.addEventListener("click", e => { const b = e.target.closest("[data-rm]"); if (b) { attached.splice(+b.dataset.rm, 1); renderStrip(); } });
+  strip = $("#attachmentStrip");
+  strip.addEventListener("click", event => {
+    const button = event.target.closest("[data-rm]");
+    if (!button) return;
+    const index = Number(button.dataset.rm);
+    attached.splice(index, 1);
+    renderStrip();
+    (strip.querySelectorAll("button")[Math.min(index, attached.length - 1)] || $("#input")).focus({preventScroll: true});
+  });
   const tools = document.createElement("div"); tools.className = "kz-compose-tools";
   tools.innerHTML = `<button type="button" class="kz-icon" data-act="file" title="Attach images (or paste / drop them)" aria-label="Attach images">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.6 8.6a5 5 0 01-7.1-7.1l9.2-9.2a3.4 3.4 0 014.8 4.8l-9.2 9.2a1.7 1.7 0 01-2.4-2.4l8.5-8.5"/></svg></button>
     <button type="button" class="kz-icon" data-act="screen" title="Share your screen (one snapshot is attached)" aria-label="Share screen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M12 7v6M9.5 9.5L12 7l2.5 2.5"/></svg></button>
     <input type="file" accept="image/*" multiple hidden>`;
-  form.insertBefore(tools, form.firstChild);
+  form.querySelector(".composer-tools").prepend(tools);
+  renderStrip();
   const fileInput = tools.querySelector("input");
   tools.querySelector('[data-act="file"]').onclick = () => fileInput.click();
   tools.querySelector('[data-act="screen"]').onclick = shareScreen;
@@ -89,7 +108,14 @@ function mountComposer() {
 window.kryzenAttach = {
   peek: () => attached.map(a => a.id),
   urls: () => attached.map(a => a.url),
-  clear: () => { attached.length = 0; renderStrip(); },
+  uploading: () => uploading > 0,
+  removeSent: ids => {
+    const sent = new Set(ids);
+    for (let i = attached.length - 1; i >= 0; i--) {
+      if (sent.delete(attached[i].id)) attached.splice(i, 1);
+    }
+    renderStrip();
+  },
 };
 
 // ------------------------------------------------------------------ sharing helpers
@@ -151,18 +177,19 @@ export async function renderGallery(body) {
     <form class="kz-shotbar" id="kzShotForm"><input class="kz-input" id="kzShotUrl" value="${esc(pv)}" aria-label="Page address" placeholder="http://localhost:5173">
       <button class="kz-btn primary">Take screenshot</button><span class="kz-muted">Captures the page into the project gallery. Finished project runs add one automatically when the app is running.</span></form>
     <div class="kz-gallery" id="kzGallery"><div class="kz-empty">Loading…</div></div></section>`;
+  const g = body.querySelector("#kzGallery");
   const load = async () => {
     const r = await api("/api/screenshots?slug=" + encodeURIComponent(slug));
-    const g = $("#kzGallery");
+    if (!g.isConnected) return;
     if (r.error) { g.innerHTML = `<div class="kz-empty" role="alert">${esc(r.error)}</div>`; return; }
     g.innerHTML = (r.shots || []).map((s, i) => `<figure class="kz-shot" data-i="${i}"><img src="${esc(shotUrl({...s, slug}))}" alt="${esc(s.name)}" loading="lazy">
       <figcaption><b>${esc(s.kind === "finished" ? "Finished run" : s.kind === "agent" ? shortAgent(s.agent) : s.name.includes("diff") ? "Visual diff" : "Screenshot")}</b><span>${ago(s.t)} · ${esc(s.url || s.name)}</span></figcaption>
       ${shotActions({...s, slug}, shotUrl({...s, slug}))}</figure>`).join("") || '<div class="kz-empty">No screenshots yet.</div>';
     g.querySelectorAll("figure").forEach(f => { const s = {...r.shots[+f.dataset.i], slug}; wireShot(f, s, shotUrl(s), s.name); });
   };
-  $("#kzShotForm").onsubmit = async e => {
+  body.querySelector("#kzShotForm").onsubmit = async e => {
     e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "Capturing…";
-    const r = await api("/api/screenshot", {slug, url: $("#kzShotUrl").value.trim(), label: "manual"});
+    const r = await api("/api/screenshot", {slug, url: body.querySelector("#kzShotUrl").value.trim(), label: "manual"});
     b.disabled = false; b.textContent = "Take screenshot";
     r.ok ? (toast("Screenshot saved", "ok"), load()) : toast(r.error, "err");
   };

@@ -250,7 +250,7 @@ class BridgeTests(unittest.TestCase):
         state = self.project / ".devpilot"
         state.mkdir()
         (state / "journal.jsonl").write_text('{"tool":"saved"}\n{"partial":')
-        with patch.object(pc.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")):
+        with patch.object(pc, "git_command", return_value={"stdout": ""}):
             result = pc.h_project_resume({"slug": "example-project"})
         self.assertEqual(result["plan_progress"], "1/3 tasks done")
         self.assertEqual(len(result["next_open_tasks"]), 2)

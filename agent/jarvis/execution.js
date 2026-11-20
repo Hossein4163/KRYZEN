@@ -38,7 +38,11 @@
     })).join('');
   }
   function render(){
-    const active=state.nodes.filter(n=>n.state==='running').length;document.getElementById('executionBtn').textContent='Tasks'+(active?' · '+active:'');
+    const active = state.nodes.filter(node => node.state === 'running').length;
+    const taskCount = document.getElementById('activeTaskCount');
+    taskCount.textContent = active;
+    taskCount.hidden = active === 0;
+    taskCount.parentElement.setAttribute('aria-label', active ? `Tasks, ${active} active` : 'Tasks');
     const roots=[panel,...(dialog?[dialog.querySelector('.execution-dialog-body')]:[])];
     for(const root of roots){if(!root)continue;const scroll=root.querySelector('.execution-scroll'),x=scroll?.scrollLeft||0,y=scroll?.scrollTop||0,opened=new Set([...root.querySelectorAll('.execution-node:has(details[open])')].map(n=>n.dataset.executionNode));root.innerHTML=graphMarkup(root!==panel);
       root.querySelector('[data-execution-open]')?.addEventListener('click',()=>root===panel?openDialog():dialog.close());

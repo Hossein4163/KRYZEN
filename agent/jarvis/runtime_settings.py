@@ -4,6 +4,7 @@ Stored next to the other studio settings in the vault (`_DevPilot/kryzen-runtime
 updates and can be edited from the Home dashboard.
 """
 import json
+import os
 import threading
 
 import mesh
@@ -14,7 +15,6 @@ DEFAULTS = {
     # Model Provider & API
     "active_provider": "auto",                        # auto | openai | ollama | agy
     "openai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-    "openai_api_key": "",                             # API key (masked in UI responses)
     "ollama_base_url": "http://127.0.0.1:11434",
     # Role-Based Model Tiers
     "tier_reasoning": "gemini-3.8-flash",             # Orchestrator, Architect, QA
@@ -22,7 +22,6 @@ DEFAULTS = {
     "tier_compact": "gemini-3-flash",                 # diet.py, brain.py memory extraction
     "small_model": "agy/gemini-3.8-flash",            # Antigravity CLI model
     # Security & Execution Boundaries
-    "agy_skip_permissions": False,                    # strict permissions by default
     "isolated_agent_box": False,                      # run agent edits in isolated box
     "branch_per_change": False,                       # commit changes to own branch & merge upon user approval
     # Browser Automation Engine (Obscura V8 / Agent-Browser)
@@ -30,8 +29,8 @@ DEFAULTS = {
     "obscura_path": "/usr/local/bin/obscura",         # path to obscura binary
     "obscura_stealth": True,                          # enable stealth mode (TLS impersonation, tracker blocking)
     # Network & Tailscale
-    "allow_tailscale": True,                          # allow access from *.ts.net and 100.64.0.0/10
-    "allow_lan": True,                                # allow access from 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
+    "allow_tailscale": False,                          # allow access from *.ts.net and 100.64.0.0/10
+    "allow_lan": False,                                # allow access from 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
     "tailscale_serve": False,                         # enable tailscale serve background proxy
     "custom_allowed_hosts": "",                       # comma-separated extra hostnames/IPs
     # Budgets & Execution
@@ -66,9 +65,14 @@ def get(mask_secrets=False):
     except (OSError, ValueError):
         data = {}
     out = {**DEFAULTS, **{k: v for k, v in data.items() if k in DEFAULTS}}
-    if mask_secrets and out.get("openai_api_key"):
-        out["openai_api_key"] = "••••••••"
+    if mask_secrets:
+        out["provider_key_configured"] = bool(provider_key())
+        out["legacy_provider_key"] = bool(data.get("openai_api_key"))
     return out
+
+
+def provider_key():
+    return next((os.environ[key] for key in ("OPENAI_API_KEY", "GEMINI_API_KEY", "NIM_KEY") if os.environ.get(key)), "")
 
 
 def save(changes):
@@ -109,10 +113,6 @@ def save(changes):
                 if key == "obscura_path" and not value:
                     errors.append("obscura_path cannot be empty")
                     continue
-                if key == "openai_api_key":
-                    # If masked or blank, preserve existing key
-                    if value == "••••••••" or (not value and cur.get("openai_api_key")):
-                        continue
                 if key in ("openai_base_url", "ollama_base_url") and value:
                     if not value.startswith(("http://", "https://")):
                         errors.append(f"{key} must start with http:// or https://")

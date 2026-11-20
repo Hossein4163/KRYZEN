@@ -7,7 +7,6 @@ import json
 import random
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -28,7 +27,12 @@ from test_reliability import pc
 class FixtureEngine(engine.Engine):
     def __init__(self, emit, project="", **_kw):
         self.emit, self.project = emit, project
+        self.trace = _kw.get("trace")
+        self.budget = engine.diet.Budget(0, 0)
         self.stop, self.paused, self.pause_requested = threading.Event(), threading.Event(), threading.Event()
+
+    def request_stop(self):
+        self.stop.set()
 
     def respond(self, text, history):
         self.emit({"type": "agent_start", "agent": engine.ORCHESTRATOR, "depth": 0, "task": text})
@@ -53,6 +57,10 @@ class FixtureEngine(engine.Engine):
             tasks=[{'id':name,'agent':'Build Agent','task':'Fixture source branch '+name,'revision':'1','files':['src/parallel-'+name+'.txt'],'reads':[],'depends_on':deps} for name,deps in [('A',[]),('B',[]),('C',['A','B'])]]
             result=runner.parallel_tasks(tasks)
             return 'Fixture task graph '+result['state']+'. '+str(len(result['tasks']))+' tasks saved.'
+        if "wait for gate" in text:
+            self.stages = {"Build Agent": "build"}
+            self.wait_for_stage("Build Agent")
+            return "Gate released."
         if "fast" in text:
             self.emit({"type": "token", "agent": engine.ORCHESTRATOR, "text": "Fast reply verified."})
             return "Fast reply verified."
@@ -78,6 +86,11 @@ def main(port):
         control.ROOTS = {"vault": vault, "jarvis": root / "jarvis", "builder": root / "workflow"}
         for p in control.ROOTS.values(): p.mkdir(exist_ok=True)
         pc.WORKSPACE, pc.PROTECTED, pc.HERE, pc.JOBS = root, [vault, root / ".obsidian"], root / "bridge", {}
+        pc.HOME = root
+        server.codetools.WORKSPACE = str(root)
+        server.project_logic.WORKSPACE = str(root)
+        server.runtime_settings.FILE = vault / "kryzen-runtime.json"
+        server.engine.WORKFLOW_FILE = vault / "ai-dev-agent.json"
         pc.HERE.mkdir()
         pc.TEMPLATE_DIR = vault / "Templates" / "project"
         for slug in ("example-project", "other-project"):
@@ -109,6 +122,7 @@ def main(port):
         server.SESSIONS = root / "sessions"
         server.SESSIONS.mkdir()
         server.engine.Engine = FixtureEngine
+        threading.Thread(target=server.housekeeping, daemon=True).start()
         def bridge(path, body):
             body = dict(body)
             for key in ("path", "cwd"):
@@ -118,22 +132,24 @@ def main(port):
                         body[key] = str(root) + value[len(prefix):]
                         break
             if path == "/shell":
-                cwd = pc.resolve(body.get("cwd"))
-                result = subprocess.run(["sh", "-c", body["cmd"]], cwd=cwd, text=True, capture_output=True, timeout=10)
-                return {"stdout": result.stdout, "stderr": result.stderr, "exit_code": result.returncode}
+                return pc.h_shell(body)
             try:
                 return pc.ROUTES[path](body)
             except Exception as error:
                 return {"error": f"{type(error).__name__}: {error}"}
         server.bridge = bridge
-        server.PORT = port
         class FixtureHandler(server.Handler):
+            def log_message(self, fmt, *args):
+                return
+
             def do_GET(self):
                 if self.path == "/api/fixture":
                     return self.send(200, {"fixture": True})
                 return super().do_GET()
-        print(json.dumps({"url": f"http://127.0.0.1:{port}", "root": str(root)}), flush=True)
-        server.ThreadingHTTPServer(("127.0.0.1", port), FixtureHandler).serve_forever()
+        with server.ThreadingHTTPServer(("127.0.0.1", port), FixtureHandler) as http:
+            control.SERVICES["jarvis"]["health"] = f"http://127.0.0.1:{http.server_port}/health"
+            print(json.dumps({"url": f"http://127.0.0.1:{http.server_port}", "root": str(root)}), flush=True)
+            http.serve_forever()
 
 
 if __name__ == "__main__":
