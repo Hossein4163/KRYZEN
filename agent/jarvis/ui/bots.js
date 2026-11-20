@@ -588,9 +588,12 @@ export async function refresh(force = false) {
 // Subscribe to mode change
 onMode(mode => {
   if (mode === "bots") {
+    if (bots.length > 0) shell();
     refresh();
   }
 });
 
 // Initial load
-refresh();
+refresh().then(() => {
+  if (activeMode() === "bots") shell();
+});

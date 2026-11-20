@@ -2,7 +2,7 @@
 import {$, esc, fmtMs, fmtTokens, onEvent, setMode, shortAgent} from "./core.js";
 import "./review.js";
 import "./dashboard.js?v=3.1";
-import "./bots.js?v=3.1";
+import "./bots.js?v=3.2";
 import "./trace.js";
 import "./palette.js?v=3.1";
 import "./runstatus.js";

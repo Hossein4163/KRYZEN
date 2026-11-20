@@ -6,7 +6,7 @@ export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;",
 
 export async function api(path, body) {
   if (typeof window.api === "function") return window.api(path, body);
-  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json", "X-Jarvis": "1"}, body: JSON.stringify(body)} : {});
+  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json", "X-Jarvis": "1"}, body: JSON.stringify(body)} : {headers: {"X-Jarvis": "1"}});
   return r.json();
 }
 export async function text(path) {

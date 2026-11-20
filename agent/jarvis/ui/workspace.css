@@ -474,8 +474,8 @@
 .vibe-chevron { width: 7px; height: 7px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
 #vibeDeckToggle[aria-expanded="true"] .vibe-chevron { transform: rotate(225deg); }
 
-#homeView { --workspace-gutter: clamp(20px, 4vw, 56px); }
-#homeView .kz-pad { max-width: 1200px; margin-inline: auto; }
+#homeView, #botsView { --workspace-gutter: clamp(20px, 4vw, 56px); }
+#homeView .kz-pad, #botsView .kz-pad { max-width: 1400px; margin-inline: auto; }
 .workspace-heading { margin: 0 var(--workspace-gutter); padding-top: 25px; border-bottom: 1px solid var(--rule); }
 .workspace-heading h1 { margin: 0 0 12px; color: var(--soft); font-size: 15px; font-weight: 650; }
 #homeView .kz-tabs { flex-wrap: wrap; gap: 0 20px; padding: 0; margin: 0; border: 0; }
